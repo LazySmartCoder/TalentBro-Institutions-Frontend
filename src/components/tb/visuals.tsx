@@ -533,16 +533,16 @@ export function OfficerDashboard() {
       className="shadow-[var(--shadow-lift)]"
     >
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <div className="grid gap-4">
+        <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat value="1,000" label="Cohort size" />
             <Stat value="74" label="Avg readiness" />
             <Stat value="86%" label="Mock participation" />
             <Stat value="232" label="At risk" />
           </div>
-          <div className="rounded-lg border border-border p-3">
+          <div className="flex flex-1 flex-col rounded-lg border border-border p-3">
             <div className="eyebrow">Department analytics · avg readiness</div>
-            <div className="mt-3 flex h-28 items-end gap-2">
+            <div className="mt-3 flex h-28 flex-1 items-end gap-2">
               {[81, 72, 64, 69, 58, 77].map((v, i) => (
                 <div key={i} className="flex h-full flex-1 flex-col items-center gap-2">
                   <Bar v={v} i={i} />
