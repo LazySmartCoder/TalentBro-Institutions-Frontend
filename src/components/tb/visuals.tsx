@@ -270,7 +270,7 @@ export function SkillRadar() {
   const poly = SKILLS.map(([, v], i) => pt(i, v / 100).join(",")).join(" ");
   return (
     <Panel label="ai skill mapping · radar">
-      <svg viewBox="0 0 260 250" className="w-full">
+      <svg viewBox="0 0 260 250" className="mx-auto w-full max-w-[360px]">
         {[0.25, 0.5, 0.75, 1].map((f) => (
           <polygon
             key={f}
