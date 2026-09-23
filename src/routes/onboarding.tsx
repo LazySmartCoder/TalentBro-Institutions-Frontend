@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import * as Tesseract from "tesseract.js";
+import type * as Tesseract from "tesseract.js";
 import {
   ArrowRight,
   BookOpen,
@@ -604,23 +604,24 @@ function IdVerificationStep({
     };
   }, []);
 
-  function getWorker(): Promise<Tesseract.Worker> {
+  async function getWorker(): Promise<Tesseract.Worker> {
     if (!workerRef.current) {
-      workerRef.current = Tesseract.createWorker("eng", Tesseract.OEM.LSTM_ONLY, {
-        logger: (m: Tesseract.LoggerMessage) => {
-          const side = readingSideRef.current;
-          const progress = m.progress;
-          if (m.status === "recognizing text" && progress >= 0 && progress <= 1) {
-            if (side === "front") setFront((s) => ({ ...s, progress }));
-            else if (side === "back") setBack((s) => ({ ...s, progress }));
-          }
-        },
-      }).then((worker) => {
-        void worker
-          .setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT })
-          .catch(() => {});
-        return worker;
-      });
+      const mod = await import("tesseract.js");
+      workerRef.current = mod
+        .createWorker("eng", mod.OEM.LSTM_ONLY, {
+          logger: (m: Tesseract.LoggerMessage) => {
+            const side = readingSideRef.current;
+            const progress = m.progress;
+            if (m.status === "recognizing text" && progress >= 0 && progress <= 1) {
+              if (side === "front") setFront((s) => ({ ...s, progress }));
+              else if (side === "back") setBack((s) => ({ ...s, progress }));
+            }
+          },
+        })
+        .then((worker) => {
+          void worker.setParameters({ tessedit_pageseg_mode: mod.PSM.SPARSE_TEXT }).catch(() => {});
+          return worker;
+        });
     }
     return workerRef.current;
   }
