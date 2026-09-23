@@ -1,6 +1,6 @@
 import { setCollegeName } from "@/lib/branding";
 
-const API_BASE = (import.meta.env["VITE_API_URL"] as string | undefined) ?? "http://ins-api.talentbro.in";
+const API_BASE = (import.meta.env["VITE_API_URL"] as string | undefined) ?? "";
 
 // Every account has exactly one Role: Student (candidate) or Institution Staff.
 // Note: candidates and students are the same in this project.
