@@ -10,33 +10,537 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AplrTrainingRouteImport } from './routes/aplr-training'
+import { Route as BasicMathTrainingRouteImport } from './routes/basic-math-training'
+import { Route as CandidateAuthRouteImport } from './routes/candidate-auth'
+import { Route as CandidateProfileRouteImport } from './routes/candidate-profile'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as ClientOnboardingRouteImport } from './routes/client-onboarding'
+import { Route as CommunicationTrainingRouteImport } from './routes/communication-training'
+import { Route as CommunicationTrainingHistoryRouteImport } from './routes/communication-training-history'
+import { Route as CommunicationTrainingTipsRouteImport } from './routes/communication-training-tips'
+import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DrivesRouteImport } from './routes/drives'
+import { Route as DsaTrainingRouteImport } from './routes/dsa-training'
+import { Route as EnglishTrainingRouteImport } from './routes/english-training'
+import { Route as EnglishTrainingHistoryRouteImport } from './routes/english-training-history'
+import { Route as EnglishTrainingTipsRouteImport } from './routes/english-training-tips'
+import { Route as GdHistoryRouteImport } from './routes/gd-history'
+import { Route as GdRoomRouteImport } from './routes/gd-room'
+import { Route as GdTrainingRouteImport } from './routes/gd-training'
+import { Route as GetStartedRouteImport } from './routes/get-started'
+import { Route as InstitutionAuthRouteImport } from './routes/institution-auth'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as LogoutRouteImport } from './routes/logout'
+import { Route as MockInterviewRouteImport } from './routes/mock-interview'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SelfTrainingRouteImport } from './routes/self-training'
+import { Route as SituationalTrainingRouteImport } from './routes/situational-training'
+import { Route as StudentsRouteImport } from './routes/students'
+import { Route as TechnicalTrainingRouteImport } from './routes/technical-training'
+import { Route as TutorialsRouteImport } from './routes/tutorials'
+import { Route as CommunicationTrainingReportSessionIdRouteImport } from './routes/communication-training-report.$sessionId'
+import { Route as EnglishTrainingReportSessionIdRouteImport } from './routes/english-training-report.$sessionId'
+import { Route as GdReportGdIdRouteImport } from './routes/gd-report.$gdId'
+import { Route as InterviewAnalysisInterviewIdRouteImport } from './routes/interview-analysis.$interviewId'
+import { Route as MockInterviewTranscriptInterviewIdRouteImport } from './routes/mock-interview-transcript.$interviewId'
+import { Route as StudentDetailStudentIdRouteImport } from './routes/student-detail.$studentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AplrTrainingRoute = AplrTrainingRouteImport.update({
+  id: '/aplr-training',
+  path: '/aplr-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BasicMathTrainingRoute = BasicMathTrainingRouteImport.update({
+  id: '/basic-math-training',
+  path: '/basic-math-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CandidateAuthRoute = CandidateAuthRouteImport.update({
+  id: '/candidate-auth',
+  path: '/candidate-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CandidateProfileRoute = CandidateProfileRouteImport.update({
+  id: '/candidate-profile',
+  path: '/candidate-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientOnboardingRoute = ClientOnboardingRouteImport.update({
+  id: '/client-onboarding',
+  path: '/client-onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunicationTrainingRoute = CommunicationTrainingRouteImport.update({
+  id: '/communication-training',
+  path: '/communication-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunicationTrainingHistoryRoute =
+  CommunicationTrainingHistoryRouteImport.update({
+    id: '/communication-training-history',
+    path: '/communication-training-history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CommunicationTrainingTipsRoute =
+  CommunicationTrainingTipsRouteImport.update({
+    id: '/communication-training-tips',
+    path: '/communication-training-tips',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompaniesRoute = CompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DrivesRoute = DrivesRouteImport.update({
+  id: '/drives',
+  path: '/drives',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DsaTrainingRoute = DsaTrainingRouteImport.update({
+  id: '/dsa-training',
+  path: '/dsa-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnglishTrainingRoute = EnglishTrainingRouteImport.update({
+  id: '/english-training',
+  path: '/english-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnglishTrainingHistoryRoute = EnglishTrainingHistoryRouteImport.update({
+  id: '/english-training-history',
+  path: '/english-training-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnglishTrainingTipsRoute = EnglishTrainingTipsRouteImport.update({
+  id: '/english-training-tips',
+  path: '/english-training-tips',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GdHistoryRoute = GdHistoryRouteImport.update({
+  id: '/gd-history',
+  path: '/gd-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GdRoomRoute = GdRoomRouteImport.update({
+  id: '/gd-room',
+  path: '/gd-room',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GdTrainingRoute = GdTrainingRouteImport.update({
+  id: '/gd-training',
+  path: '/gd-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GetStartedRoute = GetStartedRouteImport.update({
+  id: '/get-started',
+  path: '/get-started',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstitutionAuthRoute = InstitutionAuthRouteImport.update({
+  id: '/institution-auth',
+  path: '/institution-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogoutRoute = LogoutRouteImport.update({
+  id: '/logout',
+  path: '/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MockInterviewRoute = MockInterviewRouteImport.update({
+  id: '/mock-interview',
+  path: '/mock-interview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelfTrainingRoute = SelfTrainingRouteImport.update({
+  id: '/self-training',
+  path: '/self-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SituationalTrainingRoute = SituationalTrainingRouteImport.update({
+  id: '/situational-training',
+  path: '/situational-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudentsRoute = StudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechnicalTrainingRoute = TechnicalTrainingRouteImport.update({
+  id: '/technical-training',
+  path: '/technical-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TutorialsRoute = TutorialsRouteImport.update({
+  id: '/tutorials',
+  path: '/tutorials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunicationTrainingReportSessionIdRoute =
+  CommunicationTrainingReportSessionIdRouteImport.update({
+    id: '/communication-training-report/$sessionId',
+    path: '/communication-training-report/$sessionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const EnglishTrainingReportSessionIdRoute =
+  EnglishTrainingReportSessionIdRouteImport.update({
+    id: '/english-training-report/$sessionId',
+    path: '/english-training-report/$sessionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GdReportGdIdRoute = GdReportGdIdRouteImport.update({
+  id: '/gd-report/$gdId',
+  path: '/gd-report/$gdId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewAnalysisInterviewIdRoute =
+  InterviewAnalysisInterviewIdRouteImport.update({
+    id: '/interview-analysis/$interviewId',
+    path: '/interview-analysis/$interviewId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const MockInterviewTranscriptInterviewIdRoute =
+  MockInterviewTranscriptInterviewIdRouteImport.update({
+    id: '/mock-interview-transcript/$interviewId',
+    path: '/mock-interview-transcript/$interviewId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const StudentDetailStudentIdRoute = StudentDetailStudentIdRouteImport.update({
+  id: '/student-detail/$studentId',
+  path: '/student-detail/$studentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aplr-training': typeof AplrTrainingRoute
+  '/basic-math-training': typeof BasicMathTrainingRoute
+  '/candidate-auth': typeof CandidateAuthRoute
+  '/candidate-profile': typeof CandidateProfileRoute
+  '/chat': typeof ChatRoute
+  '/client-onboarding': typeof ClientOnboardingRoute
+  '/communication-training': typeof CommunicationTrainingRoute
+  '/communication-training-history': typeof CommunicationTrainingHistoryRoute
+  '/communication-training-tips': typeof CommunicationTrainingTipsRoute
+  '/companies': typeof CompaniesRoute
+  '/dashboard': typeof DashboardRoute
+  '/drives': typeof DrivesRoute
+  '/dsa-training': typeof DsaTrainingRoute
+  '/english-training': typeof EnglishTrainingRoute
+  '/english-training-history': typeof EnglishTrainingHistoryRoute
+  '/english-training-tips': typeof EnglishTrainingTipsRoute
+  '/gd-history': typeof GdHistoryRoute
+  '/gd-room': typeof GdRoomRoute
+  '/gd-training': typeof GdTrainingRoute
+  '/get-started': typeof GetStartedRoute
+  '/institution-auth': typeof InstitutionAuthRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/logout': typeof LogoutRoute
+  '/mock-interview': typeof MockInterviewRoute
+  '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reports': typeof ReportsRoute
+  '/self-training': typeof SelfTrainingRoute
+  '/situational-training': typeof SituationalTrainingRoute
+  '/students': typeof StudentsRoute
+  '/technical-training': typeof TechnicalTrainingRoute
+  '/tutorials': typeof TutorialsRoute
+  '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
+  '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
+  '/gd-report/$gdId': typeof GdReportGdIdRoute
+  '/interview-analysis/$interviewId': typeof InterviewAnalysisInterviewIdRoute
+  '/mock-interview-transcript/$interviewId': typeof MockInterviewTranscriptInterviewIdRoute
+  '/student-detail/$studentId': typeof StudentDetailStudentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aplr-training': typeof AplrTrainingRoute
+  '/basic-math-training': typeof BasicMathTrainingRoute
+  '/candidate-auth': typeof CandidateAuthRoute
+  '/candidate-profile': typeof CandidateProfileRoute
+  '/chat': typeof ChatRoute
+  '/client-onboarding': typeof ClientOnboardingRoute
+  '/communication-training': typeof CommunicationTrainingRoute
+  '/communication-training-history': typeof CommunicationTrainingHistoryRoute
+  '/communication-training-tips': typeof CommunicationTrainingTipsRoute
+  '/companies': typeof CompaniesRoute
+  '/dashboard': typeof DashboardRoute
+  '/drives': typeof DrivesRoute
+  '/dsa-training': typeof DsaTrainingRoute
+  '/english-training': typeof EnglishTrainingRoute
+  '/english-training-history': typeof EnglishTrainingHistoryRoute
+  '/english-training-tips': typeof EnglishTrainingTipsRoute
+  '/gd-history': typeof GdHistoryRoute
+  '/gd-room': typeof GdRoomRoute
+  '/gd-training': typeof GdTrainingRoute
+  '/get-started': typeof GetStartedRoute
+  '/institution-auth': typeof InstitutionAuthRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/logout': typeof LogoutRoute
+  '/mock-interview': typeof MockInterviewRoute
+  '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reports': typeof ReportsRoute
+  '/self-training': typeof SelfTrainingRoute
+  '/situational-training': typeof SituationalTrainingRoute
+  '/students': typeof StudentsRoute
+  '/technical-training': typeof TechnicalTrainingRoute
+  '/tutorials': typeof TutorialsRoute
+  '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
+  '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
+  '/gd-report/$gdId': typeof GdReportGdIdRoute
+  '/interview-analysis/$interviewId': typeof InterviewAnalysisInterviewIdRoute
+  '/mock-interview-transcript/$interviewId': typeof MockInterviewTranscriptInterviewIdRoute
+  '/student-detail/$studentId': typeof StudentDetailStudentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aplr-training': typeof AplrTrainingRoute
+  '/basic-math-training': typeof BasicMathTrainingRoute
+  '/candidate-auth': typeof CandidateAuthRoute
+  '/candidate-profile': typeof CandidateProfileRoute
+  '/chat': typeof ChatRoute
+  '/client-onboarding': typeof ClientOnboardingRoute
+  '/communication-training': typeof CommunicationTrainingRoute
+  '/communication-training-history': typeof CommunicationTrainingHistoryRoute
+  '/communication-training-tips': typeof CommunicationTrainingTipsRoute
+  '/companies': typeof CompaniesRoute
+  '/dashboard': typeof DashboardRoute
+  '/drives': typeof DrivesRoute
+  '/dsa-training': typeof DsaTrainingRoute
+  '/english-training': typeof EnglishTrainingRoute
+  '/english-training-history': typeof EnglishTrainingHistoryRoute
+  '/english-training-tips': typeof EnglishTrainingTipsRoute
+  '/gd-history': typeof GdHistoryRoute
+  '/gd-room': typeof GdRoomRoute
+  '/gd-training': typeof GdTrainingRoute
+  '/get-started': typeof GetStartedRoute
+  '/institution-auth': typeof InstitutionAuthRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/logout': typeof LogoutRoute
+  '/mock-interview': typeof MockInterviewRoute
+  '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reports': typeof ReportsRoute
+  '/self-training': typeof SelfTrainingRoute
+  '/situational-training': typeof SituationalTrainingRoute
+  '/students': typeof StudentsRoute
+  '/technical-training': typeof TechnicalTrainingRoute
+  '/tutorials': typeof TutorialsRoute
+  '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
+  '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
+  '/gd-report/$gdId': typeof GdReportGdIdRoute
+  '/interview-analysis/$interviewId': typeof InterviewAnalysisInterviewIdRoute
+  '/mock-interview-transcript/$interviewId': typeof MockInterviewTranscriptInterviewIdRoute
+  '/student-detail/$studentId': typeof StudentDetailStudentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/aplr-training'
+    | '/basic-math-training'
+    | '/candidate-auth'
+    | '/candidate-profile'
+    | '/chat'
+    | '/client-onboarding'
+    | '/communication-training'
+    | '/communication-training-history'
+    | '/communication-training-tips'
+    | '/companies'
+    | '/dashboard'
+    | '/drives'
+    | '/dsa-training'
+    | '/english-training'
+    | '/english-training-history'
+    | '/english-training-tips'
+    | '/gd-history'
+    | '/gd-room'
+    | '/gd-training'
+    | '/get-started'
+    | '/institution-auth'
+    | '/leaderboard'
+    | '/logout'
+    | '/mock-interview'
+    | '/notifications'
+    | '/onboarding'
+    | '/reports'
+    | '/self-training'
+    | '/situational-training'
+    | '/students'
+    | '/technical-training'
+    | '/tutorials'
+    | '/communication-training-report/$sessionId'
+    | '/english-training-report/$sessionId'
+    | '/gd-report/$gdId'
+    | '/interview-analysis/$interviewId'
+    | '/mock-interview-transcript/$interviewId'
+    | '/student-detail/$studentId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/aplr-training'
+    | '/basic-math-training'
+    | '/candidate-auth'
+    | '/candidate-profile'
+    | '/chat'
+    | '/client-onboarding'
+    | '/communication-training'
+    | '/communication-training-history'
+    | '/communication-training-tips'
+    | '/companies'
+    | '/dashboard'
+    | '/drives'
+    | '/dsa-training'
+    | '/english-training'
+    | '/english-training-history'
+    | '/english-training-tips'
+    | '/gd-history'
+    | '/gd-room'
+    | '/gd-training'
+    | '/get-started'
+    | '/institution-auth'
+    | '/leaderboard'
+    | '/logout'
+    | '/mock-interview'
+    | '/notifications'
+    | '/onboarding'
+    | '/reports'
+    | '/self-training'
+    | '/situational-training'
+    | '/students'
+    | '/technical-training'
+    | '/tutorials'
+    | '/communication-training-report/$sessionId'
+    | '/english-training-report/$sessionId'
+    | '/gd-report/$gdId'
+    | '/interview-analysis/$interviewId'
+    | '/mock-interview-transcript/$interviewId'
+    | '/student-detail/$studentId'
+  id:
+    | '__root__'
+    | '/'
+    | '/aplr-training'
+    | '/basic-math-training'
+    | '/candidate-auth'
+    | '/candidate-profile'
+    | '/chat'
+    | '/client-onboarding'
+    | '/communication-training'
+    | '/communication-training-history'
+    | '/communication-training-tips'
+    | '/companies'
+    | '/dashboard'
+    | '/drives'
+    | '/dsa-training'
+    | '/english-training'
+    | '/english-training-history'
+    | '/english-training-tips'
+    | '/gd-history'
+    | '/gd-room'
+    | '/gd-training'
+    | '/get-started'
+    | '/institution-auth'
+    | '/leaderboard'
+    | '/logout'
+    | '/mock-interview'
+    | '/notifications'
+    | '/onboarding'
+    | '/reports'
+    | '/self-training'
+    | '/situational-training'
+    | '/students'
+    | '/technical-training'
+    | '/tutorials'
+    | '/communication-training-report/$sessionId'
+    | '/english-training-report/$sessionId'
+    | '/gd-report/$gdId'
+    | '/interview-analysis/$interviewId'
+    | '/mock-interview-transcript/$interviewId'
+    | '/student-detail/$studentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AplrTrainingRoute: typeof AplrTrainingRoute
+  BasicMathTrainingRoute: typeof BasicMathTrainingRoute
+  CandidateAuthRoute: typeof CandidateAuthRoute
+  CandidateProfileRoute: typeof CandidateProfileRoute
+  ChatRoute: typeof ChatRoute
+  ClientOnboardingRoute: typeof ClientOnboardingRoute
+  CommunicationTrainingRoute: typeof CommunicationTrainingRoute
+  CommunicationTrainingHistoryRoute: typeof CommunicationTrainingHistoryRoute
+  CommunicationTrainingTipsRoute: typeof CommunicationTrainingTipsRoute
+  CompaniesRoute: typeof CompaniesRoute
+  DashboardRoute: typeof DashboardRoute
+  DrivesRoute: typeof DrivesRoute
+  DsaTrainingRoute: typeof DsaTrainingRoute
+  EnglishTrainingRoute: typeof EnglishTrainingRoute
+  EnglishTrainingHistoryRoute: typeof EnglishTrainingHistoryRoute
+  EnglishTrainingTipsRoute: typeof EnglishTrainingTipsRoute
+  GdHistoryRoute: typeof GdHistoryRoute
+  GdRoomRoute: typeof GdRoomRoute
+  GdTrainingRoute: typeof GdTrainingRoute
+  GetStartedRoute: typeof GetStartedRoute
+  InstitutionAuthRoute: typeof InstitutionAuthRoute
+  LeaderboardRoute: typeof LeaderboardRoute
+  LogoutRoute: typeof LogoutRoute
+  MockInterviewRoute: typeof MockInterviewRoute
+  NotificationsRoute: typeof NotificationsRoute
+  OnboardingRoute: typeof OnboardingRoute
+  ReportsRoute: typeof ReportsRoute
+  SelfTrainingRoute: typeof SelfTrainingRoute
+  SituationalTrainingRoute: typeof SituationalTrainingRoute
+  StudentsRoute: typeof StudentsRoute
+  TechnicalTrainingRoute: typeof TechnicalTrainingRoute
+  TutorialsRoute: typeof TutorialsRoute
+  CommunicationTrainingReportSessionIdRoute: typeof CommunicationTrainingReportSessionIdRoute
+  EnglishTrainingReportSessionIdRoute: typeof EnglishTrainingReportSessionIdRoute
+  GdReportGdIdRoute: typeof GdReportGdIdRoute
+  InterviewAnalysisInterviewIdRoute: typeof InterviewAnalysisInterviewIdRoute
+  MockInterviewTranscriptInterviewIdRoute: typeof MockInterviewTranscriptInterviewIdRoute
+  StudentDetailStudentIdRoute: typeof StudentDetailStudentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +552,317 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aplr-training': {
+      id: '/aplr-training'
+      path: '/aplr-training'
+      fullPath: '/aplr-training'
+      preLoaderRoute: typeof AplrTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/basic-math-training': {
+      id: '/basic-math-training'
+      path: '/basic-math-training'
+      fullPath: '/basic-math-training'
+      preLoaderRoute: typeof BasicMathTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/candidate-auth': {
+      id: '/candidate-auth'
+      path: '/candidate-auth'
+      fullPath: '/candidate-auth'
+      preLoaderRoute: typeof CandidateAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/candidate-profile': {
+      id: '/candidate-profile'
+      path: '/candidate-profile'
+      fullPath: '/candidate-profile'
+      preLoaderRoute: typeof CandidateProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client-onboarding': {
+      id: '/client-onboarding'
+      path: '/client-onboarding'
+      fullPath: '/client-onboarding'
+      preLoaderRoute: typeof ClientOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communication-training': {
+      id: '/communication-training'
+      path: '/communication-training'
+      fullPath: '/communication-training'
+      preLoaderRoute: typeof CommunicationTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communication-training-history': {
+      id: '/communication-training-history'
+      path: '/communication-training-history'
+      fullPath: '/communication-training-history'
+      preLoaderRoute: typeof CommunicationTrainingHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communication-training-tips': {
+      id: '/communication-training-tips'
+      path: '/communication-training-tips'
+      fullPath: '/communication-training-tips'
+      preLoaderRoute: typeof CommunicationTrainingTipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies': {
+      id: '/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drives': {
+      id: '/drives'
+      path: '/drives'
+      fullPath: '/drives'
+      preLoaderRoute: typeof DrivesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dsa-training': {
+      id: '/dsa-training'
+      path: '/dsa-training'
+      fullPath: '/dsa-training'
+      preLoaderRoute: typeof DsaTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/english-training': {
+      id: '/english-training'
+      path: '/english-training'
+      fullPath: '/english-training'
+      preLoaderRoute: typeof EnglishTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/english-training-history': {
+      id: '/english-training-history'
+      path: '/english-training-history'
+      fullPath: '/english-training-history'
+      preLoaderRoute: typeof EnglishTrainingHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/english-training-tips': {
+      id: '/english-training-tips'
+      path: '/english-training-tips'
+      fullPath: '/english-training-tips'
+      preLoaderRoute: typeof EnglishTrainingTipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gd-history': {
+      id: '/gd-history'
+      path: '/gd-history'
+      fullPath: '/gd-history'
+      preLoaderRoute: typeof GdHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gd-room': {
+      id: '/gd-room'
+      path: '/gd-room'
+      fullPath: '/gd-room'
+      preLoaderRoute: typeof GdRoomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gd-training': {
+      id: '/gd-training'
+      path: '/gd-training'
+      fullPath: '/gd-training'
+      preLoaderRoute: typeof GdTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/get-started': {
+      id: '/get-started'
+      path: '/get-started'
+      fullPath: '/get-started'
+      preLoaderRoute: typeof GetStartedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/institution-auth': {
+      id: '/institution-auth'
+      path: '/institution-auth'
+      fullPath: '/institution-auth'
+      preLoaderRoute: typeof InstitutionAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logout': {
+      id: '/logout'
+      path: '/logout'
+      fullPath: '/logout'
+      preLoaderRoute: typeof LogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mock-interview': {
+      id: '/mock-interview'
+      path: '/mock-interview'
+      fullPath: '/mock-interview'
+      preLoaderRoute: typeof MockInterviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/self-training': {
+      id: '/self-training'
+      path: '/self-training'
+      fullPath: '/self-training'
+      preLoaderRoute: typeof SelfTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/situational-training': {
+      id: '/situational-training'
+      path: '/situational-training'
+      fullPath: '/situational-training'
+      preLoaderRoute: typeof SituationalTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/students': {
+      id: '/students'
+      path: '/students'
+      fullPath: '/students'
+      preLoaderRoute: typeof StudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/technical-training': {
+      id: '/technical-training'
+      path: '/technical-training'
+      fullPath: '/technical-training'
+      preLoaderRoute: typeof TechnicalTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tutorials': {
+      id: '/tutorials'
+      path: '/tutorials'
+      fullPath: '/tutorials'
+      preLoaderRoute: typeof TutorialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communication-training-report/$sessionId': {
+      id: '/communication-training-report/$sessionId'
+      path: '/communication-training-report/$sessionId'
+      fullPath: '/communication-training-report/$sessionId'
+      preLoaderRoute: typeof CommunicationTrainingReportSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/english-training-report/$sessionId': {
+      id: '/english-training-report/$sessionId'
+      path: '/english-training-report/$sessionId'
+      fullPath: '/english-training-report/$sessionId'
+      preLoaderRoute: typeof EnglishTrainingReportSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gd-report/$gdId': {
+      id: '/gd-report/$gdId'
+      path: '/gd-report/$gdId'
+      fullPath: '/gd-report/$gdId'
+      preLoaderRoute: typeof GdReportGdIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview-analysis/$interviewId': {
+      id: '/interview-analysis/$interviewId'
+      path: '/interview-analysis/$interviewId'
+      fullPath: '/interview-analysis/$interviewId'
+      preLoaderRoute: typeof InterviewAnalysisInterviewIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mock-interview-transcript/$interviewId': {
+      id: '/mock-interview-transcript/$interviewId'
+      path: '/mock-interview-transcript/$interviewId'
+      fullPath: '/mock-interview-transcript/$interviewId'
+      preLoaderRoute: typeof MockInterviewTranscriptInterviewIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/student-detail/$studentId': {
+      id: '/student-detail/$studentId'
+      path: '/student-detail/$studentId'
+      fullPath: '/student-detail/$studentId'
+      preLoaderRoute: typeof StudentDetailStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AplrTrainingRoute: AplrTrainingRoute,
+  BasicMathTrainingRoute: BasicMathTrainingRoute,
+  CandidateAuthRoute: CandidateAuthRoute,
+  CandidateProfileRoute: CandidateProfileRoute,
+  ChatRoute: ChatRoute,
+  ClientOnboardingRoute: ClientOnboardingRoute,
+  CommunicationTrainingRoute: CommunicationTrainingRoute,
+  CommunicationTrainingHistoryRoute: CommunicationTrainingHistoryRoute,
+  CommunicationTrainingTipsRoute: CommunicationTrainingTipsRoute,
+  CompaniesRoute: CompaniesRoute,
+  DashboardRoute: DashboardRoute,
+  DrivesRoute: DrivesRoute,
+  DsaTrainingRoute: DsaTrainingRoute,
+  EnglishTrainingRoute: EnglishTrainingRoute,
+  EnglishTrainingHistoryRoute: EnglishTrainingHistoryRoute,
+  EnglishTrainingTipsRoute: EnglishTrainingTipsRoute,
+  GdHistoryRoute: GdHistoryRoute,
+  GdRoomRoute: GdRoomRoute,
+  GdTrainingRoute: GdTrainingRoute,
+  GetStartedRoute: GetStartedRoute,
+  InstitutionAuthRoute: InstitutionAuthRoute,
+  LeaderboardRoute: LeaderboardRoute,
+  LogoutRoute: LogoutRoute,
+  MockInterviewRoute: MockInterviewRoute,
+  NotificationsRoute: NotificationsRoute,
+  OnboardingRoute: OnboardingRoute,
+  ReportsRoute: ReportsRoute,
+  SelfTrainingRoute: SelfTrainingRoute,
+  SituationalTrainingRoute: SituationalTrainingRoute,
+  StudentsRoute: StudentsRoute,
+  TechnicalTrainingRoute: TechnicalTrainingRoute,
+  TutorialsRoute: TutorialsRoute,
+  CommunicationTrainingReportSessionIdRoute:
+    CommunicationTrainingReportSessionIdRoute,
+  EnglishTrainingReportSessionIdRoute: EnglishTrainingReportSessionIdRoute,
+  GdReportGdIdRoute: GdReportGdIdRoute,
+  InterviewAnalysisInterviewIdRoute: InterviewAnalysisInterviewIdRoute,
+  MockInterviewTranscriptInterviewIdRoute:
+    MockInterviewTranscriptInterviewIdRoute,
+  StudentDetailStudentIdRoute: StudentDetailStudentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

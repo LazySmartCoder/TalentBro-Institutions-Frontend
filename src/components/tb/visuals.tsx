@@ -55,15 +55,7 @@ export function Panel({
   );
 }
 
-export function Stat({
-  value,
-  label,
-  sub,
-}: {
-  value: string;
-  label: string;
-  sub?: string;
-}) {
+export function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="text-2xl font-semibold tracking-tight">{value}</div>
@@ -93,7 +85,15 @@ export function ReadinessGauge({ score = 74 }: { score?: number }) {
     <div className="flex items-center gap-5">
       <div className="relative">
         <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
-          <circle cx="66" cy="66" r={r} fill="none" stroke="currentColor" strokeWidth="10" className="text-muted" />
+          <circle
+            cx="66"
+            cy="66"
+            r={r}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="10"
+            className="text-muted"
+          />
           <circle
             cx="66"
             cy="66"
@@ -138,7 +138,10 @@ export function ReadinessGauge({ score = 74 }: { score?: number }) {
 export function HeroVisual() {
   return (
     <div className="grid gap-4">
-      <Panel label="talentbro / cohort 2026 — readiness" tabs={["Overview", "Departments", "Companies"]}>
+      <Panel
+        label="talentbro / cohort 2026 — readiness"
+        tabs={["Overview", "Departments", "Companies"]}
+      >
         <div className="grid gap-5 sm:grid-cols-[1.1fr_1fr]">
           <ReadinessGauge />
           <div className="grid grid-cols-2 gap-2">
@@ -160,12 +163,14 @@ export function HeroVisual() {
           <div className="rounded-lg border border-border p-3">
             <div className="eyebrow">Live now</div>
             <ul className="mt-2 space-y-2 text-[11px]">
-              {["Mock interview · Deloitte", "Skill mapping · CSE-B", "Report generated"].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-foreground animate-pulse-soft" />
-                  <span className="text-muted-foreground">{t}</span>
-                </li>
-              ))}
+              {["Mock interview · Deloitte", "Skill mapping · CSE-B", "Report generated"].map(
+                (t) => (
+                  <li key={t} className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-foreground animate-pulse-soft" />
+                    <span className="text-muted-foreground">{t}</span>
+                  </li>
+                ),
+              )}
             </ul>
           </div>
         </div>
@@ -190,7 +195,11 @@ export function StudentDotGrid() {
                 "aspect-square rounded-[2px]",
                 known ? "bg-foreground" : "bg-foreground/10",
               )}
-              style={known ? { animation: `pulse-soft ${2 + (i % 5) * 0.4}s ease-in-out infinite` } : undefined}
+              style={
+                known
+                  ? { animation: `pulse-soft ${2 + (i % 5) * 0.4}s ease-in-out infinite` }
+                  : undefined
+              }
             />
           );
         })}
@@ -282,7 +291,17 @@ export function SkillRadar() {
         ))}
         {SKILLS.map((_, i) => {
           const [x, y] = pt(i, 1);
-          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="currentColor" className="text-border" />;
+          return (
+            <line
+              key={i}
+              x1={cx}
+              y1={cy}
+              x2={x}
+              y2={y}
+              stroke="currentColor"
+              className="text-border"
+            />
+          );
         })}
         <polygon points={poly} className="fill-foreground/12 stroke-foreground" strokeWidth="2" />
         {SKILLS.map(([, v], i) => {
@@ -295,7 +314,10 @@ export function SkillRadar() {
           <div key={label} className="flex items-center gap-3">
             <span className="w-32 shrink-0 text-[11px] text-muted-foreground">{label}</span>
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-foreground animate-grow" style={{ width: `${v}%` }} />
+              <div
+                className="h-full rounded-full bg-foreground animate-grow"
+                style={{ width: `${v}%` }}
+              />
             </div>
             <span className="w-7 text-right font-mono text-[11px]">{v}</span>
           </div>
@@ -315,7 +337,10 @@ export function StudentProfileCard() {
           <div className="eyebrow">Strengths</div>
           <ul className="mt-2 space-y-2 text-[12px]">
             {["Data structures · 88", "Aptitude · 84", "Written clarity · 80"].map((s) => (
-              <li key={s} className="flex items-center justify-between border-b border-border pb-1.5 last:border-0">
+              <li
+                key={s}
+                className="flex items-center justify-between border-b border-border pb-1.5 last:border-0"
+              >
                 <span>{s.split(" · ")[0]}</span>
                 <span className="font-mono text-[11px]">{s.split(" · ")[1]}</span>
               </li>
@@ -326,9 +351,14 @@ export function StudentProfileCard() {
           <div className="eyebrow">Weaknesses</div>
           <ul className="mt-2 space-y-2 text-[12px]">
             {["System design · 51", "Spoken fluency · 57", "STAR answers · 60"].map((s) => (
-              <li key={s} className="flex items-center justify-between border-b border-border pb-1.5 last:border-0">
+              <li
+                key={s}
+                className="flex items-center justify-between border-b border-border pb-1.5 last:border-0"
+              >
                 <span>{s.split(" · ")[0]}</span>
-                <span className="font-mono text-[11px] text-muted-foreground">{s.split(" · ")[1]}</span>
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {s.split(" · ")[1]}
+                </span>
               </li>
             ))}
           </ul>
@@ -348,7 +378,10 @@ export function StudentProfileCard() {
               <div>
                 <div className="text-[12px]">{t}</div>
                 <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-foreground animate-grow" style={{ width: `${p}%` }} />
+                  <div
+                    className="h-full rounded-full bg-foreground animate-grow"
+                    style={{ width: `${p}%` }}
+                  />
                 </div>
               </div>
             </div>
@@ -361,14 +394,28 @@ export function StudentProfileCard() {
 
 /* --------------------------- company preparation -------------------------- */
 
-const COMPANIES = ["Deloitte", "IBM", "Google", "Accenture", "TCS", "Infosys", "Capgemini", "Wipro", "Cognizant", "EY"];
+const COMPANIES = [
+  "Deloitte",
+  "IBM",
+  "Google",
+  "Accenture",
+  "TCS",
+  "Infosys",
+  "Capgemini",
+  "Wipro",
+  "Cognizant",
+  "EY",
+];
 
 export function CompanyMarquee() {
   return (
     <div className="relative overflow-hidden border-y border-border py-5">
       <div className="flex w-max animate-marquee gap-12 pr-12">
         {[...COMPANIES, ...COMPANIES].map((c, i) => (
-          <span key={i} className="text-lg font-medium tracking-tight text-muted-foreground whitespace-nowrap">
+          <span
+            key={i}
+            className="text-lg font-medium tracking-tight text-muted-foreground whitespace-nowrap"
+          >
             {c}
           </span>
         ))}
@@ -400,7 +447,10 @@ export function CompanyReadinessTable() {
                 <span className="font-mono text-[10px] text-muted-foreground">drive {d}</span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-foreground animate-grow" style={{ width: `${v}%` }} />
+                <div
+                  className="h-full rounded-full bg-foreground animate-grow"
+                  style={{ width: `${v}%` }}
+                />
               </div>
             </div>
             <span className="font-mono text-sm">{v}%</span>
@@ -446,7 +496,15 @@ export function ImprovementLoop() {
         <div className="eyebrow">Performance progression · 10 attempts</div>
         <svg viewBox="0 0 420 140" className="mt-3 w-full">
           {[0, 35, 70, 105].map((y) => (
-            <line key={y} x1="0" y1={y + 10} x2="420" y2={y + 10} stroke="currentColor" className="text-border" />
+            <line
+              key={y}
+              x1="0"
+              y1={y + 10}
+              x2="420"
+              y2={y + 10}
+              stroke="currentColor"
+              className="text-border"
+            />
           ))}
           <polyline
             points="10,120 55,108 100,110 145,92 190,80 235,72 280,58 325,44 370,34 410,22"
@@ -469,7 +527,14 @@ export function ImprovementLoop() {
             [280, 58],
             [410, 22],
           ].map(([x, y]) => (
-            <circle key={x} cx={x} cy={y} r="4" className="fill-background stroke-foreground" strokeWidth="2.5" />
+            <circle
+              key={x}
+              cx={x}
+              cy={y}
+              r="4"
+              className="fill-background stroke-foreground"
+              strokeWidth="2.5"
+            />
           ))}
         </svg>
         <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
@@ -575,7 +640,10 @@ export function OfficerDashboard() {
                 ["S. Kaur", "IT", 58, "+3"],
                 ["D. Rao", "MECH", 47, "−2"],
               ].map(([n, d, s, delta]) => (
-                <div key={n as string} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2 text-[12px]">
+                <div
+                  key={n as string}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2 text-[12px]"
+                >
                   <span>
                     {n} <span className="text-muted-foreground">· {d}</span>
                   </span>
@@ -632,8 +700,16 @@ export function ReportsGrid() {
             ["Student", "I'd start with caching and read replicas…"],
             ["AI", "Good. What breaks first under 10× traffic?"],
           ].map(([who, line], i) => (
-            <div key={i} className={cn("rounded-lg p-2.5", who === "AI" ? "bg-secondary" : "border border-border")}>
-              <div className="font-mono text-[9px] tracking-widest text-muted-foreground uppercase">{who}</div>
+            <div
+              key={i}
+              className={cn(
+                "rounded-lg p-2.5",
+                who === "AI" ? "bg-secondary" : "border border-border",
+              )}
+            >
+              <div className="font-mono text-[9px] tracking-widest text-muted-foreground uppercase">
+                {who}
+              </div>
               <p className="mt-1 leading-relaxed">{line}</p>
             </div>
           ))}
@@ -686,7 +762,9 @@ export function ReportsGrid() {
           ))}
         </div>
         <div className="mt-4 rounded-lg bg-foreground p-3 text-background">
-          <div className="text-[10px] tracking-widest uppercase opacity-70">Placement intelligence</div>
+          <div className="text-[10px] tracking-widest uppercase opacity-70">
+            Placement intelligence
+          </div>
           <p className="mt-1 text-[12px] leading-relaxed opacity-90">
             Every metric traceable from a single student answer to institution-wide outcomes.
           </p>

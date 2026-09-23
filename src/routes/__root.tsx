@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { brandedTitle } from "@/lib/branding";
+import { initTimeTracker } from "@/lib/time-tracker";
 
 function NotFoundComponent() {
   return (
@@ -91,7 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,300..800;1,400&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico?v=3", type: "image/x-icon" },
     ],
   }),
   shellComponent: RootShell,
@@ -116,6 +118,27 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    initTimeTracker();
+
+    const apply = () => {
+      const current = document.title;
+      const next = brandedTitle(current);
+      if (next !== current) {
+        document.title = next;
+      }
+    };
+
+    const titleEl = document.querySelector("title");
+    if (!titleEl) return;
+    apply();
+
+    const observer = new MutationObserver(apply);
+    observer.observe(titleEl, { childList: true, characterData: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

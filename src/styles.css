@@ -116,6 +116,24 @@
   }
 }
 
+@keyframes tb-wave {
+  0% {
+    transform: scaleY(0.25);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes tb-slide-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 :root {
   --radius: 0.5rem;
   --background: oklch(1 0 0);
@@ -223,5 +241,60 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-muted-foreground);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+ * Platform ambient utilities used across the auth / get-started /
+ * onboarding surfaces. Kept cheap on purpose: composition-only transforms,
+ * never layout-thrashing floats. The grain is a single tiled SVG data-URI so
+ * even low-end GPUs only pay for one pattern fill.
+ */
+.tg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.tg-drift {
+  animation: tg-drift 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes tg-drift {
+  from {
+    transform: translate3d(-2%, 0, 0);
+  }
+  to {
+    transform: translate3d(2%, -2%, 0);
+  }
+}
+
+.tg-reveal {
+  animation: tg-reveal 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes tg-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-drift,
+  .tg-reveal {
+    animation: none;
+  }
 }
 

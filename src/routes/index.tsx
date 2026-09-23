@@ -153,10 +153,7 @@ function Index() {
                 </a>
               </div>
             </div>
-            <div
-              className="mt-12 animate-rise sm:mt-16"
-              style={{ animationDelay: "140ms" }}
-            >
+            <div className="mt-12 animate-rise sm:mt-16" style={{ animationDelay: "140ms" }}>
               <HeroVisual />
             </div>
             <dl className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
