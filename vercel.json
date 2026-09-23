@@ -3,9 +3,5 @@
   "framework": null,
   "installCommand": "npm install",
   "buildCommand": "NITRO_PRESET=vercel npm run build",
-  "devCommand": "npm run dev",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "http://ins-api.talentbro.in/api/:path*" },
-    { "source": "/media/:path*", "destination": "http://ins-api.talentbro.in/media/:path*" }
-  ]
+  "devCommand": "npm run dev"
 }
