@@ -782,12 +782,13 @@ function MockInterviewLaunchLoader({
         <div className="flex items-center gap-3">
           {seated.map((id) => {
             const opt = PANELIST_OPTIONS.find((p) => p.id === id);
+            const img = opt?.img ?? (id === "atlas" ? "/Panelists/Atlas.jpg" : undefined);
             return (
               <span key={id} className="relative shrink-0">
-                {opt?.img ? (
+                {img ? (
                   <img
-                    src={opt.img}
-                    alt={opt.name}
+                    src={img}
+                    alt={opt?.name ?? "Atlas"}
                     className="size-11 rounded-full border border-border object-cover"
                   />
                 ) : (

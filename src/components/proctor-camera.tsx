@@ -166,7 +166,21 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
   const [focus, setFocus] = useState<"focused" | "away">("focused");
   const [countdown, setCountdown] = useState(0);
   const [violations, setViolations] = useState(0);
+  const [episodes, setEpisodes] = useState(0);
+  const episodesRef = useRef(0);
   const [camError, setCamError] = useState<string | null>(null);
+
+  // Phased tolerance: the first 5 looks-away are free ("happens", blue), 6-8
+  // signal "break time?" (amber), and only the 9th look-away onward begins the
+  // suspicion count and reports violations (saved to the DB in the app).
+  const phase =
+    focus === "away"
+      ? episodes <= 5
+        ? "happens"
+        : episodes <= 8
+          ? "break"
+          : "away"
+      : "focused";
 
   useEffect(() => {
     let disposed = false;
@@ -271,8 +285,12 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
 
         if (awayMsRef.current >= AWAY_LIMIT_MS) {
           awayMsRef.current = 0;
-          setViolations((v) => v + 1);
-          onViolationRef.current?.();
+          episodesRef.current += 1;
+          setEpisodes(episodesRef.current);
+          if (episodesRef.current > 8) {
+            setViolations((v) => v + 1);
+            onViolationRef.current?.();
+          }
         }
 
         setFocus((prev) =>
@@ -412,10 +430,14 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
     };
   }, []);
 
-  const away = focus === "away";
-  const badgeCls = away
-    ? "border-red-500/50 bg-red-500/10 text-red-500"
-    : "border-border bg-background/80 text-muted-foreground";
+  const badgeCls =
+    phase === "away"
+      ? "border-red-500/50 bg-red-500/10 text-red-500"
+      : phase === "break"
+        ? "border-amber-500/50 bg-amber-500/10 text-amber-600"
+        : phase === "happens"
+          ? "border-sky-500/50 bg-sky-500/10 text-sky-600"
+          : "border-border bg-background/80 text-muted-foreground";
 
   return (
     <div
@@ -465,16 +487,28 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
         <span className="flex items-center gap-1.5">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              fitting ? "bg-amber-400" : away ? "bg-red-500" : "bg-green-500"
+              fitting
+                ? "bg-amber-400"
+                : phase === "away"
+                  ? "bg-red-500"
+                  : phase === "break"
+                    ? "bg-amber-500"
+                    : phase === "happens"
+                      ? "bg-sky-500"
+                      : "bg-green-500"
             }`}
           />
           {!tracking
             ? "CAMERA LIVE"
             : fitting
               ? `FOCUS ${Math.round(progress * 100)}%`
-              : away
-                ? `LOOKING AWAY ${countdown}s`
-                : "FOCUSED"}
+              : phase === "happens"
+                ? "happens"
+                : phase === "break"
+                  ? "break time?"
+                  : phase === "away"
+                    ? `LOOKING AWAY ${countdown}s`
+                    : "FOCUSED"}
         </span>
         <span className="flex items-center gap-1">
           <ScanEye className="size-3" />

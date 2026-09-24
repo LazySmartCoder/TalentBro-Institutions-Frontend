@@ -62,7 +62,7 @@ const members: Member[] = [
     ai: true,
     img: "/Panelists/Carl.png",
   },
-  { id: "atlas", name: "Atlas", role: "Integrity Monitor", mark: "At", ai: true },
+  { id: "atlas", name: "Atlas", role: "Integrity Monitor", mark: "At", ai: true, img: "/Panelists/Atlas.jpg" },
   { id: "you", name: "You", role: "Candidate", mark: "CA", ai: false },
 ];
 
@@ -100,7 +100,7 @@ const DEFAULT_EDGE_VOICE = "en-IN-PrabhatNeural";
 // GD-style ice break: the moment a session starts we let the room settle for
 // a beat before the opening welcome is read aloud, so Atlas never starts
 // talking the instant the user lands.
-const ICE_BREAK_MS = 3000;
+const ICE_BREAK_MS = 400;
 
 export function panelistEdgeVoice(speaker: string): string {
   return PANELIST_EDGE_VOICE[speaker] ?? DEFAULT_EDGE_VOICE;

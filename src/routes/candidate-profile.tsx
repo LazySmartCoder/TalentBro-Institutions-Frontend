@@ -13,6 +13,7 @@ import {
   IndianRupee,
   Languages,
   Link2,
+  Linkedin,
   Lock,
   Mail,
   MapPin,
@@ -480,6 +481,7 @@ function CandidateProfilePage() {
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [avatarHintOpen, setAvatarHintOpen] = useState(false);
   const [delPassword, setDelPassword] = useState("");
   const [delError, setDelError] = useState("");
   const [pwdOpen, setPwdOpen] = useState(false);
@@ -923,14 +925,24 @@ function CandidateProfilePage() {
             {/* Hero */}
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-center gap-4">
-                <Avatar className="size-16 rounded-2xl">
-                  {payload.user.avatar ? (
-                    <AvatarImage src={payload.user.avatar} alt={payload.user.name || "Profile"} />
-                  ) : null}
-                  <AvatarFallback className="rounded-2xl bg-primary font-display text-xl font-bold text-primary-foreground">
-                    {initialsOf(payload.user.name, payload.user.email)}
-                  </AvatarFallback>
-                </Avatar>
+                <button
+                  type="button"
+                  onClick={() => setAvatarHintOpen(true)}
+                  title="Profile photo"
+                  className="group relative cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <Avatar className="size-16 rounded-2xl">
+                    {payload.user.avatar ? (
+                      <AvatarImage src={payload.user.avatar} alt={payload.user.name || "Profile"} />
+                    ) : null}
+                    <AvatarFallback className="rounded-2xl bg-primary font-display text-xl font-bold text-primary-foreground">
+                      {initialsOf(payload.user.name, payload.user.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute inset-0 grid place-items-center rounded-2xl bg-foreground/50 text-background opacity-0 transition-opacity group-hover:opacity-100">
+                    <Pencil className="size-5" />
+                  </span>
+                </button>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
                     {payload.user.name}
@@ -1106,6 +1118,30 @@ function CandidateProfilePage() {
           </div>
         )}
       </main>
+
+      <AlertDialog
+        open={avatarHintOpen}
+        onOpenChange={(open) => {
+          setAvatarHintOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Linkedin className="size-4 text-[#0A66C2]" /> Keep your profile photo consistent
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Add your LinkedIn profile with a profile picture over there. We use the same photo to
+              maintain consistency for students building their LinkedIn profiles.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="bg-primary text-primary-foreground hover:bg-primary/90">
+              Got it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteOpen}

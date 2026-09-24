@@ -16,6 +16,7 @@ import { Route as CandidateAuthRouteImport } from './routes/candidate-auth'
 import { Route as CandidateProfileRouteImport } from './routes/candidate-profile'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ClientOnboardingRouteImport } from './routes/client-onboarding'
+import { Route as ClientProfileRouteImport } from './routes/client-profile'
 import { Route as CommunicationTrainingRouteImport } from './routes/communication-training'
 import { Route as CommunicationTrainingHistoryRouteImport } from './routes/communication-training-history'
 import { Route as CommunicationTrainingTipsRouteImport } from './routes/communication-training-tips'
@@ -82,6 +83,11 @@ const ChatRoute = ChatRouteImport.update({
 const ClientOnboardingRoute = ClientOnboardingRouteImport.update({
   id: '/client-onboarding',
   path: '/client-onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientProfileRoute = ClientProfileRouteImport.update({
+  id: '/client-profile',
+  path: '/client-profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunicationTrainingRoute = CommunicationTrainingRouteImport.update({
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/candidate-profile': typeof CandidateProfileRoute
   '/chat': typeof ChatRoute
   '/client-onboarding': typeof ClientOnboardingRoute
+  '/client-profile': typeof ClientProfileRoute
   '/communication-training': typeof CommunicationTrainingRoute
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/candidate-profile': typeof CandidateProfileRoute
   '/chat': typeof ChatRoute
   '/client-onboarding': typeof ClientOnboardingRoute
+  '/client-profile': typeof ClientProfileRoute
   '/communication-training': typeof CommunicationTrainingRoute
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/candidate-profile': typeof CandidateProfileRoute
   '/chat': typeof ChatRoute
   '/client-onboarding': typeof ClientOnboardingRoute
+  '/client-profile': typeof ClientProfileRoute
   '/communication-training': typeof CommunicationTrainingRoute
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/candidate-profile'
     | '/chat'
     | '/client-onboarding'
+    | '/client-profile'
     | '/communication-training'
     | '/communication-training-history'
     | '/communication-training-tips'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/candidate-profile'
     | '/chat'
     | '/client-onboarding'
+    | '/client-profile'
     | '/communication-training'
     | '/communication-training-history'
     | '/communication-training-tips'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/candidate-profile'
     | '/chat'
     | '/client-onboarding'
+    | '/client-profile'
     | '/communication-training'
     | '/communication-training-history'
     | '/communication-training-tips'
@@ -509,6 +521,7 @@ export interface RootRouteChildren {
   CandidateProfileRoute: typeof CandidateProfileRoute
   ChatRoute: typeof ChatRoute
   ClientOnboardingRoute: typeof ClientOnboardingRoute
+  ClientProfileRoute: typeof ClientProfileRoute
   CommunicationTrainingRoute: typeof CommunicationTrainingRoute
   CommunicationTrainingHistoryRoute: typeof CommunicationTrainingHistoryRoute
   CommunicationTrainingTipsRoute: typeof CommunicationTrainingTipsRoute
@@ -592,6 +605,13 @@ declare module '@tanstack/react-router' {
       path: '/client-onboarding'
       fullPath: '/client-onboarding'
       preLoaderRoute: typeof ClientOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client-profile': {
+      id: '/client-profile'
+      path: '/client-profile'
+      fullPath: '/client-profile'
+      preLoaderRoute: typeof ClientProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/communication-training': {
@@ -829,6 +849,7 @@ const rootRouteChildren: RootRouteChildren = {
   CandidateProfileRoute: CandidateProfileRoute,
   ChatRoute: ChatRoute,
   ClientOnboardingRoute: ClientOnboardingRoute,
+  ClientProfileRoute: ClientProfileRoute,
   CommunicationTrainingRoute: CommunicationTrainingRoute,
   CommunicationTrainingHistoryRoute: CommunicationTrainingHistoryRoute,
   CommunicationTrainingTipsRoute: CommunicationTrainingTipsRoute,

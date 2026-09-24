@@ -166,7 +166,10 @@ export function Shell({
           })}
         </nav>
 
-        <div className="m-3 rounded-lg border border-sidebar-border p-3.5">
+        <Link
+          to="/client-profile"
+          className="m-3 block rounded-lg border border-sidebar-border p-3.5 transition-colors hover:bg-sidebar-accent/50"
+        >
           <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/50">
             Signed in
           </p>
@@ -176,7 +179,7 @@ export function Shell({
           <p className="truncate text-xs text-sidebar-foreground/60">
             {user.institution ? `TPO · ${user.institution}` : user.email}
           </p>
-        </div>
+        </Link>
       </aside>
 
       <div className="lg:pl-[248px]">
@@ -209,14 +212,16 @@ export function Shell({
                   </span>
                 )}
               </Link>
-              <Avatar className="size-9 rounded-md">
-                {user.avatar ? (
-                  <AvatarImage src={user.avatar} alt={user.name || "Profile"} />
-                ) : null}
-                <AvatarFallback className="rounded-md bg-primary font-display text-xs font-bold text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <Link to="/client-profile" aria-label="View profile" title="View profile">
+                <Avatar className="size-9 rounded-md">
+                  {user.avatar ? (
+                    <AvatarImage src={user.avatar} alt={user.name || "Profile"} />
+                  ) : null}
+                  <AvatarFallback className="rounded-md bg-primary font-display text-xs font-bold text-primary-foreground">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
             </div>
           </div>
         </header>

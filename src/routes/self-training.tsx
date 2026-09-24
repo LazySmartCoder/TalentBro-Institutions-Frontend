@@ -57,7 +57,7 @@ const CARDS: TrainingCard[] = [
     icon: MessageSquare,
     title: "Communication Skills",
     description:
-      "Sharpen how you speak, listen and express yourself. Perfect for HR rounds, group discussions and everyday confidence.",
+      "Speak better. Express better. Show up with confidence. Sharpen your communication for HR rounds, GDs, interviews, and real-world conversations.",
     iconBg: "bg-sky-500/15",
     iconColor: "text-sky-500",
     to: "/communication-training",
@@ -67,7 +67,7 @@ const CARDS: TrainingCard[] = [
     icon: Users,
     title: "Group Discussion",
     description:
-      "Discuss current affairs with AI panelists and sharpen your confidence, reasoning, teamwork and fair-share airtime.",
+      "Step into an AI-powered GD, talk through current topics, and build your reasoning, confidence, teamwork, and ability to make your point without taking over the room.",
     iconBg: "bg-orange-500/15",
     iconColor: "text-orange-500",
     to: "/gd-training",
@@ -77,7 +77,7 @@ const CARDS: TrainingCard[] = [
     icon: BrainCircuit,
     title: "Aptitude & Logical Reasoning",
     description:
-      "Practice the quantitative, verbal and logical patterns that appear in almost every campus placement written test.",
+      "Crack the patterns behind placement tests. Practice quantitative, verbal, and logical reasoning questions that show up across campus recruitment.",
     iconBg: "bg-violet-500/15",
     iconColor: "text-violet-500",
     to: "/aplr-training",
@@ -87,7 +87,7 @@ const CARDS: TrainingCard[] = [
     icon: Calculator,
     title: "Mathematics",
     description:
-      "Build speed and accuracy with arithmetic, percentages, ratios, averages and mental calculation drills.",
+      "Get faster with numbers. Train on percentages, ratios, averages, arithmetic, and mental-math drills built for placement speed.",
     iconBg: "bg-emerald-500/15",
     iconColor: "text-emerald-500",
     to: "/basic-math-training",
@@ -98,7 +98,7 @@ const CARDS: TrainingCard[] = [
     icon: Languages,
     title: "English Trainer",
     description:
-      "Write professional emails, messages and letters with Maya, get focused corrections on grammar, tone and structure, and track a running score.",
+      "Write like a professional. Draft emails, messages, and letters with Maya, get instant feedback on grammar, tone, and structure, and watch your writing score grow.",
     iconBg: "bg-amber-500/15",
     iconColor: "text-amber-500",
     to: "/english-training",
@@ -108,7 +108,7 @@ const CARDS: TrainingCard[] = [
     icon: Compass,
     title: "Situational Problem Solving Skills (Management)",
     description:
-      "Work through real workplace scenarios, team conflicts and leadership dilemmas to build management judgement.",
+      "What would you do? Tackle workplace scenarios, team conflicts, and leadership situations to sharpen your decision-making and management mindset.",
     iconBg: "bg-rose-500/15",
     iconColor: "text-rose-500",
     to: "/situational-training",
@@ -118,7 +118,7 @@ const CARDS: TrainingCard[] = [
     icon: Code2,
     title: "Problem Solving Skills (Technical)",
     description:
-      "Solve coding and technical puzzles, debug real scenarios and build the logic recruiters test in technical rounds.",
+      "Think like a problem solver. Debug scenarios, crack technical challenges, and build the logic you’ll need when technical rounds get real.",
     iconBg: "bg-teal-500/15",
     iconColor: "text-teal-500",
     to: "/technical-training",
@@ -128,7 +128,7 @@ const CARDS: TrainingCard[] = [
     icon: Binary,
     title: "DSA (Data Structure & Algorithms)",
     description:
-      "Master arrays, linked lists, trees, graphs, sorting and searching — the core patterns asked in every coding interview.",
+      "Build your coding fundamentals. Master arrays, linked lists, trees, graphs, sorting, searching, and the patterns that keep showing up in coding interviews.",
     iconBg: "bg-cyan-500/15",
     iconColor: "text-cyan-500",
     to: "/dsa-training",
@@ -217,11 +217,11 @@ function SelfTrainingPage() {
             Practice on your own
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Train yourself, at your pace.
+            Train your skills. Your pace. Your grind.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Pick a skill area and start practicing. Each card focuses on a core placement skill so
-            you can build the base recruiters look for — one session at a time.
+            Pick a skill, jump in, and start leveling up. Each module is built around a placement
+            skill recruiters actually look for — so you can keep improving, one session at a time.
           </p>
         </div>
 

@@ -58,8 +58,8 @@ function GetStartedPage() {
                     <ArrowRight className="size-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-foreground" />
                   </span>
                   <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
-                    For placement cells, TPOs and management — measure and improve the readiness of
-                    your entire cohort.
+                    For placement cells, TPOs &amp; management — get the full picture of your campus
+                    talent, track readiness, and level up your placement game.
                   </span>
                 </span>
               </button>
@@ -80,7 +80,8 @@ function GetStartedPage() {
                     <ArrowRight className="size-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-foreground" />
                   </span>
                   <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
-                    For students — build your profile, take AI interviews and get placement ready.
+                    For students — build your profile, challenge yourself with AI-powered training
+                    &amp; interviews, and get placement-ready before the real game begins.
                   </span>
                 </span>
               </button>

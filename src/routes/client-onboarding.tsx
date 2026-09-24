@@ -664,14 +664,14 @@ function ClientOnboardingPage() {
       <main className="mx-auto w-full max-w-xl px-4 py-10 pb-16 sm:px-6">
         <div key={step} className="onboarding-step">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-lift sm:p-10">
-            <span className="grid size-12 place-items-center rounded-2xl bg-foreground/5 text-foreground">
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-foreground/5 text-foreground">
               <CurrentIcon className="size-5" />
             </span>
 
-            <h1 className="mt-6 font-[family-name:var(--font-display)] text-3xl leading-tight tracking-tight sm:text-4xl">
+            <h1 className="mt-6 text-center font-[family-name:var(--font-display)] text-3xl leading-tight tracking-tight sm:text-4xl">
               {currentStep.title}
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-3 text-center text-sm leading-relaxed text-muted-foreground">
               {currentStep.subtitle}
             </p>
 

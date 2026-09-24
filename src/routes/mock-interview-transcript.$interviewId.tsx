@@ -39,6 +39,7 @@ const SPEAKERS: Record<string, Speaker> = {
     role: "Session Host & Integrity Monitor",
     mark: "At",
     ai: true,
+    img: "/Panelists/Atlas.jpg",
   },
   albert: {
     id: "albert",

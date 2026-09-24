@@ -1,6 +1,9 @@
 import { setCollegeName } from "@/lib/branding";
 
-const API_BASE = (import.meta.env["VITE_API_URL"] as string | undefined) ?? "";
+const API_BASE = ((import.meta.env["VITE_API_URL"] as string | undefined) ?? "").replace(
+  /\/+$/,
+  "",
+);
 
 // Every account has exactly one Role: Student (candidate) or Institution Staff.
 // Note: candidates and students are the same in this project.
@@ -1472,6 +1475,9 @@ export async function updateProfile(
 ): Promise<CandidateProfilePayload> {
   return apiFetch<CandidateProfilePayload>("/api/auth/profile/", {
     method: "PATCH",
+    // Saving may trigger a slow LinkedIn-photo fetch on the server, so use the
+    // long timeout reserved for LLM-backed endpoints.
+    timeoutMs: LONG_TIMEOUT_MS,
     body: JSON.stringify(body),
   });
 }

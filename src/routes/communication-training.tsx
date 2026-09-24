@@ -557,13 +557,9 @@ function CommunicationTrainingPage() {
       .getUserMedia({ video: true, audio: false })
       .then((s) => {
         stream = s;
-        if (!videoRef.current) {
-          // The page was already left while the camera was starting — drop it.
-          s.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        videoRef.current.srcObject = s;
         camStreamRef.current = s;
+        const video = videoRef.current;
+        if (video && !video.srcObject) video.srcObject = s;
       })
       .catch(() => {});
     return () => {
@@ -572,6 +568,15 @@ function CommunicationTrainingPage() {
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  // The selfie-cam <video> only mounts after the splash + auth gates clear, so
+  // the stream can start before the element exists. Attach it the moment the
+  // element appears instead of dropping the feed.
+  useEffect(() => {
+    if (!splashDone || status !== "ready" || !videoRef.current) return;
+    const stream = camStreamRef.current;
+    if (stream && !videoRef.current.srcObject) videoRef.current.srcObject = stream;
+  }, [splashDone, status]);
 
   // Selfie-cam smile detection. MediaPipe blendshapes drive a "Smile!" prompt
   // that stays on the cam until the student shows a normal smile (not an

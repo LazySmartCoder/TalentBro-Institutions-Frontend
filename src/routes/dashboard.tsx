@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -134,6 +135,18 @@ function Overview() {
     .sort((a, b) => (a.campus_visit_date ?? "").localeCompare(b.campus_visit_date ?? ""))
     .slice(0, 5);
   const maxTier = Math.max(1, ...overview.tiers.map((t) => t.count));
+  const funnelTotal = overview.funnel[0]?.value ?? 0;
+  const funnelData = overview.funnel
+    .filter((s) => s.stage !== "Total Students")
+    .map((s) => {
+      const pct = funnelTotal ? Math.round((s.value / funnelTotal) * 100) : 0;
+      return {
+        stage: s.stage,
+        value: s.value,
+        pct,
+        label: `${s.value.toLocaleString("en-IN")} · ${pct}%`,
+      };
+    });
 
   return (
     <Shell
@@ -142,9 +155,9 @@ function Overview() {
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi
-          label="Eligible Students"
-          value={k.eligible_students}
-          hint={`${k.verified} of ${k.total_students} verified`}
+          label="Total Students"
+          value={k.total_students}
+          hint={`${k.eligible_students} eligible · ${k.verified} verified`}
           icon={GraduationCap}
         />
         <Kpi
@@ -157,7 +170,7 @@ function Overview() {
         <Kpi
           label="Average CGPA"
           value={k.avg_cgpa?.toFixed(2) ?? "—"}
-          hint={`highest ${k.highest_cgpa?.toFixed(2) ?? "—"} · avg CTC ₹${k.avg_expected_ctc ?? "—"} LPA`}
+          hint={`highest ${k.highest_cgpa?.toFixed(2) ?? "—"}`}
           icon={GraduationCap}
         />
         <Kpi
@@ -197,27 +210,34 @@ function Overview() {
           </ResponsiveContainer>
         </Panel>
 
-        <Panel title="Placement Funnel" description="Batch profile, live database">
-          <div className="space-y-3.5">
-            {overview.funnel.map((f, i) => {
-              const first = overview.funnel[0]?.value ?? 1;
-              const prev = overview.funnel[i - 1]?.value;
-              return (
-                <div key={f.stage}>
-                  <div className="flex items-baseline justify-between text-xs">
-                    <span className="font-medium">{f.stage}</span>
-                    <span className="font-mono tabular-nums text-muted-foreground">
-                      {f.value.toLocaleString("en-IN")}
-                      {prev && <span className="ml-2">{Math.round((f.value / prev) * 100)}%</span>}
-                    </span>
-                  </div>
-                  <div className="mt-1.5">
-                    <MiniBar value={f.value} max={first} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Panel title="Placement Funnel" description="NOTE: ELIGIBLE MEANS NOT PLACED">
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart
+              data={funnelData}
+              layout="vertical"
+              margin={{ top: 2, right: 10, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid stroke={chartColors.grid} horizontal={false} />
+              <XAxis type="number" hide domain={[0, 100]} />
+              <YAxis
+                type="category"
+                dataKey="stage"
+                width={86}
+                tickLine={false}
+                axisLine={false}
+                fontSize={11}
+                tick={{ fill: "oklch(0.4 0 0)" }}
+              />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                cursor={{ fill: "oklch(0 0 0 / 0.04)" }}
+                formatter={(value) => [`${value}%`, "of students"]}
+              />
+              <ChartBar dataKey="pct" radius={[0, 4, 4, 0]} fill={chartColors.ink} barSize={20}>
+                <LabelList dataKey="label" position="right" fontSize={11} fill="oklch(0.35 0 0)" />
+              </ChartBar>
+            </BarChart>
+          </ResponsiveContainer>
         </Panel>
       </div>
 
