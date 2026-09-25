@@ -42,12 +42,7 @@ const panelists = [
   ["Carl", "Behavioral Intelligence"],
 ];
 
-function postAuthTarget(
-  user: AuthUser,
-): "/onboarding" | "/chat" | "/client-onboarding" | "/dashboard" {
-  if (user.role === "student") {
-    return user.profile_complete === false ? "/onboarding" : "/chat";
-  }
+function postAuthTarget(user: AuthUser): "/client-onboarding" | "/dashboard" {
   return user.profile_complete === false ? "/client-onboarding" : "/dashboard";
 }
 
@@ -71,7 +66,11 @@ function AuthPage() {
       .then((current) => {
         if (cancelled) return;
         if (current) {
-          void navigate({ to: postAuthTarget(current), replace: true });
+          if (current.role === "student") {
+            void navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
+          } else {
+            void navigate({ to: postAuthTarget(current), replace: true });
+          }
         } else {
           setCheckingSession(false);
         }
@@ -119,6 +118,10 @@ function AuthPage() {
       const current = await me();
       if (!current) {
         navigate({ to: "/institution-auth", replace: true });
+        return;
+      }
+      if (current.role === "student") {
+        navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
         return;
       }
       navigate({ to: postAuthTarget(current), replace: true });

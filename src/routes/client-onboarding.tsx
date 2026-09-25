@@ -207,7 +207,7 @@ function ClientOnboardingPage() {
           return;
         }
         if (current.role !== "institution_staff") {
-          void navigate({ to: "/dashboard", replace: true });
+          void navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
           return;
         }
         if (current.profile_complete === true) {
@@ -617,7 +617,7 @@ function ClientOnboardingPage() {
                 type="button"
                 aria-label="Logout"
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <LogOut className="size-3.5" />
                 Logout

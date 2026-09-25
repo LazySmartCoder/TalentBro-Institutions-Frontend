@@ -37,10 +37,15 @@ import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as MockInterviewRouteImport } from './routes/mock-interview'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ResumeBuilderRouteImport } from './routes/resume-builder'
+import { Route as RoadmapDrillRouteImport } from './routes/roadmap-drill'
+import { Route as SandboxRouteImport } from './routes/sandbox'
 import { Route as SelfTrainingRouteImport } from './routes/self-training'
 import { Route as SituationalTrainingRouteImport } from './routes/situational-training'
 import { Route as StudentsRouteImport } from './routes/students'
+import { Route as TacRouteImport } from './routes/tac'
 import { Route as TechnicalTrainingRouteImport } from './routes/technical-training'
 import { Route as TutorialsRouteImport } from './routes/tutorials'
 import { Route as CommunicationTrainingReportSessionIdRouteImport } from './routes/communication-training-report.$sessionId'
@@ -192,9 +197,29 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResumeBuilderRoute = ResumeBuilderRouteImport.update({
+  id: '/resume-builder',
+  path: '/resume-builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadmapDrillRoute = RoadmapDrillRouteImport.update({
+  id: '/roadmap-drill',
+  path: '/roadmap-drill',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SandboxRoute = SandboxRouteImport.update({
+  id: '/sandbox',
+  path: '/sandbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SelfTrainingRoute = SelfTrainingRouteImport.update({
@@ -210,6 +235,11 @@ const SituationalTrainingRoute = SituationalTrainingRouteImport.update({
 const StudentsRoute = StudentsRouteImport.update({
   id: '/students',
   path: '/students',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TacRoute = TacRouteImport.update({
+  id: '/tac',
+  path: '/tac',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TechnicalTrainingRoute = TechnicalTrainingRouteImport.update({
@@ -286,10 +316,15 @@ export interface FileRoutesByFullPath {
   '/mock-interview': typeof MockInterviewRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reports': typeof ReportsRoute
+  '/resume-builder': typeof ResumeBuilderRoute
+  '/roadmap-drill': typeof RoadmapDrillRoute
+  '/sandbox': typeof SandboxRoute
   '/self-training': typeof SelfTrainingRoute
   '/situational-training': typeof SituationalTrainingRoute
   '/students': typeof StudentsRoute
+  '/tac': typeof TacRoute
   '/technical-training': typeof TechnicalTrainingRoute
   '/tutorials': typeof TutorialsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
@@ -328,10 +363,15 @@ export interface FileRoutesByTo {
   '/mock-interview': typeof MockInterviewRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reports': typeof ReportsRoute
+  '/resume-builder': typeof ResumeBuilderRoute
+  '/roadmap-drill': typeof RoadmapDrillRoute
+  '/sandbox': typeof SandboxRoute
   '/self-training': typeof SelfTrainingRoute
   '/situational-training': typeof SituationalTrainingRoute
   '/students': typeof StudentsRoute
+  '/tac': typeof TacRoute
   '/technical-training': typeof TechnicalTrainingRoute
   '/tutorials': typeof TutorialsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
@@ -371,10 +411,15 @@ export interface FileRoutesById {
   '/mock-interview': typeof MockInterviewRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reports': typeof ReportsRoute
+  '/resume-builder': typeof ResumeBuilderRoute
+  '/roadmap-drill': typeof RoadmapDrillRoute
+  '/sandbox': typeof SandboxRoute
   '/self-training': typeof SelfTrainingRoute
   '/situational-training': typeof SituationalTrainingRoute
   '/students': typeof StudentsRoute
+  '/tac': typeof TacRoute
   '/technical-training': typeof TechnicalTrainingRoute
   '/tutorials': typeof TutorialsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
@@ -415,10 +460,15 @@ export interface FileRouteTypes {
     | '/mock-interview'
     | '/notifications'
     | '/onboarding'
+    | '/privacy-policy'
     | '/reports'
+    | '/resume-builder'
+    | '/roadmap-drill'
+    | '/sandbox'
     | '/self-training'
     | '/situational-training'
     | '/students'
+    | '/tac'
     | '/technical-training'
     | '/tutorials'
     | '/communication-training-report/$sessionId'
@@ -457,10 +507,15 @@ export interface FileRouteTypes {
     | '/mock-interview'
     | '/notifications'
     | '/onboarding'
+    | '/privacy-policy'
     | '/reports'
+    | '/resume-builder'
+    | '/roadmap-drill'
+    | '/sandbox'
     | '/self-training'
     | '/situational-training'
     | '/students'
+    | '/tac'
     | '/technical-training'
     | '/tutorials'
     | '/communication-training-report/$sessionId'
@@ -499,10 +554,15 @@ export interface FileRouteTypes {
     | '/mock-interview'
     | '/notifications'
     | '/onboarding'
+    | '/privacy-policy'
     | '/reports'
+    | '/resume-builder'
+    | '/roadmap-drill'
+    | '/sandbox'
     | '/self-training'
     | '/situational-training'
     | '/students'
+    | '/tac'
     | '/technical-training'
     | '/tutorials'
     | '/communication-training-report/$sessionId'
@@ -542,10 +602,15 @@ export interface RootRouteChildren {
   MockInterviewRoute: typeof MockInterviewRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ReportsRoute: typeof ReportsRoute
+  ResumeBuilderRoute: typeof ResumeBuilderRoute
+  RoadmapDrillRoute: typeof RoadmapDrillRoute
+  SandboxRoute: typeof SandboxRoute
   SelfTrainingRoute: typeof SelfTrainingRoute
   SituationalTrainingRoute: typeof SituationalTrainingRoute
   StudentsRoute: typeof StudentsRoute
+  TacRoute: typeof TacRoute
   TechnicalTrainingRoute: typeof TechnicalTrainingRoute
   TutorialsRoute: typeof TutorialsRoute
   CommunicationTrainingReportSessionIdRoute: typeof CommunicationTrainingReportSessionIdRoute
@@ -754,11 +819,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resume-builder': {
+      id: '/resume-builder'
+      path: '/resume-builder'
+      fullPath: '/resume-builder'
+      preLoaderRoute: typeof ResumeBuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadmap-drill': {
+      id: '/roadmap-drill'
+      path: '/roadmap-drill'
+      fullPath: '/roadmap-drill'
+      preLoaderRoute: typeof RoadmapDrillRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sandbox': {
+      id: '/sandbox'
+      path: '/sandbox'
+      fullPath: '/sandbox'
+      preLoaderRoute: typeof SandboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/self-training': {
@@ -780,6 +873,13 @@ declare module '@tanstack/react-router' {
       path: '/students'
       fullPath: '/students'
       preLoaderRoute: typeof StudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tac': {
+      id: '/tac'
+      path: '/tac'
+      fullPath: '/tac'
+      preLoaderRoute: typeof TacRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/technical-training': {
@@ -870,10 +970,15 @@ const rootRouteChildren: RootRouteChildren = {
   MockInterviewRoute: MockInterviewRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   ReportsRoute: ReportsRoute,
+  ResumeBuilderRoute: ResumeBuilderRoute,
+  RoadmapDrillRoute: RoadmapDrillRoute,
+  SandboxRoute: SandboxRoute,
   SelfTrainingRoute: SelfTrainingRoute,
   SituationalTrainingRoute: SituationalTrainingRoute,
   StudentsRoute: StudentsRoute,
+  TacRoute: TacRoute,
   TechnicalTrainingRoute: TechnicalTrainingRoute,
   TutorialsRoute: TutorialsRoute,
   CommunicationTrainingReportSessionIdRoute:

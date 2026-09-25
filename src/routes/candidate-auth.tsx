@@ -61,7 +61,9 @@ function AuthPage() {
       .then((current) => {
         if (cancelled) return;
         if (current) {
-          if (current.profile_complete === false) {
+          if (current.role !== "student") {
+            navigate({ to: "/institution-auth", search: { mode: "login" }, replace: true });
+          } else if (current.profile_complete === false) {
             navigate({ to: "/onboarding", replace: true });
           } else {
             navigate({ to: "/chat", replace: true });
@@ -111,7 +113,7 @@ function AuthPage() {
       }
       const current = await me();
       if (current?.role !== "student") {
-        navigate({ to: "/dashboard", replace: true });
+        navigate({ to: "/institution-auth", search: { mode: "login" }, replace: true });
       } else if (current?.profile_complete === false) {
         navigate({ to: "/onboarding" });
       } else {

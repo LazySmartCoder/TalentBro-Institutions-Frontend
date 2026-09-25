@@ -61,6 +61,10 @@ function Overview() {
     me()
       .then((u) => {
         if (cancelled) return;
+        if (u?.role === "student") {
+          void navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
+          return;
+        }
         if (u?.role === "institution_staff" && u.profile_complete === false) {
           void navigate({ to: "/client-onboarding", replace: true });
           return;

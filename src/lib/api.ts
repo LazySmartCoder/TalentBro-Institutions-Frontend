@@ -1314,6 +1314,40 @@ export async function summarizeChatSession(
   });
 }
 
+export type RoadmapSelfTrainingModule = {
+  required: boolean;
+  sessions_per_week?: number;
+  focus_areas?: string[];
+  notes?: string;
+};
+
+export type CandidateRoadmap = {
+  id: string;
+  source_session: string | null;
+  status: string;
+  timeline_target: string;
+  target_date: string | null;
+  company_target: string[];
+  goal_statement: string;
+  mocks_required: number;
+  daily_practice_session_duration: number;
+  self_training_required: Record<string, RoadmapSelfTrainingModule>;
+  roadmap: Record<string, unknown>;
+  summary: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getCandidateRoadmap(): Promise<CandidateRoadmap | null> {
+  try {
+    const data = await apiFetch<{ roadmap: CandidateRoadmap }>("/api/roadmap/");
+    return data.roadmap ?? null;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 export async function translateTexts(texts: string[], targetLanguage?: string): Promise<string[]> {
   const body: Record<string, unknown> = { texts };
   if (targetLanguage) body["target_language"] = targetLanguage;

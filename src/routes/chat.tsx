@@ -8,9 +8,11 @@ import {
   ChevronsRight,
   Copy,
   Dumbbell,
+  FileText,
   GraduationCap,
   Loader2,
   LogOut,
+  Map,
   MessageSquare,
   Mic,
   Plus,
@@ -26,6 +28,7 @@ import {
   chatSessionDetail,
   chatSessions,
   deleteChatSession,
+  getCandidateRoadmap,
   getNotifications,
   getProfile,
   me,
@@ -103,6 +106,8 @@ const DEFAULT_SUGGESTIONS = [
   "How do I answer Tell me about yourself?",
   "Review my resume summary",
 ];
+
+const ROADMAP_PROMPT = "Help me with an appropriate Roadmap for this month";
 
 // Static new-chat screen copy that is translated for non-English profiles so the
 // empty state feels native. Order matches the translation response slice.
@@ -356,6 +361,7 @@ function ChatPage() {
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [roadmapChecking, setRoadmapChecking] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [error, setError] = useState("");
@@ -495,6 +501,10 @@ function ChatPage() {
         if (cancelled) return;
         if (!current) {
           void navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
+          return;
+        }
+        if (current.role !== "student") {
+          void navigate({ to: "/institution-auth", search: { mode: "login" }, replace: true });
           return;
         }
         if (current.profile_complete === false) {
@@ -647,6 +657,29 @@ function ChatPage() {
     setError("");
     setAnimating(false);
     requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function startRoadmapChat() {
+    if (sending) return;
+    startNewChat();
+    void sendMessage(ROADMAP_PROMPT);
+  }
+
+  async function openRoadmap() {
+    if (roadmapChecking || sending) return;
+    setRoadmapChecking(true);
+    try {
+      const roadmap = await getCandidateRoadmap();
+      if (roadmap) {
+        void navigate({ to: "/roadmap-drill" });
+        return;
+      }
+      startRoadmapChat();
+    } catch {
+      startRoadmapChat();
+    } finally {
+      setRoadmapChecking(false);
+    }
   }
 
   function selectSession(id: string) {
@@ -1490,6 +1523,27 @@ function ChatPage() {
               >
                 <Dumbbell className="size-4 shrink-0" />
                 Self Training
+              </button>
+              <button
+                type="button"
+                onClick={() => void navigate({ to: "/resume-builder" })}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <FileText className="size-4 shrink-0" />
+                Resume
+              </button>
+              <button
+                type="button"
+                onClick={() => void openRoadmap()}
+                disabled={roadmapChecking}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-wait disabled:opacity-70"
+              >
+                {roadmapChecking ? (
+                  <Loader2 className="size-4 shrink-0 animate-spin" />
+                ) : (
+                  <Map className="size-4 shrink-0" />
+                )}
+                Roadmap
               </button>
             </nav>
           </div>

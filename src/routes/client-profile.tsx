@@ -251,7 +251,7 @@ function ClientProfilePage() {
           return;
         }
         if (current.role !== "institution_staff") {
-          void navigate({ to: "/dashboard", replace: true });
+          void navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
           return;
         }
         if (current.profile_complete === false) {
