@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { brandedTitle } from "@/lib/branding";
 import { initTimeTracker } from "@/lib/time-tracker";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -93,6 +94,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,300..800;1,400&display=swap",
       },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Space+Mono:wght@400;700&display=swap",
+      },
       { rel: "icon", href: "/favicon.ico?v=3", type: "image/x-icon" },
     ],
   }),
@@ -110,6 +115,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster />
         <Scripts />
       </body>
     </html>

@@ -60,6 +60,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-line: var(--line);
@@ -228,6 +230,22 @@
   h3 {
     letter-spacing: -0.03em;
   }
+
+  /*
+   * Hide the browser's native stepper arrows on number inputs. Every number
+   * field in the app is a bordered box with its own presets or keypad entry, and
+   * the default arrows add a stray second control to a 14px-tall input.
+   */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 
 @utility grid-paper {
@@ -264,8 +282,42 @@
   &:hover { transform: translateY(-2px); background: oklch(0.9 0 0); }
 }
 
-@utility cta-large { padding: 0.95rem 1.35rem; font-size: 0.82rem; }
-@utility nav-link { position: relative; transition: color 200ms ease; &:hover { color: var(--paper); } &::after { content: ""; position: absolute; inset: auto 0 -0.4rem; height: 1px; transform: scaleX(0); background: var(--paper); transition: transform 200ms ease; } &:hover::after { transform: scaleX(1); } }
+@utility cta-large { padding: 0.95rem 1.35rem; font-size: 0.82rem; } @utility nav-link { position: relative; transition: color 200ms ease; &:hover { color: var(--paper); } &::after { content: ""; position: absolute; inset: auto 0 -0.4rem; height: 1px; transform: scaleX(0); background: var(--paper); transition: transform 200ms ease; } &:hover::after { transform: scaleX(1); } }
+
+/* Placement-dashboard surfaces. The dash pages are built from these three
+   primitives: a bordered card, a small uppercase micro-label and a large
+   tabular figure. `panel` / `mono-label` / `stat-num` are the legacy names the
+   older client routes still use — same rules, so the two spellings can never
+   drift apart. None of them are used with variants, so plain classes are
+   enough. */
+.dash-panel,
+.panel {
+  background: var(--color-card);
+  color: var(--color-card-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) + 0.25rem);
+  box-shadow: var(--shadow-panel);
+}
+
+.dash-mono-label,
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.dash-stat-num,
+.stat-num {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--color-foreground);
+}
+
 @utility section-title { margin-top: 1.25rem; font-size: clamp(2.35rem, 5vw, 5rem); line-height: 1.02; font-weight: 600; }
 @utility section-copy { margin-top: 1.6rem; max-width: 38rem; font-size: clamp(.95rem, 1.5vw, 1.1rem); line-height: 1.8; color: oklch(0.4 0 0); }
 

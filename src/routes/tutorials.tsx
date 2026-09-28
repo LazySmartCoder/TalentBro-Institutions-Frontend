@@ -1,14 +1,16 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, GraduationCap, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, GraduationCap, Play, RefreshCw, Target } from "lucide-react";
 import { AppNavHeader } from "@/components/tb/app-nav";
 import {
   me,
   chatSessions,
   chatSessionDetail,
+  courseSegments,
   mockInterviews,
   mockInterviewAnalysis,
   type AuthUser,
+  type CourseWeaknessSegment,
   type MockInterviewAnalysis,
 } from "@/lib/api";
 import { GateError, GateLoading } from "@/components/load-state";
@@ -33,6 +35,13 @@ export const Route = createFileRoute("/tutorials")({
       { property: "og:description", content: description },
     ],
   }),
+  // A weak area picked on /learning or /courses arrives here as `?q=<phrase>`,
+  // which pins the feed to that one topic. An absent or blank value is dropped
+  // so the automatic personalization runs instead.
+  validateSearch: (search: Record<string, unknown>): { q?: string } => {
+    const raw = typeof search["q"] === "string" ? search["q"].trim() : "";
+    return raw ? { q: raw } : {};
+  },
   component: TutorialsPage,
 });
 
@@ -405,36 +414,72 @@ type Section = {
   error: string;
 };
 
+/** Total videos the feed aims for, split evenly across whatever topics it has. */
+const MAX_VIDEOS = 60;
+
+function sectionTargets(count: number): number[] {
+  const n = Math.max(1, count);
+  return Array.from({ length: n }, (_, i) => {
+    const base = Math.floor(MAX_VIDEOS / n);
+    return i < MAX_VIDEOS % n ? base + 1 : base;
+  });
+}
+
 const YT_BASE = "https://www.googleapis.com/youtube/v3/search";
+/** The search endpoint caps a single page at 50 items, so bigger asks are paged. */
+const YT_PAGE_SIZE = 50;
 
 async function searchVideos(query: string, maxResults = 8): Promise<Video[]> {
   const key = (import.meta.env["VITE_YOUTUBE_API_KEY"] as string | undefined) ?? "";
   if (!key) throw new Error("missing-key");
 
-  const url = `${YT_BASE}?part=snippet&type=video&maxResults=${maxResults}&q=${encodeURIComponent(query)}&key=${encodeURIComponent(key)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`youtube-${res.status}`);
-  const data = (await res.json()) as {
-    items?: {
-      id?: { videoId?: string };
-      snippet?: {
-        title?: string;
-        channelTitle?: string;
-        publishedAt?: string;
-        thumbnails?: { medium?: { url?: string }; high?: { url?: string } };
-      };
-    }[];
-  };
-  return (data.items ?? [])
-    .map((it) => ({
-      videoId: it.id?.videoId ?? "",
-      title: it.snippet?.title ?? "",
-      channel: it.snippet?.channelTitle ?? "",
-      publishedAt: it.snippet?.publishedAt ?? "",
-      thumbnailUrl: it.snippet?.thumbnails?.high?.url ?? it.snippet?.thumbnails?.medium?.url ?? "",
-      why: "",
-    }))
-    .filter((v) => v.videoId);
+  const videos: Video[] = [];
+  let pageToken: string | null = null;
+
+  while (videos.length < maxResults) {
+    const params = new URLSearchParams({
+      part: "snippet",
+      type: "video",
+      maxResults: String(Math.min(YT_PAGE_SIZE, maxResults - videos.length)),
+      q: query,
+      key,
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const res = await fetch(`${YT_BASE}?${params.toString()}`);
+    if (!res.ok) throw new Error(`youtube-${res.status}`);
+    const data = (await res.json()) as {
+      items?: {
+        id?: { videoId?: string };
+        snippet?: {
+          title?: string;
+          channelTitle?: string;
+          publishedAt?: string;
+          thumbnails?: { medium?: { url?: string }; high?: { url?: string } };
+        };
+      }[];
+      nextPageToken?: string;
+    };
+
+    for (const it of data.items ?? []) {
+      const videoId = it.id?.videoId ?? "";
+      if (!videoId) continue;
+      videos.push({
+        videoId,
+        title: it.snippet?.title ?? "",
+        channel: it.snippet?.channelTitle ?? "",
+        publishedAt: it.snippet?.publishedAt ?? "",
+        thumbnailUrl:
+          it.snippet?.thumbnails?.high?.url ?? it.snippet?.thumbnails?.medium?.url ?? "",
+        why: "",
+      });
+    }
+
+    pageToken = data.nextPageToken ?? null;
+    if (!pageToken) break;
+  }
+
+  return videos;
 }
 
 function describeWhy(topic: Topic, profile: StudentProfile): string {
@@ -781,8 +826,86 @@ function VideoPlayerDialog({
   );
 }
 
+/**
+ * The tracked weaknesses, as links: each one carries the search phrase that
+ * addresses it, so picking an area pins the feed to that topic instead of the
+ * automatic mix. The active chip is highlighted, matching /courses.
+ */
+function WeakAreaPanel({
+  segments,
+  activeQuery,
+  refreshing,
+  onRefresh,
+}: {
+  segments: CourseWeaknessSegment[];
+  activeQuery: string | undefined;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const chipClass =
+    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors";
+
+  return (
+    <section className="dash-panel mb-8">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div>
+          <h2 className="text-[15px] font-semibold">Built from your training</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Your weakest areas, straight from your interview and self-training scores.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-wait disabled:opacity-50"
+        >
+          <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing…" : "Refresh"}
+        </button>
+      </header>
+      <div className="flex flex-wrap gap-2 p-5">
+        {segments.map((segment) => {
+          const isActive = segment.query === activeQuery;
+          return (
+            <Link
+              key={segment.key}
+              to="/tutorials"
+              search={{ q: segment.query }}
+              aria-current={isActive ? "true" : undefined}
+              className={
+                isActive
+                  ? `${chipClass} border-primary bg-primary text-primary-foreground`
+                  : `${chipClass} border-border text-foreground hover:bg-muted`
+              }
+            >
+              {segment.label}
+              <span
+                className={isActive ? "font-mono opacity-80" : "font-mono text-muted-foreground"}
+              >
+                {segment.score}%
+              </span>
+            </Link>
+          );
+        })}
+        {activeQuery !== undefined && (
+          <Link
+            to="/tutorials"
+            search={{}}
+            className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <Target className="size-3.5" />
+            Back to personalized
+          </Link>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function TutorialsPage() {
   const navigate = useNavigate();
+  const { q } = Route.useSearch();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -790,76 +913,123 @@ function TutorialsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
+  const [segments, setSegments] = useState<CourseWeaknessSegment[]>([]);
+  const [segmentsResolved, setSegmentsResolved] = useState(false);
+  // Identifies the feed that is currently on screen, so a `?q=` change (or a
+  // refresh) rebuilds the sections instead of being blocked by the stale ones.
+  const feedKey = `${q ?? ""}|${refreshKey}`;
+  const [builtKey, setBuiltKey] = useState<string | null>(null);
+  const activeSegment = segments.find((segment) => segment.query === q) ?? null;
 
   useEffect(() => {
-    if (!user || sections.length > 0) return;
+    if (status !== "ready") return;
+    let cancelled = false;
+    courseSegments()
+      .then((result) => {
+        if (!cancelled) setSegments(result.segments ?? []);
+      })
+      .catch(() => {
+        // Weakness tracking is an enhancement, never a gate: the feed still works
+        // without it, it just loses the labels and the "why this" numbers.
+      })
+      .finally(() => {
+        if (!cancelled) setSegmentsResolved(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
+  useEffect(() => {
+    // A pinned feed waits for the segments, so the topic it opens with is the
+    // real weakness label rather than a placeholder.
+    if (!user || (q !== undefined && !segmentsResolved)) return;
+    // `builtKey` is the single guard: the feed is rebuilt only when the URL query
+    // or the refresh counter moves on from what is already on screen.
+    if (builtKey === feedKey) return;
 
     (async () => {
       const topics: Topic[] = [];
+      setBuiltKey(feedKey);
 
-      // Pull analysis from the last 3 mock interviews and derive topics from weak scores.
-      try {
-        const interviews = await mockInterviews();
-        const completed = interviews.filter((i) => i.status === "completed");
-        const recent = completed.slice(0, 3);
-        const analyses = await Promise.all(
-          recent.map((i) => mockInterviewAnalysis(i.id).catch(() => null)),
-        );
-        const analysisTopics = analysisToTopics(analyses);
-        // Rotate through the weak dimensions so each refresh surfaces a fresh
-        // subset instead of always showing the same bottom few.
-        const batchSize = 3;
-        const start = (refreshKey * batchSize) % Math.max(1, analysisTopics.length);
-        const rotated = [];
-        for (let i = 0; i < analysisTopics.length; i++) {
-          rotated.push(analysisTopics[(start + i) % analysisTopics.length]);
+      // A picked weak area pins the feed to that one topic; the automatic
+      // analysis/chat rotation below is skipped entirely.
+      if (q) {
+        const focus: Topic = {
+          title: activeSegment?.label ?? "Your focus area",
+          query: q,
+          reason: "Picked from your weak areas",
+          kind: "weakness",
+        };
+        if (activeSegment) {
+          focus.evidence = `${activeSegment.blurb} Average ${activeSegment.score}% across ${activeSegment.sample_size} score${activeSegment.sample_size === 1 ? "" : "s"}.`;
         }
-        const seenFromAnalysis = new Set(topics.map((t) => t.title));
-        for (const t of rotated.slice(0, batchSize)) {
-          if (t && !seenFromAnalysis.has(t.title)) {
-            topics.push(t);
-            seenFromAnalysis.add(t.title);
+        topics.push(focus);
+      } else {
+        // Pull analysis from the last 3 mock interviews and derive topics from weak scores.
+        try {
+          const interviews = await mockInterviews();
+          const completed = interviews.filter((i) => i.status === "completed");
+          const recent = completed.slice(0, 3);
+          const analyses = await Promise.all(
+            recent.map((i) => mockInterviewAnalysis(i.id).catch(() => null)),
+          );
+          const analysisTopics = analysisToTopics(analyses);
+          // Rotate through the weak dimensions so each refresh surfaces a fresh
+          // subset instead of always showing the same bottom few.
+          const batchSize = 3;
+          const start = (refreshKey * batchSize) % Math.max(1, analysisTopics.length);
+          const rotated = [];
+          for (let i = 0; i < analysisTopics.length; i++) {
+            rotated.push(analysisTopics[(start + i) % analysisTopics.length]);
           }
-        }
-      } catch {
-        // analysis may be unavailable; chat-derived topics are still enough
-      }
-
-      // Pull the last 3 chat sessions and derive topics from what was asked.
-      try {
-        const sessions = await chatSessions();
-        const recent = sessions.slice(0, 3);
-        const details = await Promise.all(
-          recent.map((s) => chatSessionDetail(s.id).catch(() => null)),
-        );
-        const chatTexts = details
-          .filter((d): d is NonNullable<typeof d> => Boolean(d))
-          .flatMap((d) => d.messages.filter((m) => m.role === "user").map((m) => m.content));
-        if (chatTexts.length > 0) {
-          const chat = analyzeChat(chatTexts);
-          // Rotate through the chat topics so each refresh shows a fresh set.
-          const chatTopics = chat.topics;
-          const chatBatchSize = 3;
-          const chatStart = (refreshKey * chatBatchSize) % Math.max(1, chatTopics.length);
-          const chatRotated = [];
-          for (let i = 0; i < chatTopics.length; i++) {
-            chatRotated.push(chatTopics[(chatStart + i) % chatTopics.length]);
-          }
-          const seen = new Set(topics.map((t) => t.title));
-          for (const t of chatRotated.slice(0, chatBatchSize)) {
-            if (t && !seen.has(t.title)) {
+          const seenFromAnalysis = new Set(topics.map((t) => t.title));
+          for (const t of rotated.slice(0, batchSize)) {
+            if (t && !seenFromAnalysis.has(t.title)) {
               topics.push(t);
-              seen.add(t.title);
+              seenFromAnalysis.add(t.title);
             }
           }
+        } catch {
+          // analysis may be unavailable; chat-derived topics are still enough
         }
-      } catch {
-        // analysis-derived topics are enough if chat fetch fails
-      }
 
-      // Fallback to rounded placement basics if nothing was derived yet.
-      if (topics.length === 0) {
-        topics.push(...(DOMAIN_TOPICS["default"] ?? []).slice(0, 3));
+        // Pull the last 3 chat sessions and derive topics from what was asked.
+        try {
+          const sessions = await chatSessions();
+          const recent = sessions.slice(0, 3);
+          const details = await Promise.all(
+            recent.map((s) => chatSessionDetail(s.id).catch(() => null)),
+          );
+          const chatTexts = details
+            .filter((d): d is NonNullable<typeof d> => Boolean(d))
+            .flatMap((d) => d.messages.filter((m) => m.role === "user").map((m) => m.content));
+          if (chatTexts.length > 0) {
+            const chat = analyzeChat(chatTexts);
+            // Rotate through the chat topics so each refresh shows a fresh set.
+            const chatTopics = chat.topics;
+            const chatBatchSize = 3;
+            const chatStart = (refreshKey * chatBatchSize) % Math.max(1, chatTopics.length);
+            const chatRotated = [];
+            for (let i = 0; i < chatTopics.length; i++) {
+              chatRotated.push(chatTopics[(chatStart + i) % chatTopics.length]);
+            }
+            const seen = new Set(topics.map((t) => t.title));
+            for (const t of chatRotated.slice(0, chatBatchSize)) {
+              if (t && !seen.has(t.title)) {
+                topics.push(t);
+                seen.add(t.title);
+              }
+            }
+          }
+        } catch {
+          // analysis-derived topics are enough if chat fetch fails
+        }
+
+        // Fallback to rounded placement basics if nothing was derived yet.
+        if (topics.length === 0) {
+          topics.push(...(DOMAIN_TOPICS["default"] ?? []).slice(0, 3));
+        }
       }
 
       const initial = topics.map((topic) => ({
@@ -869,14 +1039,7 @@ function TutorialsPage() {
         error: "",
       }));
       setSections(initial);
-      // Show at most 30 videos total, split proportionally; no minimum.
-      const MAX = 30;
-      const n = initial.length;
-      const targets: number[] = [];
-      initial.forEach((_, i) => {
-        const base = Math.floor(MAX / n);
-        targets.push(i < MAX % n ? base + 1 : base);
-      });
+      const targets = sectionTargets(initial.length);
       const results = await Promise.all(
         initial.map(async (section, index) => {
           try {
@@ -898,8 +1061,10 @@ function TutorialsPage() {
       );
       setSections(results);
       setRefreshing(false);
-    })();
-  }, [user, sections.length, refreshKey]);
+    })().catch(() => {
+      setRefreshing(false);
+    });
+  }, [user, refreshKey, q, activeSegment, feedKey, builtKey, segmentsResolved]);
 
   function refreshFeed() {
     setRefreshing(true);
@@ -914,8 +1079,11 @@ function TutorialsPage() {
     const topic = sections[index]?.topic;
     if (!topic) return;
     const profile = toProfile(user?.profile);
+    // Retry at the same size the initial build asked for, so a section that
+    // failed does not come back thinner than its share of the feed.
+    const wanted = sectionTargets(sections.length)[index] ?? 20;
     try {
-      const videos = (await searchVideos(topic.query)).map((v) => ({
+      const videos = (await searchVideos(topic.query, wanted)).map((v) => ({
         ...v,
         why: describeWhy(topic, profile),
       }));
@@ -978,13 +1146,13 @@ function TutorialsPage() {
   return (
     <div className="min-h-svh bg-background text-foreground">
       <AppNavHeader
-        current="tutorials"
+        current="learning"
         sticky
         left={
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => void navigate({ to: "/chat", replace: true })}
+              onClick={() => void navigate({ to: "/learning", replace: true })}
               className="grid size-8 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Back to Home"
             >
@@ -999,18 +1167,6 @@ function TutorialsPage() {
           </div>
         }
       />
-
-      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
-        <button
-          type="button"
-          onClick={refreshFeed}
-          disabled={refreshing}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:pointer-events-none disabled:opacity-40"
-        >
-          <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Refreshing…" : "Refresh Tutorials"}
-        </button>
-      </div>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {!hasKey ? (
@@ -1028,6 +1184,12 @@ function TutorialsPage() {
           </div>
         ) : (
           <div className="space-y-12">
+            <WeakAreaPanel
+              segments={segments}
+              activeQuery={q}
+              refreshing={refreshing}
+              onRefresh={refreshFeed}
+            />
             {sections.map((section, index) => (
               <section key={section.topic.query}>
                 <div className="mb-4 flex items-start gap-2.5">

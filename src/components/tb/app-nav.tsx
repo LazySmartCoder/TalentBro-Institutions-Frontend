@@ -7,7 +7,13 @@ import { useTheme } from "@/lib/theme";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type NavPage =
-  "chat" | "mock-interview" | "tutorials" | "self-training" | "notifications" | "profile";
+  | "chat"
+  | "mock-interview"
+  | "learning"
+  | "self-training"
+  | "daily-targets"
+  | "notifications"
+  | "profile";
 
 export function AppNavIconButton({
   label,

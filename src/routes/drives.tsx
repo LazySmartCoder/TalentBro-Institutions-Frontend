@@ -1,9 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarPlus, Filter } from "lucide-react";
-import { toast } from "sonner";
+import {
+  BarChart,
+  Bar as ChartBar,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { Building2, Filter, Loader2, Search } from "lucide-react";
 import { Shell } from "@/components/dash/Shell";
-import { Bar, Kpi, Panel, Pill } from "@/components/dash/bits";
+import {
+  Bar,
+  Kpi,
+  Panel,
+  Pill,
+  chartColors,
+  chartCursor,
+  chartTooltip,
+} from "@/components/dash/bits";
 import { getDrives, type DriveCompanyTier, type PlacementDrive } from "@/lib/api";
 
 export const Route = createFileRoute("/drives")({
@@ -25,7 +41,7 @@ export const Route = createFileRoute("/drives")({
   component: DrivesPage,
 });
 
-const FILTERS = ["All", "Live", "Upcoming", "Completed"] as const;
+const FILTERS = ["All", "Live", "Upcoming", "Completed", "Cancelled"] as const;
 
 const TIER_META: Record<DriveCompanyTier, { label: string; tone: "solid" | "outline" | "muted" }> =
   {
@@ -44,18 +60,31 @@ function fmtDate(iso: string | null): string {
   });
 }
 
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+function visitParts(iso: string): { month: string; day: string } {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { month: "—", day: "—" };
+  return { month: MONTHS[d.getMonth()] ?? "—", day: String(d.getDate()) };
+}
+
 function DrivesPage() {
   const [list, setList] = useState<PlacementDrive[] | null>(null);
+  const [driveCount, setDriveCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setError(null);
     getDrives()
       .then((res) => {
         if (cancelled) return;
         setList(res.drives);
+        setDriveCount(res.drive_count);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -65,67 +94,154 @@ function DrivesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
-  const shown = (list ?? []).filter((d) => filter === "All" || d.status === filter);
-  const active = (list ?? []).find((d) => d.company_id === activeId) ?? shown[0] ?? null;
-  const bestPool = Math.max(1, ...(list ?? []).map((d) => d.eligible_count));
+  const all = list ?? [];
+  const shown = all.filter(
+    (d) =>
+      (filter === "All" || d.status === filter) &&
+      (q.trim() === "" ||
+        `${d.company_name} ${d.industry} ${d.roles.join(" ")} ${d.location ?? ""}`
+          .toLowerCase()
+          .includes(q.trim().toLowerCase())),
+  );
+  const active = all.find((d) => d.company_id === activeId) ?? shown[0] ?? null;
+  const bestPool = Math.max(1, ...all.map((d) => d.eligible_count));
 
-  if (error !== null && list === null) {
+  if (list === null) {
+    return (
+      <Shell title="Placement Drives" subtitle="Plan, run and audit every campus hiring drive">
+        <div className="grid min-h-[50vh] place-items-center">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+            <Loader2 className="size-3.5 animate-spin" /> Loading drives…
+          </span>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (error !== null) {
     return (
       <Shell title="Placement Drives" subtitle="Plan, run and audit every campus hiring drive">
         <Panel>
-          <p className="py-8 text-center text-sm text-muted-foreground">{error}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <button
+              onClick={() => {
+                setList(null);
+                setReloadKey((n) => n + 1);
+              }}
+              className="rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-accent"
+            >
+              Try again
+            </button>
+          </div>
         </Panel>
       </Shell>
     );
   }
 
-  const totalOpenings = (list ?? []).reduce((a, d) => a + (d.openings ?? 0), 0);
-  const eligiblePool = (list ?? []).reduce((a, d) => a + d.eligible_count, 0);
+  const totalOpenings = all.reduce((a, d) => a + (d.openings ?? 0), 0);
+  const eligiblePool = all.reduce((a, d) => a + d.eligible_count, 0);
+
+  const tierMix = (Object.keys(TIER_META) as DriveCompanyTier[])
+    .map((tier) => ({
+      tier,
+      label: TIER_META[tier].label,
+      drives: all.filter((d) => d.tier === tier).length,
+      openings: all.filter((d) => d.tier === tier).reduce((a, d) => a + (d.openings ?? 0), 0),
+    }))
+    .filter((row) => row.drives > 0);
+  const upcomingVisits = all
+    .filter((d) => d.campus_visit_date)
+    .sort((a, b) => (a.campus_visit_date ?? "").localeCompare(b.campus_visit_date ?? ""))
+    .slice(0, 4);
 
   return (
     <Shell
       title="Placement Drives"
       subtitle="Drives come from the companies recorded on the Companies page — with the eligible pool standing behind each one"
       actions={
-        <button
-          onClick={() =>
-            toast.info("Record a company on the Companies page — drives appear here automatically.")
-          }
+        <Link
+          to="/companies"
           className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
         >
-          <CalendarPlus className="size-3.5" /> Create Drive
-        </button>
+          <Building2 className="size-3.5" /> Add Company
+        </Link>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label="Total Drives" value={list?.length ?? 0} hint="recorded this season" />
+        <Kpi label="Total Drives" value={driveCount} hint="drive records for this college" />
         <Kpi
           label="Live Now"
-          value={(list ?? []).filter((d) => d.status === "Live").length}
+          value={all.filter((d) => d.status === "Live").length}
           hint="in progress"
         />
         <Kpi label="Openings" value={totalOpenings} hint="open roles across drives" />
-        <Kpi label="Eligible Pool" value={eligiblePool} hint="front-of-queue candidates" />
+        <Kpi label="Eligible Pool" value={eligiblePool} hint="readiness 40+ and unplaced" />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Filter className="size-3.5 text-muted-foreground" />
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              filter === f
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card hover:bg-accent"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      {tierMix.length > 1 && (
+        <Panel
+          className="mt-4"
+          title="Hiring mix by tier"
+          description="Drives and openings announced per recruiter tier"
+        >
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={tierMix} margin={{ left: -22, right: 6, top: 6 }}>
+              <CartesianGrid stroke={chartColors.grid} vertical={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
+              <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
+              <Tooltip contentStyle={chartTooltip} cursor={chartCursor} />
+              <ChartBar
+                dataKey="drives"
+                name="Drives"
+                fill={chartColors.ink}
+                radius={[4, 4, 0, 0]}
+                barSize={40}
+              />
+              <ChartBar
+                dataKey="openings"
+                name="Openings"
+                fill={chartColors.light}
+                radius={[4, 4, 0, 0]}
+                barSize={40}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Panel>
+      )}
+
+      <Panel className="mt-4" bodyClassName="p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search drives by company, role or location…"
+              aria-label="Search drives"
+              className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="size-3.5 text-muted-foreground" />
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  filter === f
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card hover:bg-accent"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Panel>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
@@ -197,8 +313,20 @@ function DrivesPage() {
           {shown.length === 0 && (
             <Panel>
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No drives in this state. Record companies on the Companies page.
+                {all.length === 0
+                  ? "No drives yet — record a company and its drive appears here automatically."
+                  : "No drives match this filter or search."}
               </p>
+              {all.length === 0 && (
+                <div className="flex justify-center pb-6">
+                  <Link
+                    to="/companies"
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    <Building2 className="size-3.5" /> Add Company
+                  </Link>
+                </div>
+              )}
             </Panel>
           )}
         </div>
@@ -266,6 +394,43 @@ function DrivesPage() {
             ) : (
               <p className="px-5 py-8 text-center text-sm text-muted-foreground">
                 {active ? "No rounds recorded." : "No drive selected."}
+              </p>
+            )}
+          </Panel>
+
+          <Panel
+            title="Next Campus Visits"
+            description="Scheduled visits from the drives on record"
+            bodyClassName="p-0"
+          >
+            {upcomingVisits.length > 0 ? (
+              <ul className="divide-y divide-border">
+                {upcomingVisits.map((d) => {
+                  const { month, day } = visitParts(d.campus_visit_date as string);
+                  return (
+                    <li
+                      key={`${d.company_id}-${d.campus_visit_date}`}
+                      className="flex gap-3 px-5 py-3.5"
+                    >
+                      <div className="grid w-16 shrink-0 place-items-center rounded-md border border-border px-1 py-1 text-center">
+                        <span className="font-mono text-[9px] uppercase text-muted-foreground">
+                          {month}
+                        </span>
+                        <span className="stat-num text-sm">{day}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{d.company_name}</p>
+                        <p className="truncate font-mono text-[11px] text-muted-foreground">
+                          {d.mode} · {d.location ?? "Location TBD"}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                No campus visits scheduled yet.
               </p>
             )}
           </Panel>

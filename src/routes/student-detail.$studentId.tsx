@@ -9,7 +9,6 @@ import {
   GraduationCap,
   IndianRupee,
   Languages,
-  Loader2,
   Mail,
   MessageCircle,
   Radar as RadarIcon,
@@ -272,7 +271,6 @@ function StudentDetailPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [student, setStudent] = useState<LeaderboardStudent | null>(null);
-  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -308,29 +306,6 @@ function StudentDetailPage() {
     }
   }, [student]);
 
-  async function openChat() {
-    if (chatLoading || !student) return;
-    setChatLoading(true);
-    try {
-      const prompt = [
-        `Tell me about the placement readiness of ${student.full_name || "this candidate"}.`,
-        "",
-        "Candidate snapshot",
-        `Department: ${student.department || "N/A"} · ${student.program || "N/A"}`,
-        `Readiness: ${student.performance_score != null ? student.performance_score.toFixed(1) : "N/A"}/100`,
-        `AIR: ${student.overall_rank != null ? `#${student.overall_rank}` : "Not ranked"} of ${student.overall_total}`,
-        `CGPA: ${student.cgpa ?? "N/A"}`,
-        `Placement status: ${PLACEMENT_LABELS[student.placement_status] ?? student.placement_status}`,
-      ]
-        .filter((line) => line !== "")
-        .join("\n");
-
-      await navigate({ to: "/chat", search: { prompt } });
-    } finally {
-      setChatLoading(false);
-    }
-  }
-
   if (status === "loading") return <GateLoading />;
   if (status === "error")
     return (
@@ -363,8 +338,20 @@ function StudentDetailPage() {
 
   const perf = student.performance;
   const pillars: Array<[string, number | null, string]> = [
-    ["Mock Interviews", perf?.mock_interview ?? null, `${perf?.mock_interviews ?? 0} interviews`],
-    ["Self-Training", perf?.self_training ?? null, `${perf?.modules.length ?? 0} skill modules`],
+    [
+      "Mock Interviews",
+      perf?.mock_interview ?? null,
+      student.pillars?.mock_interview?.rank != null
+        ? `Rank #${student.pillars.mock_interview.rank} of ${student.pillars.mock_interview.total} mock-scored students · ${perf?.mock_interviews ?? 0} interviews`
+        : `${perf?.mock_interviews ?? 0} interviews · not ranked`,
+    ],
+    [
+      "Self-Training",
+      perf?.self_training ?? null,
+      student.pillars?.self_training?.rank != null
+        ? `Rank #${student.pillars.self_training.rank} of ${student.pillars.self_training.total} trained students · ${perf?.modules.length ?? 0} skill modules`
+        : `${perf?.modules.length ?? 0} skill modules · not ranked`,
+    ],
     [
       "TalentBro Chat",
       perf?.chat ?? null,
@@ -387,23 +374,22 @@ function StudentDetailPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:block">
-              Ask TalentBro about this candidate
-            </span>
-            <button
-              type="button"
-              onClick={() => void openChat()}
-              disabled={chatLoading}
-              aria-label="Chat about this candidate"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60"
-            >
-              {chatLoading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
+            {!student.is_self && (
+              <button
+                type="button"
+                onClick={() =>
+                  void navigate({
+                    to: "/student-message",
+                    search: { peer: student.id },
+                  })
+                }
+                aria-label="Message this candidate"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90"
+              >
                 <MessageCircle className="size-4" />
-              )}
-              <span className="hidden sm:inline">Chat</span>
-            </button>
+                <span className="hidden sm:inline">Chat</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -458,7 +444,10 @@ function StudentDetailPage() {
                     </Badge>
                     {student.placement_eligible && (
                       <Badge variant="outline" className="gap-1">
-                        <Target className="size-3" /> Placement eligible
+                        <Target className="size-3" />
+                        {student.placement_eligible_override == null
+                          ? "Placement eligible"
+                          : "Eligible · office override"}
                       </Badge>
                     )}
                   </div>
@@ -627,7 +616,7 @@ function StudentDetailPage() {
 
         <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
           <Mail className="size-3" /> Have a question about this candidate? Use the chat bubble to
-          ask TalentBro.
+          send them a message.
         </p>
       </div>
     </div>

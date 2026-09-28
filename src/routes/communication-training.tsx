@@ -24,6 +24,7 @@ import {
   type ChatResponse,
   type CommunicationTrainingSession,
 } from "@/lib/api";
+import { alignWordTimesMs, wordStartOffsets } from "@/lib/tts-timings";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { GateError, GateLoading, useQuoteSplash } from "@/components/load-state";
 
@@ -174,54 +175,6 @@ function MayaText({ text, activeWord }: { text: string; activeWord: number }) {
       })}
     </>
   );
-}
-
-// Map exact Edge word timings back onto the transcript. Each timing is
-// (char offset in the reply text, ms when that word starts in the clip). A
-// word the engine didn't label is interpolated from the nearest labelled
-// neighbours, so a missing timing never leaves the transcript dark. Returns
-// null when no timings are available (older backend) so callers keep their
-// linear-progress fallback.
-function alignWordTimesMs(
-  text: string,
-  pairs: ReadonlyArray<{ offset: number; startMs: number }>,
-): number[] | null {
-  if (!pairs.length) return null;
-  const starts: number[] = [];
-  const re = /\S+/g;
-  for (;;) {
-    const m = re.exec(text);
-    if (!m) break;
-    starts.push(m.index);
-  }
-  const times: (number | null)[] = new Array(starts.length).fill(null);
-  // The service announces a token the moment it starts speaking it: attach
-  // each timing to the transcript word whose span contains that char offset.
-  for (const { offset, startMs } of pairs) {
-    let w = starts.length - 1;
-    while (w >= 0 && starts[w]! > offset) w -= 1;
-    if (w < 0) continue;
-    const end = w + 1 < starts.length ? starts[w + 1]! : text.length;
-    if (offset < end && (times[w] === null || startMs < times[w]!)) {
-      times[w] = startMs;
-    }
-  }
-  // Fill unlabelled words from the nearest labelled neighbours.
-  let prev = -1;
-  let prevMs = 0;
-  for (let i = 0; i < times.length; i++) {
-    if (times[i] === null) continue;
-    if (prev >= 0) {
-      for (let k = prev + 1; k < i; k++) {
-        const f = (k - prev) / (i - prev);
-        times[k] = Math.round(prevMs + f * (times[i]! - prevMs));
-      }
-    }
-    prev = i;
-    prevMs = times[i]!;
-  }
-  for (let i = prev + 1; i < times.length; i++) times[i] = prevMs;
-  return times.map((t) => t ?? 0);
 }
 
 type FlowState = "idle" | "listening" | "thinking" | "speaking";
@@ -449,14 +402,7 @@ function CommunicationTrainingPage() {
   // live charIndex (speech-boundary event or audio progress) maps to the word
   // ordinal the transcript highlights in real time.
   function prepareWords(text: string) {
-    const starts: number[] = [];
-    const re = /\S+/g;
-    for (;;) {
-      const match = re.exec(text);
-      if (!match) break;
-      starts.push(match.index);
-    }
-    wordStartsRef.current = starts;
+    wordStartsRef.current = wordStartOffsets(text);
   }
 
   function emitWordForChar(idx: number) {

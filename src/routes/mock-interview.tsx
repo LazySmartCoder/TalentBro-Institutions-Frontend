@@ -1,9 +1,18 @@
-﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, UserRoundCog } from "lucide-react";
+﻿import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  BriefcaseBusiness,
+  CheckCircle2,
+  History,
+  Lock,
+  UserRoundCog,
+  type LucideIcon,
+} from "lucide-react";
 import { AppNavHeader } from "@/components/tb/app-nav";
 import { PanelRoom, type PanelMsg } from "@/components/panel";
 import { GateError, GateLoading, QuoteSplashContent } from "@/components/load-state";
+import { useInterviewLock, type InterviewLockBreak } from "@/hooks/use-interview-lock";
 import { INTERVIEW_MOTIVATION_QUOTES } from "@/lib/quotes";
 import {
   candidateCompanies,
@@ -57,6 +66,18 @@ const DURATION_MINUTES: Record<MockInterviewDuration, number> = {
   standard: 15,
   long: 30,
 };
+
+// A locked interview refuses every navigation, so the handful of places the
+// candidate legitimately has to be able to reach have to be let through:
+// the analysis report and raw transcript the finished room links to, and the
+// auth/onboarding routes an expired session redirects to — blocking those would
+// strand them in a room they can no longer leave.
+const LOCK_EXEMPT_PATHS = [
+  "/interview-analysis/",
+  "/mock-interview-transcript/",
+  "/candidate-auth",
+  "/onboarding",
+];
 
 const title = "TalentBro | Mock Interview";
 const description = "Practice a realistic mock interview for the company of your choice.";
@@ -142,13 +163,55 @@ function MockInterviewPage() {
     inSessionRef.current = mode === "session";
   }, [active, panelDone, mode]);
 
+  // The room owns the whole screen from the moment Start is pressed, so the
+  // 6-second loader is already fullscreen before the panel mounts and stays that
+  // way for the rest of the session. Fullscreen has to be requested inside the
+  // click gesture, which is why `enter` is called from handleStart and not from
+  // an effect.
+  const lock = useInterviewLock(
+    useCallback((reason: InterviewLockBreak) => {
+      // Dropping out of fullscreen is the candidate actively trying to get out.
+      // A window blur is weaker evidence — it also fires on a stray click on the
+      // browser's own chrome or a permission prompt — so that one only raises the
+      // overlay and is not charged to the interview.
+      if (reason === "window") return;
+      const id = activeRef.current?.id;
+      if (!id) return;
+      void recordViolation(id)
+        .then((updated) => {
+          setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        })
+        .catch(() => {});
+    }, []),
+  );
+
+  // Nothing may navigate away mid-interview: not the app nav, not the browser's
+  // back button, and not a tab or window close. The unmount effect above
+  // finalises the interview on the server, and because `mode` is component
+  // state, remounting the route always lands back on the plain starter screen.
+  // The lock lifts the moment the interview is over — the room is a results
+  // screen by then, not a proctored session, and the candidate has to be able to
+  // reach the analysis report.
+  useBlocker({
+    disabled: !lock.locked || panelDone,
+    shouldBlockFn: ({ next }) => !LOCK_EXEMPT_PATHS.some((path) => next.pathname.startsWith(path)),
+    enableBeforeUnload: true,
+  });
+
+  // A screen change or a fullscreen exit ends the interview, so the room behind
+  // the overlay has to actually stop: pause() closes the mic and stops the panel
+  // asking anything new, otherwise the candidate is told the interview is over
+  // while a panelist is still talking over the message.
+  const lockEnded =
+    lock.breakReason !== null && LOCK_BREAK_COPY[lock.breakReason].action === "exit";
+
   useEffect(() => {
     return () => {
       if (
         inSessionRef.current &&
         !panelDoneRef.current &&
         activeRef.current &&
-        activeRef.current.status !== "completed"
+        activeRef.current.status === "active"
       ) {
         void completeMockInterview(activeRef.current.id).catch(() => {});
       }
@@ -161,7 +224,7 @@ function MockInterviewPage() {
         inSessionRef.current &&
         !panelDoneRef.current &&
         activeRef.current &&
-        activeRef.current.status !== "completed"
+        activeRef.current.status === "active"
       ) {
         completeMockInterviewKeepalive(activeRef.current.id);
       }
@@ -232,8 +295,11 @@ function MockInterviewPage() {
     if (!c || sending) return;
     // The submit click that reaches here is the very user gesture the browser
     // wants for audio — warm the page up inside it so the panel's first line
-    // can autoplay when the room mounts.
+    // can autoplay when the room mounts. It is also the only gesture the
+    // fullscreen API accepts, so the screen is taken over right here and the
+    // candidate never sees the app chrome, not even on the loader.
     unlockBrowserAudio();
+    lock.enter();
     setSending(true);
     setError("");
     // Hold on a 6s launching screen while the session is created on the server,
@@ -269,34 +335,16 @@ function MockInterviewPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start the interview.");
       setMode("setup");
+      // The launch failed, so there is no room to protect — hand the screen back
+      // rather than stranding the candidate in fullscreen on the starter page.
+      lock.release();
     } finally {
       setSending(false);
     }
   }
 
-  async function openInterview(id: string) {
-    setError("");
-    unlockBrowserAudio();
-    const found = list.find((i) => i.id === id);
-    if (found) setActive(found);
-    setMode("session");
-    try {
-      const detail = await mockInterviewDetail(id);
-      setActive(detail);
-      setPanelMsg(detail.messages ?? []);
-      setPanelDone(detail.status === "completed");
-      setSuspection(detail.suspection ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load the interview.");
-    }
-  }
-
   function openAnalysis(id: string) {
     void navigate({ to: "/interview-analysis/$interviewId", params: { interviewId: id } });
-  }
-
-  function openTranscript(id: string) {
-    void navigate({ to: "/mock-interview-transcript/$interviewId", params: { interviewId: id } });
   }
 
   async function sendPanel(raw?: string) {
@@ -322,7 +370,12 @@ function MockInterviewPage() {
         created_at: new Date().toISOString(),
       };
       setPanelMsg([...optimistic, assistantMsg]);
-      if (done) setPanelDone(true);
+      if (done) {
+        setPanelDone(true);
+        // The server decides whether a finished interview earns a score; a short
+        // or silent one comes back as not_scored and the panel says so.
+        void refreshActiveStatus(active.id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setPanelMsg([
@@ -354,13 +407,16 @@ function MockInterviewPage() {
   }
 
   function newInterview() {
-    if (active && active.status !== "completed") {
+    // Only a still-active interview is finalised on the way out. One the backend
+    // already refused to score (not_scored) is left exactly as it is.
+    if (active && active.status === "active") {
       void completeMockInterview(active.id)
         .then((updated) => {
           setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
         })
         .catch(() => {});
     }
+    lock.release();
     setMode("setup");
     setActive(null);
     setPanelMsg([]);
@@ -369,6 +425,18 @@ function MockInterviewPage() {
     setBreakLeft(60);
     setSuspection(0);
     setError("");
+  }
+
+  // Pull the server's own view of an interview, so a round it refused to score
+  // is never shown as a scored one.
+  async function refreshActiveStatus(id: string) {
+    try {
+      const updated = await mockInterviewDetail(id);
+      setActive((prev) => (prev && prev.id === updated.id ? updated : prev));
+      setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+    } catch {
+      /* keep whatever we already have */
+    }
   }
 
   function onCameraViolation() {
@@ -397,7 +465,10 @@ function MockInterviewPage() {
           created_at: new Date().toISOString(),
         };
         setPanelMsg((prev) => [...prev, assistantMsg]);
-        if (done) setPanelDone(true);
+        if (done) {
+          setPanelDone(true);
+          void refreshActiveStatus(active.id);
+        }
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Could not resume the interview.");
@@ -433,25 +504,35 @@ function MockInterviewPage() {
 
   if (mode === "session") {
     return (
-      <PanelRoom
-        candidateName={user.name}
-        candidateAvatar={user.avatar}
-        context={`${active?.company_name ?? "Mock Interview"}${active?.role ? ` · ${active.role}` : ""}`}
-        messages={panelMessagesToView(panelMsg)}
-        loading={panelLoading}
-        done={panelDone}
-        panelists={active?.panelists}
-        paused={onBreak}
-        breakLeft={breakLeft}
-        suspection={suspection}
-        onViolation={onCameraViolation}
-        onSend={(text) => void sendPanel(text)}
-        onExit={newInterview}
-        onLockViolation={newInterview}
-        durationMinutes={active ? DURATION_MINUTES[active.duration] : undefined}
-        startedAt={active?.created_at}
-        {...(active?.id ? { onViewAnalysis: () => openAnalysis(active.id) } : {})}
-      />
+      <>
+        <PanelRoom
+          candidateName={user.name}
+          candidateAvatar={user.avatar}
+          context={active?.company_name ?? "Mock Interview"}
+          messages={panelMessagesToView(panelMsg)}
+          loading={panelLoading}
+          done={panelDone}
+          unscored={active?.status === "not_scored"}
+          panelists={active?.panelists}
+          paused={onBreak || lockEnded}
+          breakLeft={breakLeft}
+          suspection={suspection}
+          onViolation={onCameraViolation}
+          onSend={(text) => void sendPanel(text)}
+          onExit={newInterview}
+          durationMinutes={active ? DURATION_MINUTES[active.duration] : undefined}
+          startedAt={active?.created_at}
+          {...(active?.id ? { onViewAnalysis: () => openAnalysis(active.id) } : {})}
+        />
+        {lock.breakReason && !panelDone && (
+          <InterviewLockOverlay
+            reason={lock.breakReason}
+            canRestore={lock.fullscreenSupported}
+            onReturn={lock.restore}
+            onExit={newInterview}
+          />
+        )}
+      </>
     );
   }
 
@@ -681,55 +762,86 @@ function MockInterviewPage() {
               </button>
             </form>
 
-            {list.length > 0 && (
-              <div className="mt-8">
-                <p className="mb-2 font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
-                  Past interviews
-                </p>
-                <div className="space-y-2">
-                  {list.slice(0, 6).map((i) => (
-                    <div
-                      key={i.id}
-                      className="group flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/60"
-                      onClick={() =>
-                        i.status === "completed"
-                          ? void openTranscript(i.id)
-                          : void openInterview(i.id)
-                      }
-                    >
-                      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted">
-                        <Building2 className="size-4 text-muted-foreground" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{i.company_name}</p>
-                        <p className="truncate font-mono text-[11px] text-muted-foreground">
-                          {i.role || "General"} · {i.message_count} turns
-                        </p>
-                      </div>
-                      <div className="ml-auto flex shrink-0 items-center gap-2">
-                        {i.status === "completed" && (
-                          <>
-                            <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void openAnalysis(i.id);
-                              }}
-                              className="shrink-0 cursor-pointer rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium transition-colors hover:bg-muted"
-                            >
-                              Analyze
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* The full record lives on the history page, which is also where the
+                transcript of any past session is opened from. */}
+            <Link
+              to="/mock-interview-history"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card py-2.5 text-sm font-medium transition-colors hover:bg-muted/60"
+            >
+              <History className="size-4" /> History
+              {list.length > 0 ? (
+                <span className="tabular-nums text-muted-foreground">({list.length})</span>
+              ) : null}
+            </Link>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Drawn the moment the candidate leaves the locked surface. A tab switch is
+// recoverable — the room is still there, so the overlay's only way through is the
+// button that re-enters fullscreen from a real gesture. Changing the screen or
+// exiting fullscreen is not: fullscreen is the one thing the interview cannot be
+// proctored without, so rather than trap the candidate behind a button that
+// fights them, the session is declared finished and the overlay just offers the
+// way back.
+const LOCK_BREAK_COPY: Record<
+  InterviewLockBreak,
+  { title: string; body: string; icon: LucideIcon; action: "restore" | "exit" }
+> = {
+  tab: {
+    title: "You switched tabs",
+    body: "This interview runs on a single full-screen tab. Your answer was paused while you were away and the panel has been notified.",
+    icon: Lock,
+    action: "restore",
+  },
+  window: {
+    title: "Interview finished",
+    body: "You changed the screen, so this interview has been closed. Head back to set up a new one.",
+    icon: CheckCircle2,
+    action: "exit",
+  },
+  fullscreen: {
+    title: "Interview finished",
+    body: "You exited full screen, so this interview has been closed. Head back to set up a new one.",
+    icon: CheckCircle2,
+    action: "exit",
+  },
+};
+
+function InterviewLockOverlay({
+  reason,
+  canRestore,
+  onReturn,
+  onExit,
+}: {
+  reason: InterviewLockBreak;
+  canRestore: boolean;
+  onReturn: () => void;
+  onExit: () => void;
+}) {
+  const copy = LOCK_BREAK_COPY[reason];
+  const label =
+    copy.action === "exit" ? "Back" : canRestore ? "Return to full screen" : "Resume interview";
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/95 px-6 backdrop-blur">
+      <div className="flex max-w-md flex-col items-center gap-5 text-center">
+        <span className="grid size-14 place-items-center rounded-2xl bg-foreground text-background">
+          <copy.icon className="size-7" />
+        </span>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">{copy.title}</h2>
+          <p className="text-sm text-muted-foreground">{copy.body}</p>
+        </div>
+        <button
+          type="button"
+          onClick={copy.action === "exit" ? onExit : onReturn}
+          className="cursor-pointer rounded-lg border border-foreground bg-foreground px-6 py-2.5 text-[11px] uppercase tracking-[0.2em] text-background transition-opacity hover:opacity-90"
+        >
+          {label}
+        </button>
       </div>
     </div>
   );

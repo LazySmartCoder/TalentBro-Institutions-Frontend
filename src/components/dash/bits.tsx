@@ -115,3 +115,22 @@ export const chartColors = {
   light: "oklch(0.78 0 0)",
   grid: "oklch(0.9 0 0)",
 };
+
+// Every dashboard chart shares one tooltip look and one ink→light ramp so a bar
+// in the students table and a bar in the placement-cell funnel read as the same
+// system. `chartFill(index)` walks the ramp for a categorical series.
+export const chartTooltip = {
+  borderRadius: 8,
+  border: "1px solid oklch(0.9 0 0)",
+  background: "oklch(1 0 0)",
+  fontSize: 12,
+  fontFamily: "inherit",
+} as const;
+
+export const chartCursor = { fill: "oklch(0 0 0 / 0.04)" } as const;
+
+export const chartRamp = [chartColors.ink, chartColors.mid, chartColors.light, "oklch(0.87 0 0)"];
+
+export function chartFill(index: number): string {
+  return chartRamp[index % chartRamp.length] ?? chartColors.ink;
+}

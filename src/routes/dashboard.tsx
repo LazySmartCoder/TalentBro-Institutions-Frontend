@@ -161,7 +161,7 @@ function Overview() {
         <Kpi
           label="Total Students"
           value={k.total_students}
-          hint={`${k.eligible_students} eligible · ${k.verified} verified`}
+          hint={`${k.eligible_students} eligible (readiness 40+) · ${k.verified} verified`}
           icon={GraduationCap}
         />
         <Kpi
@@ -325,7 +325,7 @@ function Overview() {
                 </div>
               </div>
               <p className="pt-1 font-mono text-[10px] text-muted-foreground">
-                {k.eligible_students} students meet the CGPA bar today
+                {k.eligible_students} students clear the readiness bar today
               </p>
             </div>
           </Panel>

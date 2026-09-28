@@ -37,7 +37,9 @@ import {
   type AuthUser,
   type CandidateProfilePayload,
   type PerformanceComponents,
+  type PillarRanks,
 } from "@/lib/api";
+import { PERF_PILLARS, pillarStanding } from "@/lib/perf";
 import { cn } from "@/lib/utils";
 import { COURSES_OFFERED } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -213,7 +215,13 @@ function PillarBar({
   );
 }
 
-function ReadinessBreakdown({ performance }: { performance: PerformanceComponents | null }) {
+function ReadinessBreakdown({
+  performance,
+  pillars,
+}: {
+  performance: PerformanceComponents | null;
+  pillars: PillarRanks | null;
+}) {
   if (!performance) {
     return (
       <Section icon={<Gauge className="size-4" />} title="Readiness breakdown">
@@ -231,18 +239,22 @@ function ReadinessBreakdown({ performance }: { performance: PerformanceComponent
           label="Mock Interviews"
           score={performance.mock_interview}
           detail={
-            performance.mock_interviews
-              ? `${performance.mock_interviews} analysed`
-              : "No mock interviews analysed yet"
+            pillars?.mock_interview?.rank != null
+              ? `Rank #${pillars.mock_interview.rank} of ${pillars.mock_interview.total} mock-scored students · ${performance.mock_interviews} analysed`
+              : performance.mock_interviews
+                ? `${performance.mock_interviews} analysed`
+                : "No mock interviews analysed yet"
           }
         />
         <PillarBar
           label="Self-Training"
           score={performance.self_training}
           detail={
-            performance.modules.length
-              ? performance.modules.map((m) => `${m.label} ${m.score}`).join(" · ")
-              : "No modules completed yet"
+            pillars?.self_training?.rank != null
+              ? `Rank #${pillars.self_training.rank} of ${pillars.self_training.total} trained students`
+              : performance.modules.length
+                ? performance.modules.map((m) => `${m.label} ${m.score}`).join(" · ")
+                : "No modules completed yet"
           }
         />
         <PillarBar
@@ -252,8 +264,9 @@ function ReadinessBreakdown({ performance }: { performance: PerformanceComponent
         />
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Weighted blend of mock interviews, self-training and chat engagement, renormalised over the
-        pillars you have started.
+        Mock interviews and self-training are scored and ranked on their own — neither moves the
+        other&apos;s rank. The readiness score above is the weighted blend of the pillars you have
+        started.
       </p>
     </Section>
   );
@@ -323,6 +336,7 @@ type Draft = {
   linkedin_url: string;
   github_url: string;
   portfolio_url: string;
+  bio: string;
   skills: string;
   certifications: string;
   expected_ctc: string;
@@ -346,6 +360,7 @@ function draftFrom(payload: CandidateProfilePayload): Draft {
     linkedin_url: "",
     github_url: "",
     portfolio_url: "",
+    bio: "",
     skills: "",
     certifications: "",
     expected_ctc: "",
@@ -370,6 +385,7 @@ function draftFrom(payload: CandidateProfilePayload): Draft {
           linkedin_url: p.linkedin_url,
           github_url: p.github_url,
           portfolio_url: p.portfolio_url,
+          bio: p.bio ?? "",
           skills: toCsv(p.skills),
           certifications: toCsv(p.certifications),
           expected_ctc: p.expected_ctc != null ? String(p.expected_ctc) : "",
@@ -585,6 +601,7 @@ function CandidateProfilePage() {
       linkedin_url: draft.linkedin_url,
       github_url: draft.github_url,
       portfolio_url: draft.portfolio_url,
+      bio: draft.bio.trim(),
       skills: csvToList(draft.skills),
       certifications: csvToList(draft.certifications),
       preferred_roles: csvToList(draft.preferred_roles),
@@ -673,6 +690,9 @@ function CandidateProfilePage() {
       label: "Gender",
       value: p?.gender ? p.gender.replace(/_/g, " ") : "—",
     },
+    // The headline is pulled from LinkedIn on save, so it is shown alongside the
+    // rest of the identity rather than buried with the links.
+    { icon: Sparkles, label: "Headline", value: p?.bio || "—" },
   ];
   const presenceLinks = [
     { label: "LinkedIn", value: p?.linkedin_url },
@@ -682,6 +702,21 @@ function CandidateProfilePage() {
 
   const ranks = payload.ranks;
   const performance = payload.performance;
+
+  // Mock-interview and self-training are ranked independently, so each gets its
+  // own tile with its own cohort — the composite readiness score never stands in
+  // for either of them.
+  const pillarKpis = PERF_PILLARS.map((pillar) => {
+    const standing = pillarStanding(ranks.pillars, pillar.key);
+    return {
+      label: `${pillar.label} Rank`,
+      value: standing?.rank != null ? `#${standing.rank}` : "—",
+      hint:
+        standing?.rank != null
+          ? `of ${standing.total} ${pillar.key === "mock_interview" ? "mock-scored" : "trained"} students`
+          : `no ${pillar.label.toLowerCase()} score yet`,
+    };
+  });
 
   const kpis = [
     {
@@ -702,6 +737,7 @@ function CandidateProfilePage() {
       value: ranks.overall != null ? `#${ranks.overall}` : "—",
       hint: ranks.total ? `of ${ranks.total} in your college` : "within your college",
     },
+    ...pillarKpis,
     { label: "Chat Sessions", value: stats.chat_sessions, hint: "coach chats" },
   ];
 
@@ -870,6 +906,17 @@ function CandidateProfilePage() {
                     onChange={setD("portfolio_url")}
                   />
                 </div>
+                <Field
+                  id="bio"
+                  label="Headline"
+                  value={draft.bio}
+                  onChange={setD("bio")}
+                  placeholder="e.g. Final-year CSE student, SDE intern at …"
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Filled in from your LinkedIn headline when you save a LinkedIn URL. Edit it here
+                  any time.
+                </p>
               </Section>
 
               <Section
@@ -989,7 +1036,7 @@ function CandidateProfilePage() {
               ))}
             </div>
 
-            <ReadinessBreakdown performance={performance} />
+            <ReadinessBreakdown performance={performance} pillars={ranks.pillars} />
 
             <div className="grid gap-4 lg:grid-cols-2">
               <Section icon={<User className="size-4" />} title="Personal details">
@@ -1135,8 +1182,9 @@ function CandidateProfilePage() {
               <Linkedin className="size-4 text-[#0A66C2]" /> Keep your profile photo consistent
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Add your LinkedIn profile with a profile picture over there. We use the same photo to
-              maintain consistency for students building their LinkedIn profiles.
+              Add your LinkedIn profile with a profile picture and headline over there. We use the
+              same photo and headline to maintain consistency for students building their LinkedIn
+              profiles. You can edit the headline here afterwards.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -9,10 +9,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { FileText, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
-import { Bar, Kpi, Panel, Pill, chartColors } from "@/components/dash/bits";
+import {
+  Bar,
+  Kpi,
+  Panel,
+  Pill,
+  chartColors,
+  chartCursor,
+  chartTooltip,
+} from "@/components/dash/bits";
 import { getReportsData, type ReportsData } from "@/lib/api";
 import { randomMotivationQuote } from "@/lib/quotes";
 
@@ -35,12 +43,45 @@ export const Route = createFileRoute("/reports")({
   component: ReportsPage,
 });
 
-const tooltip = {
-  borderRadius: 8,
-  border: "1px solid oklch(0.9 0 0)",
-  background: "oklch(1 0 0)",
-  fontSize: 12,
-} as const;
+function csvCell(value: unknown) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+// One flat sheet: a KPI block, the department table, then the tier, industry and
+// CTC breakdowns. Excel opens the blank line between blocks as a table break.
+function buildReportCsv(data: ReportsData) {
+  const lines: string[] = ["Metric,Value", `Students covered,${data.kpis.students}`];
+  lines.push(`Placement rate (%),${data.kpis.rate}`);
+  lines.push(`Placed,${data.kpis.placed}`);
+  lines.push(`Eligible (readiness 40+),${data.kpis.eligible}`);
+  lines.push(`Average expected CTC (LPA),${data.kpis.avg_expected_ctc ?? ""}`);
+  lines.push(`Recruiters,${data.kpis.recruiters}`);
+  lines.push(`Openings,${data.kpis.openings}`);
+  lines.push(`Batch year,${data.batch.year}`);
+  lines.push(`Verified profiles,${data.batch.verified}`);
+  lines.push(`Unverified profiles,${data.batch.unverified}`);
+  lines.push("");
+  lines.push("Department,Students,Eligible (readiness 40+),Placed,Rate (%),Avg CGPA,Avg expected CTC (LPA)");
+  for (const d of data.depts) {
+    lines.push(
+      [d.department, d.total, d.eligible, d.placed, d.rate, d.avg_cgpa, d.avg_expected_ctc]
+        .map(csvCell)
+        .join(","),
+    );
+  }
+  lines.push("");
+  lines.push("Hiring tier,Companies");
+  for (const t of data.tiers) lines.push(`${csvCell(t.label)},${t.count}`);
+  lines.push("");
+  lines.push("Industry,Companies");
+  for (const i of data.industries) lines.push(`${csvCell(i.industry)},${i.count}`);
+  lines.push("");
+  lines.push("CTC band,Companies");
+  for (const b of data.ctc_bands) lines.push(`${csvCell(b.band)},${b.companies}`);
+  return lines.join("\n");
+}
 
 function ReportsPage() {
   const [data, setData] = useState<ReportsData | null>(null);
@@ -81,6 +122,18 @@ function ReportsPage() {
   const maxTier = Math.max(1, ...data.tiers.map((t) => t.count));
   const maxBand = Math.max(1, ...data.ctc_bands.map((b) => b.companies));
 
+  function exportCsv() {
+    const url = URL.createObjectURL(
+      new Blob([`\uFEFF${buildReportCsv(data!)}`], { type: "text/csv;charset=utf-8" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `talentbro-placement-report-${data!.batch.year}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success("Placement report downloaded");
+  }
+
   return (
     <Shell
       title="Reports"
@@ -88,16 +141,16 @@ function ReportsPage() {
       actions={
         <>
           <button
-            onClick={() => toast.success("Report sent to printer queue")}
+            onClick={() => window.print()}
             className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-medium hover:bg-accent"
           >
             <Printer className="size-3.5" /> Print
           </button>
           <button
-            onClick={() => toast.success("Placement snapshot exported as PDF")}
+            onClick={exportCsv}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
           >
-            <FileText className="size-3.5" /> Generate Report
+            <Download className="size-3.5" /> Export CSV
           </button>
         </>
       }
@@ -108,7 +161,7 @@ function ReportsPage() {
           label="Placement Rate"
           value={k.rate}
           suffix="%"
-          hint={`${k.placed} placed · ${k.eligible} eligible`}
+          hint={`${k.placed} placed · ${k.eligible} eligible (readiness 40+)`}
         />
         <Kpi
           label="Avg Expected CTC"
@@ -130,7 +183,7 @@ function ReportsPage() {
               <CartesianGrid stroke={chartColors.grid} vertical={false} />
               <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
               <YAxis tickLine={false} axisLine={false} fontSize={11} />
-              <Tooltip contentStyle={tooltip} />
+              <Tooltip contentStyle={chartTooltip} cursor={chartCursor} />
               <Line
                 type="monotone"
                 dataKey="students"

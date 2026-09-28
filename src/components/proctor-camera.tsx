@@ -6,24 +6,43 @@ const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wa
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
-const AWAY_LIMIT_MS = 3_000;
-const BLINK_GRACE_MS = 1_000;
+// How long the candidate must be genuinely gone before it is timed at all, and
+// how long a closed-eye moment (a blink, a yawn, a rub) is forgiven. Comfort
+// matters: nobody sits through an interview as a statue, and neither moving nor
+// blinking is evidence of anything.
+const AWAY_LIMIT_MS = 6_000;
+const BLINK_GRACE_MS = 2_500;
 const CALIB_SAMPLES = 55;
 
-const OFF_CENTER_X = 0.05;
-const OFF_CENTER_Y = 0.07;
-const YAW_THRESHOLD = 0.03;
-const PITCH_DEV = 0.02;
-// Deliberately roomy: glancing around the chat room while thinking is normal.
-// Tightened a touch from the defaults so the tracker still catches real
-// inattention without punishing a natural read-then-answer rhythm.
-const GAZE_THRESHOLD = 0.11;
-const GAZE_VERTICAL = 0.045;
+// Movement allowed before the tracker even considers the candidate away. These
+// are deliberately wide. Sitting comfortably means leaning, shifting weight and
+// turning your head to read the room, so a generous box is the only one that
+// does not punish an ordinary person for being an ordinary person. The thing
+// this is here to catch is *leaving* — turning away from the screen for a
+// sustained stretch, or leaving the frame altogether.
+const OFF_CENTER_X = 0.13;
+const OFF_CENTER_Y = 0.15;
+const YAW_THRESHOLD = 0.11;
+const PITCH_DEV = 0.08;
+const GAZE_THRESHOLD = 0.24;
+const GAZE_VERTICAL = 0.11;
 // The interview timer/countdown lives at the top of the screen, so checking it
 // is normal and must not count as inattention. This extra slack applies ONLY to
-// upward glances (eyes and/or head): looking down or sideways stays as strict
-// as before. The eye/head metrics grow negative when the gaze goes up.
-const UP_GAZE_EXTRA = 0.05;
+// upward glances (eyes and/or head).
+const UP_GAZE_EXTRA = 0.1;
+
+// The comfort zone, and how long a new position must be held to be adopted.
+// This is what makes the camera a nuisance instead of a hazard: a candidate who
+// settles somewhere new and stays there for a moment has that position quietly
+// become the new normal. Posture stops being a test. A glance away never lasts
+// long enough to be adopted, so it still counts.
+const COMFORT_X = 0.07;
+const COMFORT_Y = 0.08;
+const COMFORT_YAW = 0.055;
+const COMFORT_PITCH = 0.04;
+const COMFORT_GAZE = 0.13;
+const COMFORT_GAZE_V = 0.055;
+const BASELINE_ADOPT_MS = 1_500;
 
 type Pt = { x: number; y: number };
 
@@ -143,6 +162,18 @@ type Baseline = {
   eyes: { gx: number; gy: number }[];
 };
 
+// A baseline can be captured from a live frame as easily as from a calibration
+// run — which is how a settled new posture gets adopted.
+function baselineFrom(m: Metrics): Baseline {
+  return {
+    fx: m.fx,
+    fy: m.fy,
+    yaw: m.yaw,
+    pitch: m.pitch,
+    eyes: m.eyes.map((e) => ({ gx: e.gx, gy: e.gy })),
+  };
+}
+
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | undefined }) {
@@ -154,6 +185,7 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
   const trailRef = useRef<{ x: number; y: number; away: boolean }[]>([]);
   const awayMsRef = useRef(0);
   const closedMsRef = useRef(0);
+  const settleMsRef = useRef(0);
   const fittingRef = useRef(true);
   const baselineRef = useRef<Baseline | null>(null);
   const calibRef = useRef({ fx: 0, fy: 0, yaw: 0, pitch: 0, gx0: 0, gy0: 0, gx1: 0, gy1: 0, n: 0 });
@@ -174,13 +206,7 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
   // signal "break time?" (amber), and only the 9th look-away onward begins the
   // suspicion count and reports violations (saved to the DB in the app).
   const phase =
-    focus === "away"
-      ? episodes <= 5
-        ? "happens"
-        : episodes <= 8
-          ? "break"
-          : "away"
-      : "focused";
+    focus === "away" ? (episodes <= 5 ? "happens" : episodes <= 8 ? "break" : "away") : "focused";
 
   useEffect(() => {
     let disposed = false;
@@ -244,17 +270,16 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
             const dFy = m.fy - b.fy;
             const dPitch = m.pitch - b.pitch;
 
-            away =
-              Math.abs(m.fx - b.fx) > OFF_CENTER_X ||
-              (!upwardLeash(dFy) && Math.abs(dFy) > OFF_CENTER_Y) ||
-              Math.abs(m.yaw - b.yaw) > YAW_THRESHOLD ||
-              (!upwardLeash(dPitch) && Math.abs(dPitch) > PITCH_DEV) ||
+            const eyeDeviation = (comfort: boolean) =>
               m.eyes.some((e, i) => {
                 const baseGx = b.eyes[i]?.gx ?? e.gx;
                 const baseGy = b.eyes[i]?.gy ?? e.gy;
                 const dgx = e.gx - baseGx;
                 const dgy = e.gy - baseGy;
                 const dev = Math.hypot(dgx, dgy);
+                if (comfort) {
+                  return Math.abs(dgy) > COMFORT_GAZE_V || dev > COMFORT_GAZE;
+                }
                 if (dgy < 0) {
                   // Eye gaze has gone up — heading toward the timer/header.
                   return (
@@ -263,6 +288,34 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
                 }
                 return Math.abs(dgy) > GAZE_VERTICAL || dev > GAZE_THRESHOLD;
               });
+
+            away =
+              Math.abs(m.fx - b.fx) > OFF_CENTER_X ||
+              (!upwardLeash(dFy) && Math.abs(dFy) > OFF_CENTER_Y) ||
+              Math.abs(m.yaw - b.yaw) > YAW_THRESHOLD ||
+              (!upwardLeash(dPitch) && Math.abs(dPitch) > PITCH_DEV) ||
+              eyeDeviation(false);
+
+            // Settling into a comfortable position makes that position the new
+            // baseline. Without this, a candidate who shifted their chair once
+            // during calibration stays permanently "away" from a stale reference
+            // point and cannot sit comfortably at all.
+            const comfortable =
+              Math.abs(m.fx - b.fx) <= COMFORT_X &&
+              Math.abs(dFy) <= COMFORT_Y &&
+              Math.abs(m.yaw - b.yaw) <= COMFORT_YAW &&
+              Math.abs(dPitch) <= COMFORT_PITCH &&
+              !eyeDeviation(true);
+
+            if (comfortable && open) {
+              settleMsRef.current += 50;
+              if (settleMsRef.current >= BASELINE_ADOPT_MS && eyes.length === 2) {
+                baselineRef.current = baselineFrom(m);
+                settleMsRef.current = 0;
+              }
+            } else {
+              settleMsRef.current = 0;
+            }
           }
 
           if (open) closedMsRef.current = 0;
@@ -329,11 +382,13 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
             const dev = Math.hypot(e.gx - baseGx, e.gy - baseGy);
             const vertDev = Math.abs(e.gy - baseGy);
             // Fixed drawing ramp (green when aligned → red when gaze drifts far).
-            // These are visual-only maxima, kept independent of the (roomier)
-            // violation thresholds above so the overlay still reads clearly.
+            // These are visual-only maxima, kept independent of the (roomy)
+            // violation thresholds above so the overlay still reads clearly —
+            // and kept wide enough to match them, or the cursor glows red on a
+            // candidate the tracker is perfectly happy with.
             const ramp = Math.max(
-              clamp01((dev - 0.18) / (0.05 - 0.18)),
-              clamp01((vertDev - 0.09) / (0.02 - 0.09)),
+              clamp01((dev - 0.34) / (0.2 - 0.34)),
+              clamp01((vertDev - 0.17) / (0.05 - 0.17)),
             );
 
             ctx.strokeStyle = "rgba(148,163,184,0.5)";

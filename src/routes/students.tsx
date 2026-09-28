@@ -1,13 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Download, Search, SlidersHorizontal, X } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Download, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
-import { Kpi, Panel, Pill } from "@/components/dash/bits";
+import { Kpi, Panel, Pill, chartColors, chartCursor, chartTooltip } from "@/components/dash/bits";
 import { getStudents, type PlacementStatus, type StudentRecord } from "@/lib/api";
-import { DEPARTMENTS } from "@/lib/data";
 
 export const Route = createFileRoute("/students")({
+  // The header search in the dashboard shell lands here with a ?q= term, so the
+  // directory keeps whatever the user typed and stays shareable as a URL.
+  validateSearch: (search: Record<string, unknown>): { q?: string } => {
+    const q = typeof search["q"] === "string" ? search["q"].trim() : "";
+    return q ? { q } : {};
+  },
   head: () => ({
     meta: [
       { title: "Students — TalentBro Placement Dashboard" },
@@ -45,25 +51,94 @@ function statusTone(status: PlacementStatus): "solid" | "outline" | "muted" {
   return "outline";
 }
 
+// Whether this student counts as placement eligible anywhere in the product.
+// The API already resolves the staff override against the readiness score, so
+// the only condition left is the CGPA-on-record gate that every backend
+// aggregate applies — without it this page would disagree with the dashboard,
+// reports and drive pools.
+function isEligible(s: StudentRecord): boolean {
+  return s.placement_eligible && s.cgpa != null;
+}
+
+const CSV_COLUMNS: [(keyof StudentRecord) | ((s: StudentRecord) => unknown), string][] = [
+  ["id", "Candidate ID"],
+  ["full_name", "Name"],
+  ["department", "Department"],
+  ["program", "Program"],
+  ["cgpa", "CGPA"],
+  ["performance_score", "Readiness"],
+  ["overall_rank", "Institute rank"],
+  ["placement_status", "Placement status"],
+  [(s) => (isEligible(s) ? "Yes" : "No"), "Eligible"],
+  ["expected_ctc", "Expected CTC (LPA)"],
+  ["end_year", "Graduating"],
+  ["mobile_number", "Phone"],
+];
+
+function csvCell(value: unknown) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadStudentsCsv(rows: StudentRecord[], fileLabel: string) {
+  if (rows.length === 0) {
+    toast.error("There are no matching students to export.");
+    return;
+  }
+  const body = [
+    CSV_COLUMNS.map(([, header]) => header).join(","),
+    ...rows.map((row) =>
+      CSV_COLUMNS.map(([key]) =>
+        csvCell(typeof key === "function" ? key(row) : row[key]),
+      ).join(","),
+    ),
+  ].join("\n");
+  const url = URL.createObjectURL(new Blob([`\uFEFF${body}`], { type: "text/csv;charset=utf-8" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `talentbro-students-${fileLabel}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  toast.success(`Exported ${rows.length} student records.`);
+}
+
 function StudentsPage() {
+  const navigate = useNavigate();
+  const { q: qFromUrl } = Route.useSearch();
   const [rows, setRows] = useState<StudentRecord[] | null>(null);
+  const [collegeTotal, setCollegeTotal] = useState<number | null>(null);
+  const [collegeStrength, setCollegeStrength] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(qFromUrl ?? "");
   const [dept, setDept] = useState<string>("All");
   const [status, setStatus] = useState<string>("All");
   const [minCgpa, setMinCgpa] = useState(0);
   const [sort, setSort] = useState<"name" | "cgpa" | "expected_ctc" | "performance">("cgpa");
   const [selected, setSelected] = useState<StudentRecord | null>(null);
   const [page, setPage] = useState(0);
-  const searchRef = useRef("");
+  // Department options are collected from the records the API actually returns,
+  // so the filter never offers a branch this college doesn't have.
+  const [departments, setDepartments] = useState<string[]>([]);
+  const searchRef = useRef(qFromUrl ?? "");
+
+  useEffect(() => {
+    const incoming = qFromUrl ?? "";
+    setQ((current) => (current === incoming ? current : incoming));
+  }, [qFromUrl]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       searchRef.current = q;
       setPage(0);
+      void navigate({
+        to: "/students",
+        search: q.trim() ? { q: q.trim() } : {},
+        replace: true,
+      });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [q]);
+  }, [q, navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +155,15 @@ function StudentsPage() {
       .then((res) => {
         if (cancelled) return;
         setRows(res.students);
+        setCollegeTotal(res.total);
+        setCollegeStrength(res.approximate_student_strength);
+        setDepartments((prev) => {
+          const seen = new Set(prev);
+          for (const student of res.students) {
+            if (student.department) seen.add(student.department);
+          }
+          return [...seen].sort((a, b) => a.localeCompare(b));
+        });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -92,13 +176,23 @@ function StudentsPage() {
   }, [dept, status, minCgpa, sort, q]);
 
   const filtered = rows ?? [];
-  const inSelection = filtered.filter(
-    (s) => s.placement_status === "shortlisted" || s.placement_status === "applying",
-  );
   const placed = filtered.filter((s) => s.placement_status === "placed");
   const cgpas = filtered.map((s) => s.cgpa).filter((c): c is number => c !== null);
   const avgCgpa = cgpas.length ? cgpas.reduce((a, b) => a + b, 0) / cgpas.length : 0;
-  const eligible = filtered.filter((s) => s.placement_eligible).length;
+  // Counted from the API's resolved flag, not recomputed from the readiness
+  // score here, so this card cannot drift from the table column below it or
+  // from the dashboard's eligible count.
+  const eligible = filtered.filter(isEligible).length;
+
+  const branchMap = new Map<string, { label: string; total: number; placed: number }>();
+  for (const s of filtered) {
+    const name = s.department?.trim() || "Unassigned";
+    const entry = branchMap.get(name) ?? { label: name, total: 0, placed: 0 };
+    entry.total += 1;
+    if (s.placement_status === "placed") entry.placed += 1;
+    branchMap.set(name, entry);
+  }
+  const branches = [...branchMap.values()].sort((a, b) => b.total - a.total);
 
   const pageSize = 12;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -108,18 +202,27 @@ function StudentsPage() {
   return (
     <Shell
       title="Students"
-      subtitle={`${filtered.length} of the live batch match the current filters`}
+      subtitle={
+        rows === null
+          ? "Loading the live batch…"
+          : `${filtered.length} of the live batch match the current filters`
+      }
       actions={
         <button
-          onClick={() => toast.success(`Exported ${filtered.length} student records to CSV`)}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
+          onClick={() => downloadStudentsCsv(filtered, new Date().toISOString().slice(0, 10))}
+          disabled={filtered.length === 0}
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
         >
-          <Download className="size-3.5" /> Export
+          <Download className="size-3.5" /> Export CSV
         </button>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label="In Selection" value={filtered.length} hint="matching filters" />
+        <Kpi
+          label="Total Students"
+          value={(collegeTotal ?? filtered.length).toLocaleString("en-IN")}
+          hint={`out of ${collegeStrength?.toLocaleString("en-IN") ?? "—"}`}
+        />
         <Kpi
           label="Placed"
           value={placed.length}
@@ -130,8 +233,48 @@ function StudentsPage() {
           value={avgCgpa ? avgCgpa.toFixed(2) : "—"}
           hint="matching filters"
         />
-        <Kpi label="Eligible" value={eligible} hint="placement-ready students" />
+        <Kpi label="Eligible" value={eligible} hint="readiness score above 40" />
       </div>
+
+      {branches.length > 1 && (
+        <Panel
+          className="mt-4"
+          title="Students by branch"
+          description="Headcount and placements per department, from the rows matching the filters below"
+        >
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={branches} margin={{ left: -22, right: 6, top: 6 }}>
+              <CartesianGrid stroke={chartColors.grid} vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                fontSize={10}
+                angle={-35}
+                textAnchor="end"
+                interval={0}
+                height={64}
+              />
+              <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
+              <Tooltip contentStyle={chartTooltip} cursor={chartCursor} />
+              <Bar
+                dataKey="total"
+                name="Students"
+                fill={chartColors.ink}
+                radius={[4, 4, 0, 0]}
+                barSize={28}
+              />
+              <Bar
+                dataKey="placed"
+                name="Placed"
+                fill={chartColors.mid}
+                radius={[4, 4, 0, 0]}
+                barSize={28}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Panel>
+      )}
 
       <Panel className="mt-4" bodyClassName="p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -140,17 +283,19 @@ function StudentsPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, department, program or email…"
+              placeholder="Search by name, candidate ID or branch…"
+              aria-label="Search students"
               className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
             />
           </div>
           <select
             value={dept}
             onChange={(e) => setDept(e.target.value)}
+            aria-label="Filter by department"
             className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none"
           >
             <option value="All">All departments</option>
-            {DEPARTMENTS.map((d) => (
+            {departments.map((d) => (
               <option key={d}>{d}</option>
             ))}
           </select>
@@ -257,7 +402,7 @@ function StudentsPage() {
                     )}
                   </td>
                   <td className="px-5 py-3">
-                    {s.placement_eligible ? (
+                    {isEligible(s) ? (
                       <Pill tone="solid">Eligible</Pill>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -276,7 +421,13 @@ function StudentsPage() {
               {rowsOnPage.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground">
-                    {error ?? "No students match these filters."}
+                    {rows === null ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin" /> Loading students…
+                      </span>
+                    ) : (
+                      (error ?? "No students match these filters.")
+                    )}
                   </td>
                 </tr>
               )}
@@ -367,7 +518,14 @@ function StudentModal({ student, onClose }: { student: StudentRecord; onClose: (
               "Expected CTC",
               student.expected_ctc ? `₹${student.expected_ctc.toFixed(1)} LPA` : "—",
             ],
-            ["Placement eligible", student.placement_eligible ? "Yes" : "No"],
+            [
+              "Placement eligible",
+              student.placement_eligible_override == null
+                ? isEligible(student)
+                  ? "Yes · follows readiness"
+                  : "No · below readiness bar"
+                : `${isEligible(student) ? "Yes" : "No"} · set by placement office`,
+            ],
             ["ID verified", student.id_verified ? "Yes" : "Pending"],
             ["Phone", student.mobile_number ?? "—"],
             ["Gender", student.gender ? student.gender.replace("_", " ") : "—"],
@@ -465,19 +623,23 @@ function StudentModal({ student, onClose }: { student: StudentRecord; onClose: (
           </div>
         )}
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
-          <button
-            onClick={() => toast.success(`Resume of ${student.full_name} shared with recruiters`)}
-            className="rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-accent"
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border px-6 py-4">
+          <Link
+            to="/student-message"
+            search={{ peer: student.id }}
+            onClick={onClose}
+            className="rounded-md border border-border px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
           >
-            Share resume
-          </button>
-          <button
-            onClick={() => toast.success(`${student.full_name} shortlisted for the next drive`)}
-            className="rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+            Message student
+          </Link>
+          <Link
+            to="/student-detail/$studentId"
+            params={{ studentId: student.id }}
+            onClick={onClose}
+            className="rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Shortlist for drive
-          </button>
+            Open readiness profile
+          </Link>
         </div>
       </div>
     </div>

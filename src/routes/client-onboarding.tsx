@@ -211,7 +211,7 @@ function ClientOnboardingPage() {
           return;
         }
         if (current.profile_complete === true) {
-          void navigate({ to: "/dashboard", replace: true });
+          void navigate({ to: "/client-chat", replace: true });
           return;
         }
         setUser(current);
@@ -332,7 +332,7 @@ function ClientOnboardingPage() {
       await clientOnboarding(payload);
       setSaved(true);
       setTimeout(() => {
-        void navigate({ to: "/dashboard", replace: true });
+        void navigate({ to: "/client-chat", replace: true });
       }, 700);
     } catch (err) {
       setSaving(false);

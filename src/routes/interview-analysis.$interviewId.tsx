@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockInterviewAnalysis, mockInterviewDetail, type MockInterviewAnalysis } from "@/lib/api";
+import { INTERVIEW_CATEGORIES } from "@/lib/interview-rubric";
 
 const title = "TalentBro | Interview Analysis";
 const description =
@@ -83,48 +84,10 @@ function ChartTip({
   );
 }
 
-const CATEGORIES: Record<string, string[]> = {
-  Communication: [
-    "Communication Skills",
-    "Verbal Fluency",
-    "Conciseness",
-    "Vocabulary",
-    "Listening",
-    "Ability to Structure an Answer",
-  ],
-  "Critical Thinking": [
-    "Clarity of Thought",
-    "Analytical & Problem-Solving Ability",
-    "Logical Reasoning",
-    "Ability to Defend an Opinion",
-  ],
-  Knowledge: ["Knowledge & Awareness", "Subject Knowledge", "General Awareness"],
-  "Presence & Attitude": ["Confidence", "Personality & Presence", "Attitude", "Energy"],
-  "Leadership & Influence": ["Leadership & Initiative", "Ability to Influence", "Ambition"],
-  "Emotional Intelligence": [
-    "Emotional Maturity",
-    "Self-Awareness",
-    "Empathy",
-    "Conflict Management",
-  ],
-  "Teamwork & Values": [
-    "Teamwork & Interpersonal Skills",
-    "Integrity & Values",
-    "Respect for Others",
-    "Responsibility",
-    "Discipline",
-  ],
-  "Growth & Adaptability": [
-    "Motivation & Fit",
-    "Curiosity",
-    "Creativity",
-    "Adaptability",
-    "Learning Orientation",
-  ],
-};
-
 function categoryRadar(metrics: MockInterviewAnalysis["metrics"]) {
-  return Object.entries(CATEGORIES).map(([category, dims]) => {
+  // Grouped through the shared rubric so the per-interview report and the
+  // cross-interview history can never disagree about what a category is.
+  return Object.entries(INTERVIEW_CATEGORIES).map(([category, dims]) => {
     const scored = metrics.filter((m) => dims.includes(m.dimension));
     const avg = scored.length
       ? Math.round(scored.reduce((sum, m) => sum + m.percentage, 0) / scored.length)
@@ -300,6 +263,39 @@ function AnalysisView({ analysis }: { analysis: MockInterviewAnalysis }) {
   return (
     <div className="grid gap-4">
       <HeaderCard analysis={analysis} />
+
+      {/* The score is the moderated one the server published, never a mean the
+          browser re-derives — and there simply is no score when the candidate
+          did not give enough answers for one. */}
+      {analysis.overall_score == null ? (
+        <Card className="rounded-2xl border-amber-500/40 bg-amber-500/5">
+          <CardContent className="p-5">
+            <div className="text-sm font-semibold">Not enough answers to score</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This interview does not have enough of your own answers to judge, so TalentBro has not
+              given it a score and it has not counted towards your mock-interview rank. Answer at
+              least a few questions in your next mock to get one.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="rounded-2xl border-border">
+          <CardContent className="flex flex-wrap items-baseline gap-x-3 gap-y-1 p-5">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              Interview score
+            </span>
+            <span className="font-mono text-3xl font-bold tabular-nums">
+              {analysis.overall_score}
+            </span>
+            <span className="text-sm text-muted-foreground">/ 100</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              Based on {analysis.scored_dimensions} of {analysis.total_dimensions} dimensions you
+              actually addressed. Dimensions you were not asked about are left out rather than
+              scored down.
+            </span>
+          </CardContent>
+        </Card>
+      )}
 
       {analysis.swot.strengths || analysis.swot.weaknesses ? (
         <SWOTCard swot={analysis.swot} />

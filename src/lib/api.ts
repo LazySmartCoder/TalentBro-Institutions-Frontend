@@ -179,6 +179,16 @@ export async function me(): Promise<AuthUser | null> {
   }
 }
 
+// The signed-in student's own candidate profile id, or null for a non-candidate
+// (institution staff) or an account whose profile row is still missing.
+// Screens that are scoped to "my profile" resolve their ids from here so the
+// URL never has to carry the viewer's own id around.
+export function ownCandidateId(user: AuthUser | null | undefined): string | null {
+  if (!user) return null;
+  const profile = user.profile as { candidate_id?: string } | null | undefined;
+  return profile?.candidate_id ?? null;
+}
+
 export type GdPanelist = { name: string; gender: "female" | "male" };
 
 // The 6 AI members (3 Indian women + 3 Indian men) picked by Gemini 2.5 Flash
@@ -215,25 +225,20 @@ export async function gdTopic(): Promise<string> {
   return data.topic ?? "";
 }
 
-export type GdCompleteResult = {
-  criteria: { label: string; score: number }[];
-  overall: number;
-  grade: string;
-  strengths: string[];
-  improvementAreas: string[];
-};
-
 export type GdCompleteBody = {
   topic: string;
   participants: { name: string; gender: string; is_user: boolean }[];
   transcript: { name: string; content: string; from: string }[];
-  result: GdCompleteResult;
 };
 
 // Persist a finished GD round — even a near-empty one — so every topic a
-// student trains on is recorded and repeats are avoided on the next round.
-export async function gdComplete(body: GdCompleteBody): Promise<{ id: string }> {
-  const data = await apiFetch<{ id: string }>("/api/gd/complete/", {
+// student trains on is recorded and repeats are avoided on the next round. The
+// round is scored server-side from the transcript, and the saved round comes
+// back so the client renders the real criteria instead of inventing its own.
+export async function gdComplete(
+  body: GdCompleteBody,
+): Promise<{ id: string; session: GdTrainingRecord }> {
+  const data = await apiFetch<{ id: string; session: GdTrainingRecord }>("/api/gd/complete/", {
     method: "POST",
     body: JSON.stringify(body),
     timeoutMs: LONG_TIMEOUT_MS,
@@ -1240,6 +1245,11 @@ export async function ttsGenerate(text: string, voice?: string): Promise<string>
 
 export type TtsWordTiming = { offset: number; startMs: number };
 
+// Per-speaker delivery offsets. Edge serves just one usable Indian male voice,
+// so pitch/rate are what distinguish the male panelists from each other. The
+// backend clamps both to a natural range and ignores anything invalid.
+export type TtsVoiceStyle = { pitchHz?: number; ratePct?: number };
+
 // Same synthesis as ttsGenerate, but asks the backend for the exact start time
 // of every word (WordBoundary metadata returned in the X-Word-Times header).
 // This lets realtime transcript highlights track the clip precisely instead of
@@ -1248,6 +1258,7 @@ export type TtsWordTiming = { offset: number; startMs: number };
 export async function ttsGenerateWithTimings(
   text: string,
   voice?: string,
+  style?: TtsVoiceStyle,
 ): Promise<{ url: string; wordTimes: TtsWordTiming[] }> {
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
@@ -1259,7 +1270,13 @@ export async function ttsGenerateWithTimings(
       method: "POST",
       headers,
       credentials: "include",
-      body: JSON.stringify({ text, voice: voice ?? "", boundaries: true }),
+      body: JSON.stringify({
+        text,
+        voice: voice ?? "",
+        boundaries: true,
+        pitch: style?.pitchHz ?? 0,
+        rate: style?.ratePct ?? 0,
+      }),
     });
   } catch {
     throw new ApiError(0, "Could not reach the server.");
@@ -1421,6 +1438,7 @@ export async function verifyIdCard(body: {
 }
 
 export type CandidateProfile = {
+  candidate_id: string;
   phone: string;
   date_of_birth: string | null;
   gender: string;
@@ -1433,6 +1451,8 @@ export type CandidateProfile = {
   linkedin_url: string;
   github_url: string;
   portfolio_url: string;
+  /** The professional headline synced from LinkedIn; editable by the candidate. */
+  bio: string;
   skills: string[];
   certifications: string[];
   projects: unknown[];
@@ -1474,12 +1494,28 @@ export type PerformanceComponents = {
   modules: PerformanceModule[];
 };
 
+export type PillarRank = {
+  score: number | null;
+  rank: number | null;
+  total: number;
+  department_rank: number | null;
+  department_total: number;
+};
+
+// Each pillar is ranked over its own cohort — mock-interview and self-training
+// standings never move each other, and neither one is the composite score.
+export type PillarRanks = {
+  mock_interview: PillarRank | null;
+  self_training: PillarRank | null;
+};
+
 export type ProfileRanks = {
   score: number | null;
   department: number | null;
   overall: number | null;
   total: number;
   department_total: number;
+  pillars: PillarRanks;
 };
 
 export type CandidateProfilePayload = {
@@ -1575,7 +1611,7 @@ export async function clientOnboarding(body: Record<string, unknown>): Promise<A
   return data.user;
 }
 
-export type MockInterviewStatus = "active" | "completed";
+export type MockInterviewStatus = "active" | "completed" | "not_scored";
 export type MockInterviewDuration = "short" | "standard" | "long";
 export type PanelistId = "atlas" | "maya" | "albert" | "peter" | "daniel" | "ada" | "carl";
 
@@ -1623,6 +1659,11 @@ export type MockInterviewAnalysis = {
   company_name: string;
   role: string;
   created_at: string;
+  // Moderated score for the interview, or null when the candidate never gave
+  // enough real answers for one to exist. Never derive a score client-side.
+  overall_score: number | null;
+  scored_dimensions: number;
+  total_dimensions: number;
   metrics: MockInterviewAnalysisMetric[];
   swot: MockInterviewSwot;
 };
@@ -1631,6 +1672,62 @@ export type MockInterviewStartResponse = {
   interview: MockInterviewDetail;
   reply: string;
   panelist: string;
+};
+
+// One interview as the history rollup sees it. `analysis` is null whenever the
+// interview was never scored, which is different from scoring zero.
+export type MockInterviewStatsEntry = MockInterview & {
+  user_turns: number;
+  assistant_turns: number;
+  user_words: number;
+  // Midpoint of the exchange count this interview's length was briefed for, so
+  // a short session is never judged against a long session's target.
+  target_exchanges: number;
+  analysis: {
+    overall_score: number;
+    scored_dimensions: number;
+    total_dimensions: number;
+    // Keyed by the rubric's display name, and only for dimensions the stored
+    // analysis carries evidence for, so the client can group them into its own
+    // categories without fetching each interview's full report.
+    dimensions: Record<string, number>;
+  } | null;
+};
+
+// The whole mock-interview record reduced to counts and means on the server.
+// Nothing in here is generated: opening the history never calls the model, and
+// every score it reports was written when the interview was finalised.
+export type MockInterviewStats = {
+  totals: {
+    interviews: number;
+    completed: number;
+    not_scored: number;
+    active: number;
+    scored: number;
+    violations: number;
+    user_turns: number;
+    assistant_turns: number;
+    user_words: number;
+    companies: number;
+    roles: number;
+  };
+  tones: { positive: number; neutral: number; negative: number };
+  // Newest first.
+  interviews: MockInterviewStatsEntry[];
+  by_company: {
+    name: string;
+    interviews: number;
+    avg_user_turns: number;
+    avg_score: number | null;
+    scored: number;
+  }[];
+  by_role: {
+    name: string;
+    interviews: number;
+    avg_user_turns: number;
+    avg_score: number | null;
+    scored: number;
+  }[];
 };
 
 export async function startMockInterview(body: {
@@ -1760,6 +1857,33 @@ export async function recordViolation(id: string): Promise<MockInterview> {
   return data.interview;
 }
 
+/**
+ * One request for everything the interview history screen shows. The server
+ * reduces the candidate's whole record to counts and means, so this stays a
+ * single cheap read instead of fanning out one analysis call per interview.
+ *
+ * Deliberately a plain GET against `/api/interview/stats/` and NOT a loop over
+ * `mockInterviewAnalysis()`: that endpoint generates an analysis on read when
+ * one is missing, which would spend model time and invent numbers the
+ * candidate never earned. This one only ever reads what is already stored.
+ */
+export async function mockInterviewStats(): Promise<MockInterviewStats> {
+  const data = await apiFetch<{
+    totals: MockInterviewStats["totals"];
+    tones: MockInterviewStats["tones"];
+    interviews: MockInterviewStatsEntry[];
+    by_company: MockInterviewStats["by_company"];
+    by_role: MockInterviewStats["by_role"];
+  }>("/api/interview/stats/");
+  return {
+    totals: data.totals,
+    tones: data.tones,
+    interviews: data.interviews,
+    by_company: data.by_company,
+    by_role: data.by_role,
+  };
+}
+
 export type NotificationSender = "Placement Cell" | "TalentBro Platform";
 
 export type NotificationItem = {
@@ -1790,6 +1914,28 @@ export async function markNotificationsRead(notificationId?: string, all = false
   });
 }
 
+// A broadcast authored by institution staff. The backend fans it out to the
+// signed-in staff member's own feed; students receive it as a placement-cell
+// notification.
+export type BroadcastDraft = {
+  title: string;
+  body: string;
+  pinned?: boolean;
+  important?: boolean;
+};
+
+export async function createNotification(draft: BroadcastDraft): Promise<NotificationItem> {
+  const data = await apiFetch<{ notification: NotificationItem }>("/api/notifications/", {
+    method: "POST",
+    body: JSON.stringify(draft),
+  });
+  return data.notification;
+}
+
+export async function deleteNotification(notificationId: string): Promise<void> {
+  await apiFetch(`/api/notifications/${encodeURIComponent(notificationId)}/`, { method: "DELETE" });
+}
+
 export type DriveCompanyTier = "super_dream" | "dream" | "core" | "mass";
 
 export type PlacementCompany = {
@@ -1810,7 +1956,10 @@ export type PlacementCompany = {
   salary_max: number | null;
   work_location: string;
   work_mode: string;
-  number_of_openings: number | null;
+  // Sum of the vacancies across the company's Drive rows. Zero when the
+  // company has no drives yet.
+  openings: number | null;
+  drive_count: number | null;
   selection_rounds: string[];
   application_deadline: string | null;
   campus_visit_date: string | null;
@@ -1827,20 +1976,31 @@ export async function getCompanies(): Promise<{ companies: PlacementCompany[]; c
   return apiFetch<{ companies: PlacementCompany[]; count: number }>("/api/companies/");
 }
 
+// Every field the placement cell can record for a campus partner. The backend
+// stores blanks as null, so an omitted key and an explicit null are equivalent —
+// never send an empty string for a numeric/date field.
 export type CompanyCreatePayload = {
   company_name: string;
+  company_id?: string;
   industry?: string;
   company_description?: string;
   work_location?: string;
+  work_mode?: string;
+  placement_mode?: string;
   tier?: DriveCompanyTier;
   salary_min?: number | null;
   salary_max?: number | null;
-  number_of_openings?: number | null;
   job_roles?: string[];
+  eligible_courses?: string[];
+  eligible_branches?: string[];
+  required_skills?: string[];
+  preferred_skills?: string[];
   selection_rounds?: string[];
+  minimum_cgpa?: number | null;
+  maximum_backlogs?: number | null;
+  graduation_year?: number | null;
   recruitment_status?: string;
-  work_mode?: string;
-  placement_mode?: string;
+  offer_status?: string;
 };
 
 export async function createCompany(payload: CompanyCreatePayload): Promise<PlacementCompany> {
@@ -1942,7 +2102,12 @@ export type StudentRecord = {
   gender: string;
   cgpa: number | null;
   placement_status: PlacementStatus;
+  // Already resolved server-side: the staff override when set, otherwise the
+  // readiness rule (score >= 40). Never the raw column.
   placement_eligible: boolean;
+  // The untouched override, so the UI can show whether a human pinned it.
+  // null means "follows the readiness score".
+  placement_eligible_override: boolean | null;
   skills: string[];
   preferred_roles: string[];
   preferred_locations: string[];
@@ -1957,9 +2122,21 @@ export type StudentRecord = {
   department_rank: number | null;
   overall_total: number;
   department_total: number;
+  // Independent mock-interview and self-training standings, each ranked over
+  // its own cohort.
+  pillars: PillarRanks;
 };
 
-export type StudentsResponse = { students: StudentRecord[]; count: number };
+export type StudentsResponse = {
+  students: StudentRecord[];
+  // Rows matching the active filters, versus every candidate profile the
+  // college has, so the UI can show the real student count alongside the view.
+  count: number;
+  total: number;
+  // The institution's approximate student strength, which can exceed the number
+  // of candidate profiles actually in the database.
+  approximate_student_strength: number | null;
+};
 
 export type StudentsQuery = {
   q?: string;
@@ -1995,6 +2172,50 @@ export async function getReadinessLeaderboard(): Promise<LeaderboardResponse> {
   return apiFetch<LeaderboardResponse>("/api/readiness/leaderboard/");
 }
 
+export type StudentMessage = {
+  id: string;
+  content: string;
+  created_at: string;
+  from_user_id: number;
+  to_user_id: number;
+  from_name: string;
+  is_mine: boolean;
+};
+
+export type StudentMessagePeer = {
+  id: string;
+  full_name: string;
+  department: string;
+  program: string;
+  start_year: number | null;
+  end_year: number | null;
+};
+
+export type StudentMessagesResponse = {
+  // candidate_id of the signed-in viewer — the screen is always backed by it.
+  viewer_candidate_id: string | null;
+  // candidate_id of the peer being viewed; equals viewer_candidate_id on self.
+  student_id: string;
+  is_self: boolean;
+  peer: StudentMessagePeer;
+  messages: StudentMessage[];
+};
+
+export async function studentMessages(studentId: string): Promise<StudentMessagesResponse> {
+  return apiFetch<StudentMessagesResponse>(`/api/students/${studentId}/messages/`);
+}
+
+export async function sendStudentMessage(
+  studentId: string,
+  content: string,
+): Promise<StudentMessage> {
+  const data = await apiFetch<{ message: StudentMessage }>(`/api/students/${studentId}/messages/`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+  return data.message;
+}
+
 export type DriveStatus = "Live" | "Upcoming" | "Completed" | "Cancelled";
 
 export type PlacementDrive = {
@@ -2022,8 +2243,30 @@ export type PlacementDrive = {
   eligible_count: number;
 };
 
-export async function getDrives(): Promise<{ drives: PlacementDrive[]; count: number }> {
-  return apiFetch<{ drives: PlacementDrive[]; count: number }>("/api/drives/");
+export type DrivesData = {
+  drives: PlacementDrive[];
+  // How many company rows back the listing.
+  count: number;
+  // How many Drive records the signed-in staff's college has on file.
+  drive_count: number;
+};
+
+export async function getDrives(): Promise<DrivesData> {
+  return apiFetch<DrivesData>("/api/drives/");
+}
+
+export type TotalVacancies = {
+  total_vacancies: number;
+  drive_count: number;
+  institution: string | null;
+};
+
+// Total vacancies across every drive of the signed-in staff's college.
+// Pass a status ("upcoming" | "ongoing" | "completed" | "cancelled") to
+// narrow it to that one status.
+export async function getTotalVacancies(status?: string): Promise<TotalVacancies> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<TotalVacancies>(`/api/drives/total-vacancies/${query}`);
 }
 
 export type ReportsData = {
@@ -2046,4 +2289,94 @@ export type ReportsData = {
 
 export async function getReportsData(): Promise<ReportsData> {
   return apiFetch<ReportsData>("/api/reports/");
+}
+
+// ── Coursera courses (candidate /courses screen) ─────────────────────────────
+// Scraped server-side from Coursera's public search page. The backend answers
+// with the default "data science" search when `query` is omitted.
+
+export type CourseraCourse = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  course_url: string;
+  tagline: string;
+  partners: string[];
+  partner_logos: string[];
+  rating: number | null;
+  rating_count: number | null;
+  review_count: number | null;
+  level: string;
+  level_label: string;
+  duration: string;
+  duration_label: string;
+  product_type: string;
+  type_label: string;
+  skills: string[];
+  tools: string[];
+  languages: string[];
+  subtitle_languages: string[];
+  is_free: boolean;
+  is_credit_eligible: boolean;
+  is_new: boolean;
+  in_coursera_plus: boolean;
+  badges: string[];
+};
+
+export type CourseraFacetValue = {
+  value: string;
+  count: number | null;
+};
+
+export type CourseraCoursesResponse = {
+  query: string;
+  count: number;
+  total_results: number | null;
+  total_pages: number | null;
+  source: string;
+  fetched_at: string;
+  cached: boolean;
+  courses: CourseraCourse[];
+  facets: Record<string, CourseraFacetValue[]>;
+};
+
+export async function getCourses(query?: string): Promise<CourseraCoursesResponse> {
+  const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
+  // A cold request scrapes Coursera live, so allow more than the default budget.
+  return apiFetch<CourseraCoursesResponse>(`/api/courses/${suffix}`, {
+    timeoutMs: LONG_TIMEOUT_MS,
+  });
+}
+
+/**
+ * One tracked weakness area, e.g. "Communication & Soft Skills".
+ *
+ * `query` is the Coursera search phrase that addresses it, so the courses grid can
+ * be driven straight from the segment the candidate picks. The buckets mirror the
+ * ones the /tutorials screen uses, so the same label means the same thing on both.
+ */
+export type CourseWeaknessSegment = {
+  key: string;
+  label: string;
+  query: string;
+  blurb: string;
+  /** Weakest recent score found, 0-100. Lower means a more urgent gap. */
+  score: number;
+  /** How many individual scores were averaged into `score`. */
+  sample_size: number;
+  /** Which training areas the evidence came from. */
+  sources: string[];
+  /** Short, human-readable reasons, strongest first. */
+  evidence: string[];
+};
+
+export type CourseWeaknessSegmentsResponse = {
+  /** Weakest first. Empty when the candidate has no tracked training data yet. */
+  segments: CourseWeaknessSegment[];
+  count: number;
+};
+
+export async function courseSegments(): Promise<CourseWeaknessSegmentsResponse> {
+  return apiFetch<CourseWeaknessSegmentsResponse>("/api/courses/segments/");
 }

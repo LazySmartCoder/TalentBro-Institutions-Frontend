@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ttsGenerate } from "@/lib/api";
+import { ttsGenerateWithTimings, type TtsVoiceStyle } from "@/lib/api";
+import {
+  alignWordTimesMs,
+  wordIndexAt,
+  wordIndexForChar,
+  wordStartOffsets,
+} from "@/lib/tts-timings";
 
 // Hands-free voice engine for the mock-interview panel, modelled on the
-// communication-training loop: the mic auto-arms itself, never needs a click
-// after it is unlocked, and each panelist speaks in their own voice through
+// communication-training loop: each panelist speaks in their own voice through
 // Edge TTS (with a browser-voice fallback). The turn order is strictly
-// panelist → user → panelist → user: while a line is being spoken the mic is
-// closed, and it re-opens automatically the moment the queue drains.
+// panelist → user → panelist → user. The microphone is acquired as soon as the
+// room goes live and its stream is held open for the whole session — only the
+// recognizer and the level meter are switched off while a panelist speaks, so
+// the candidate never has to unlock or re-grant the mic mid-interview.
 
 const SR_LANGS = ["en-IN", "en-GB", "en-US"] as const;
 const IDLE_AUTO_SEND_MS = 2200; // auto-submit after the user stops talking
@@ -53,7 +60,6 @@ export type PanelVoice = {
   captured: string;
   micLevel: number;
   waves: boolean;
-  needMicTap: boolean;
   // Set while the panel can't reach any usable voice (Edge failed AND the
   // browser has no TTS voices) — surfaced in the composer so a silent room is
   // diagnosed instead of confusing.
@@ -77,13 +83,18 @@ type QueueItem = { text: string; speaker: string; id?: number };
 export function usePanelVoice(opts: {
   enabled: boolean;
   edgeVoiceFor: (speaker: string) => string;
+  // Per-speaker delivery offsets so panelists sharing one Edge voice (there is
+  // only one usable Indian male voice) still sound like different people.
+  voiceStyleFor: (speaker: string) => TtsVoiceStyle;
   browserVoiceFor: (speaker: string) => SpeechSynthesisVoice | undefined;
   onTranscript: (text: string) => void;
 }): PanelVoiceControls {
   const edgeVoiceRef = useRef(opts.edgeVoiceFor);
+  const voiceStyleRef = useRef(opts.voiceStyleFor);
   const browserVoiceRef = useRef(opts.browserVoiceFor);
   const onTranscriptRef = useRef(opts.onTranscript);
   edgeVoiceRef.current = opts.edgeVoiceFor;
+  voiceStyleRef.current = opts.voiceStyleFor;
   browserVoiceRef.current = opts.browserVoiceFor;
   onTranscriptRef.current = opts.onTranscript;
 
@@ -98,7 +109,6 @@ export function usePanelVoice(opts: {
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<number | null>(null);
   const [wordIndex, setWordIndex] = useState(-1);
-  const [needMicTap, setNeedMicTap] = useState(false);
   const [voiceTrouble, setVoiceTrouble] = useState(false);
   const [awaitedTap, setAwaitedTap] = useState(false);
   const [error, setError] = useState("");
@@ -112,12 +122,14 @@ export function usePanelVoice(opts: {
     toggle: () => void;
     pause: () => void;
     resume: () => void;
+    warm: () => void;
     setEnabled: (v: boolean) => void;
   }>({
     speak: () => {},
     toggle: () => {},
     pause: () => {},
     resume: () => {},
+    warm: () => {},
     setEnabled: () => {},
   });
 
@@ -142,6 +154,8 @@ export function usePanelVoice(opts: {
     const srLangIdxRef = { current: 0 };
     const idleTimerRef = { current: null as number | null };
     const rearmTimerRef = { current: null as number | null };
+    const micRetryTimerRef = { current: null as number | null };
+    const micRetryRef = { current: 0 };
     const lastRebuildAtRef = { current: 0 };
     const lastResultAtRef = { current: 0 };
     const lastSpeechMsRef = { current: 0 };
@@ -158,6 +172,7 @@ export function usePanelVoice(opts: {
     let ttsUrl: string | null = null;
     let ttsAbort: AbortController | null = null;
     let ttsWatchdog: number | null = null;
+    let ttsWordPoll: number | null = null;
     let ttsDone: (() => void) | null = null;
 
     // Clips whose play() was blocked by the browser autoplay policy. The first
@@ -188,33 +203,30 @@ export function usePanelVoice(opts: {
     const estimateTimerRef = { current: null as number | null };
 
     function prepareWords(text: string) {
-      const starts: number[] = [];
-      const re = /\S+/g;
-      for (;;) {
-        const match = re.exec(text);
-        if (!match) break;
-        starts.push(match.index);
-      }
-      wordStartsRef.current = starts;
+      wordStartsRef.current = wordStartOffsets(text);
       spokenTextRef.current = text;
       wordIndexRef.current = -1;
       setWordIndex(-1);
     }
 
+    function emitWord(ordinal: number) {
+      if (ordinal < 0) {
+        if (wordIndexRef.current !== -1) {
+          wordIndexRef.current = -1;
+          setWordIndex(-1);
+        }
+        return;
+      }
+      if (ordinal !== wordIndexRef.current) {
+        wordIndexRef.current = ordinal;
+        setWordIndex(ordinal);
+      }
+    }
+
     function emitWordForChar(idx: number) {
       const starts = wordStartsRef.current;
       if (starts.length === 0) return;
-      let w = -1;
-      for (let i = 0; i < starts.length; i++) {
-        const s = starts[i];
-        if (s === undefined || s > idx) break;
-        w = i;
-      }
-      const next = w < 0 ? 0 : w;
-      if (next !== wordIndexRef.current) {
-        wordIndexRef.current = next;
-        setWordIndex(next);
-      }
+      emitWord(wordIndexForChar(starts, idx));
     }
 
     const setFlowBoth = (next: PanelFlow) => {
@@ -231,6 +243,10 @@ export function usePanelVoice(opts: {
     // ---- mic waveform (frontend-only; words come from the Web Speech API) ----
 
     function sampleAnalyser() {
+      // The stream stays open across turns, so never let the panelist's own
+      // voice (picked up through the speakers) drive the meter or the
+      // "user is talking" signal.
+      if (speakingRef.current || currentFlow() === "speaking") return;
       let rms = 0;
       if (recAnalyser) {
         const data = new Uint8Array(recAnalyser.frequencyBinCount);
@@ -256,6 +272,10 @@ export function usePanelVoice(opts: {
         window.clearInterval(recTimer);
         recTimer = null;
       }
+      if (micRetryTimerRef.current !== null) {
+        window.clearTimeout(micRetryTimerRef.current);
+        micRetryTimerRef.current = null;
+      }
       if (recAudioCtx) {
         void recAudioCtx.close().catch(() => {});
         recAudioCtx = null;
@@ -269,20 +289,71 @@ export function usePanelVoice(opts: {
       setMicLevel(0);
     }
 
-    async function openMic() {
+    // While a panelist is speaking the recognizer must be stopped, but the
+    // captured stream deliberately stays open. Tearing it down between turns
+    // and renegotiating it is exactly what used to lose the mic, so the panel
+    // simply holds the stream and only mutes the level meter.
+    function holdMicForSpeech() {
+      if (recTimer !== null) {
+        window.clearInterval(recTimer);
+        recTimer = null;
+      }
+      applyWaves(false);
+      setMicLevel(0);
+    }
+
+    // Never surface a "tap to allow" dead end: a failure here is either
+    // transient (the device was busy, the context was interrupted) or a denial
+    // the browser has already cached. Retry quietly with backoff so the mic
+    // comes back on its own the moment it can.
+    function scheduleMicRetry() {
       if (disposed) return;
+      if (micRetryTimerRef.current !== null) return;
+      const delay = Math.min(4000, 500 * 2 ** Math.min(micRetryRef.current, 3));
+      micRetryRef.current += 1;
+      micRetryTimerRef.current = window.setTimeout(() => {
+        micRetryTimerRef.current = null;
+        if (disposed) return;
+        void openMic();
+      }, delay);
+    }
+
+    // Idempotent: the stream is normally already open, in which case this only
+    // restarts the level meter and returns immediately.
+    async function openMic(): Promise<boolean> {
+      if (disposed) return false;
+      if (recStream && recStream.active) {
+        micLockedRef.current = false;
+        if (micRetryTimerRef.current !== null) {
+          window.clearTimeout(micRetryTimerRef.current);
+          micRetryTimerRef.current = null;
+        }
+        micRetryRef.current = 0;
+        if (recTimer === null) {
+          recTimer = window.setInterval(sampleAnalyser, SILENCE_INTERVAL_MS);
+        }
+        return true;
+      }
+      // Either nothing is open yet, or the stream the browser handed us has
+      // since ended (device unplugged, track muted). Drop the dead handles
+      // before asking for a new one so no context is left dangling.
       stopMicInternals();
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         });
-        if (disposed || flowRef.current === "speaking" || speakingRef.current) {
+        if (disposed) {
           stream.getTracks().forEach((t) => t.stop());
-          return;
+          return false;
         }
         recStream = stream;
         micLockedRef.current = false;
-        setNeedMicTap(false);
+        micRetryRef.current = 0;
+        setError("");
+        if (micRetryTimerRef.current !== null) {
+          window.clearTimeout(micRetryTimerRef.current);
+          micRetryTimerRef.current = null;
+        }
         try {
           recAudioCtx = new AudioContext();
           const source = recAudioCtx.createMediaStreamSource(stream);
@@ -296,10 +367,11 @@ export function usePanelVoice(opts: {
         if (recTimer === null) {
           recTimer = window.setInterval(sampleAnalyser, SILENCE_INTERVAL_MS);
         }
+        return true;
       } catch {
         micLockedRef.current = true;
-        setNeedMicTap(true);
-        setError("Tap the mic once and choose Allow so the panel can hear you.");
+        scheduleMicRetry();
+        return false;
       }
     }
 
@@ -311,6 +383,10 @@ export function usePanelVoice(opts: {
       if (estimateTimerRef.current !== null) {
         window.clearInterval(estimateTimerRef.current);
         estimateTimerRef.current = null;
+      }
+      if (ttsWordPoll !== null) {
+        window.clearInterval(ttsWordPoll);
+        ttsWordPoll = null;
       }
       if (ttsAudio) {
         try {
@@ -377,8 +453,15 @@ export function usePanelVoice(opts: {
         };
         synth.addEventListener("voiceschanged", onVoices);
       }
-      utter.rate = 1.15;
-      utter.pitch = 1.0;
+      // Mirror the panelist's Edge pitch/rate offsets so a browser fallback
+      // still sounds like the same person, just via a different engine. Web
+      // Speech uses multipliers (1 = normal) rather than Hz/percent, so the
+      // offsets are scaled down and kept gentle.
+      const style = voiceStyleRef.current(speaker);
+      const pitchHz = style.pitchHz ?? 0;
+      const ratePct = style.ratePct ?? 0;
+      utter.rate = Math.max(0.5, Math.min(1.6, 1.15 * (1 + ratePct / 200)));
+      utter.pitch = Math.max(0.6, Math.min(1.6, 1 + pitchHz / 120));
 
       let said = false;
       const end = () => {
@@ -391,20 +474,38 @@ export function usePanelVoice(opts: {
         done();
       };
 
-      // Realtime word highlight for the browser path: prefer exact boundary
-      // events, and keep a duration estimate ticking as a fallback so the
-      // timeline still lights up even if boundaries never fire.
-      const startedAt = Date.now();
+      // Realtime word highlight for the browser path. Exact boundary events are
+      // the source of truth; the estimate never moves before the engine has
+      // actually started (utter.onstart), so the highlight can't lead the audio
+      // the way an open-ended timer did. The estimate only takes over if
+      // boundaries stall for a beat, always continuing from the last exact
+      // position so it never jumps the highlight forward.
       const estMs = Math.max(2000, text.length * 90);
+      let speechStartAt = 0;
+      let lastBoundaryAt = 0;
+      let lastBoundaryChar = -1;
       if (estimateTimerRef.current !== null) window.clearInterval(estimateTimerRef.current);
       estimateTimerRef.current = window.setInterval(() => {
-        const p = Math.min(1, (Date.now() - startedAt) / estMs);
-        emitWordForChar(Math.floor(p * text.length));
+        if (!speechStartAt) return;
+        const haveBoundaries = lastBoundaryChar >= 0;
+        if (haveBoundaries && Date.now() - lastBoundaryAt < 900) return;
+        const baseChar = haveBoundaries ? lastBoundaryChar : 0;
+        const baseAt = haveBoundaries ? lastBoundaryAt : speechStartAt;
+        const est = baseChar + ((Date.now() - baseAt) / estMs) * text.length;
+        emitWordForChar(Math.floor(est));
       }, 180);
       utter.onboundary = (e: SpeechSynthesisEvent) => {
-        if (typeof e.charIndex === "number" && e.charIndex >= 0) emitWordForChar(e.charIndex);
+        if (typeof e.charIndex === "number" && e.charIndex >= 0) {
+          lastBoundaryAt = Date.now();
+          lastBoundaryChar = e.charIndex;
+          emitWordForChar(e.charIndex);
+        }
       };
-      utter.onstart = () => setVoiceTrouble(false);
+      utter.onstart = () => {
+        speechStartAt = Date.now();
+        lastBoundaryAt = speechStartAt;
+        setVoiceTrouble(false);
+      };
       utter.onend = end;
       utter.onerror = end;
 
@@ -423,7 +524,11 @@ export function usePanelVoice(opts: {
       speakingSpeakerRef.current = item.speaker;
       setSpeaking(item.speaker);
       setSpeakingId(item.id ?? null);
-      prepareWords(item.text);
+      // The backend strips the text before synthesizing it and reports word
+      // offsets against that stripped copy, so speak, index and align against
+      // the same string — otherwise every offset would be shifted.
+      const line = item.text.trim();
+      prepareWords(line);
       setFlowBoth("speaking");
       closeForSpeech();
 
@@ -455,7 +560,7 @@ export function usePanelVoice(opts: {
         console.log(
           `[panel-voice] falling back to browser voice for "${item.speaker}" (${item.text.slice(0, 40)}…)`,
         );
-        speakBrowser(item.text, item.speaker, done);
+        speakBrowser(line, item.speaker, done);
       };
 
       console.log(`[panel-voice] speaking as "${item.speaker}": ${item.text.slice(0, 60)}…`);
@@ -463,7 +568,7 @@ export function usePanelVoice(opts: {
       const scheduleWatchdog = () => {
         if (ttsWatchdog !== null) window.clearTimeout(ttsWatchdog);
         const waitMs =
-          Math.max(SPEECH_WATCHDOG_MIN_MS, item.text.length * SPEECH_WATCHDOG_MS_PER_CHAR) +
+          Math.max(SPEECH_WATCHDOG_MIN_MS, line.length * SPEECH_WATCHDOG_MS_PER_CHAR) +
           SPEECH_WATCHDOG_MARGIN_MS;
         ttsWatchdog = window.setTimeout(() => {
           ttsWatchdog = null;
@@ -507,7 +612,11 @@ export function usePanelVoice(opts: {
       void (async () => {
         let audio: HTMLAudioElement | null = null;
         try {
-          const url = await ttsGenerate(item.text, edgeVoiceRef.current(item.speaker));
+          const { url, wordTimes } = await ttsGenerateWithTimings(
+            line,
+            edgeVoiceRef.current(item.speaker),
+            voiceStyleRef.current(item.speaker),
+          );
           if (!stillCurrent() || controller.signal.aborted) {
             URL.revokeObjectURL(url);
             return;
@@ -519,14 +628,43 @@ export function usePanelVoice(opts: {
           audio.muted = false;
           ttsAudio = audio;
           ttsUrl = url;
-          // Realtime word highlight for the Edge path: position the highlight
-          // from the audio's own playback progress.
+          // Realtime word highlight for the Edge path. The backend returns the
+          // exact start time of every word, so the highlight can only move once
+          // the clip has actually reached that word. Spreading it evenly over
+          // the characters instead would race ahead of the voice through the
+          // pauses at punctuation and then never catch up.
+          const wordTimesMs = alignWordTimesMs(line, wordTimes);
           const updateFromTime = () => {
-            if (!Number.isFinite(audio?.duration) || (audio?.duration ?? 0) <= 0) return;
-            const p = Math.min(1, (audio?.currentTime ?? 0) / (audio?.duration ?? 1));
-            emitWordForChar(Math.floor(p * item.text.length));
+            if (!audio) return;
+            if (wordTimesMs) {
+              const next = wordIndexAt(wordTimesMs, audio.currentTime * 1000);
+              if (next < 0) {
+                emitWord(-1);
+                return;
+              }
+              emitWord(next);
+              return;
+            }
+            // No timings from the backend: keep a proportional estimate so the
+            // highlight still tracks the voice rather than freezing.
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const p = Math.min(1, audio.currentTime / audio.duration);
+            emitWordForChar(Math.floor(p * line.length));
           };
           audio.addEventListener("timeupdate", updateFromTime);
+          // timeupdate only fires roughly four times a second, which is too
+          // coarse to land on individual words. Poll while the clip plays.
+          const wordPoll = window.setInterval(() => {
+            if (!audio || audio.paused || audio.ended) return;
+            updateFromTime();
+          }, 60);
+          const stopWordPoll = () => {
+            window.clearInterval(wordPoll);
+            if (ttsWordPoll !== null) ttsWordPoll = null;
+          };
+          ttsWordPoll = wordPoll;
+          audio.addEventListener("ended", stopWordPoll);
+          audio.addEventListener("error", stopWordPoll);
           audio.onended = () => done();
           audio.onerror = () => {
             if (ttsUrl) {
@@ -623,7 +761,7 @@ export function usePanelVoice(opts: {
 
     function closeForSpeech() {
       sttBlockedRef.current = true;
-      stopMicInternals();
+      holdMicForSpeech();
       if (idleTimerRef.current !== null) {
         window.clearTimeout(idleTimerRef.current);
         idleTimerRef.current = null;
@@ -648,7 +786,7 @@ export function usePanelVoice(opts: {
         idleTimerRef.current = null;
       }
       sttBlockedRef.current = true;
-      stopMicInternals();
+      holdMicForSpeech();
       if (recognition) {
         try {
           recognition.stop();
@@ -672,10 +810,8 @@ export function usePanelVoice(opts: {
         rearmTimerRef.current = null;
         if (disposed || speakingRef.current) return;
         if (!enabledRef.current) return;
-        if (micLockedRef.current) {
-          setNeedMicTap(true);
-          return;
-        }
+        // startListening re-acquires the mic itself, so a stream that dropped
+        // mid-answer is simply reopened — never a reason to stop listening.
         startListening();
       }, REARM_DELAY_MS);
     }
@@ -742,10 +878,11 @@ export function usePanelVoice(opts: {
       instance.onerror = (event: SpeechRecognitionErrorEventLike) => {
         const code = event.error;
         if (code === "not-allowed" || code === "service-not-allowed") {
+          // A hard denial. Re-open the stream quietly in case it recovers, and
+          // say only what is true — the mic is blocked at the browser level.
           micLockedRef.current = true;
-          setNeedMicTap(true);
-          setError("Microphone is blocked. Tap the mic and choose Allow.");
           setFlowBoth("idle");
+          setError("Your browser is blocking microphone access for this site.");
         } else if (code === "no-speech") {
           if (capturedRef.current.trim() || interimRef.current.trim()) {
             if (idleTimerRef.current !== null) window.clearTimeout(idleTimerRef.current);
@@ -805,19 +942,34 @@ export function usePanelVoice(opts: {
       bind(recognition);
       startedRef.current = false;
       lastResultAtRef.current = Date.now();
-      try {
-        recognition.start();
-      } catch {
-        if (micLockedRef.current) setNeedMicTap(true);
-      }
+      if (!startRecognizer() && micLockedRef.current) scheduleMicRetry();
       spawning = false;
       void cause;
     }
 
-    function startListening() {
+    // Starting the recognizer can fail for a transient reason that has nothing
+    // to do with permissions: the previous session's stop()/abort() resolves
+    // asynchronously, so a start() in the same tick throws InvalidStateError.
+    // That must never be reported as a blocked mic, or the panel silently stops
+    // listening and demands a tap.
+    function startRecognizer(): boolean {
+      if (!recognition) return false;
+      try {
+        recognition.start();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // Read through a call so the flow can't be narrowed across an await: while
+    // getUserMedia is pending, a panelist line can start or the room can pause.
+    const currentFlow = (): PanelFlow => flowRef.current;
+
+    async function startListening() {
       if (disposed || speakingRef.current) return;
       if (!enabledRef.current) return;
-      if (flowRef.current === "listening") return;
+      if (currentFlow() === "listening") return;
       capturedRef.current = "";
       interimRef.current = "";
       setCaptured("");
@@ -829,7 +981,19 @@ export function usePanelVoice(opts: {
       lastSpeechMsRef.current = 0;
       sttBlockedRef.current = false;
       setFlowBoth("listening");
-      void openMic();
+
+      // Open the mic BEFORE starting the recognizer: micLockedRef only becomes
+      // trustworthy once this settles, and a failure here must not be mistaken
+      // for a permission the user has to fix by tapping.
+      await openMic();
+      if (disposed || speakingRef.current || !enabledRef.current) {
+        holdMicForSpeech();
+        return;
+      }
+      if (currentFlow() !== "listening") {
+        holdMicForSpeech();
+        return;
+      }
 
       const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
       if (!SR) return;
@@ -838,23 +1002,23 @@ export function usePanelVoice(opts: {
         bind(recognition);
       }
       try {
-        recognition.abort();
-      } catch {
-        // noop
-      }
-      try {
         recognition.lang = SR_LANGS[srLangIdxRef.current] ?? "en-IN";
       } catch {
         // noop
       }
       try {
-        recognition.start();
+        recognition.abort();
       } catch {
-        if (micLockedRef.current) {
-          setNeedMicTap(true);
-          setFlowBoth("idle");
-        }
+        // noop
       }
+      if (startRecognizer()) return;
+      // Still tearing down the previous session — retry shortly. From there
+      // onstart / the watchdog own the lifecycle.
+      window.setTimeout(() => {
+        if (disposed || speakingRef.current) return;
+        if (currentFlow() !== "listening") return;
+        startRecognizer();
+      }, 150);
     }
 
     // Watchdog: the waveform is ground truth for "the user is talking". If the
@@ -912,7 +1076,6 @@ export function usePanelVoice(opts: {
       }
       if (flowRef.current === "idle" || flowRef.current === "thinking") {
         setError("");
-        setNeedMicTap(false);
         enabledRef.current = true;
         startListening();
       }
@@ -925,7 +1088,10 @@ export function usePanelVoice(opts: {
       }
       if (flowRef.current === "listening") {
         sttBlockedRef.current = true;
-        stopMicInternals();
+        // Hold the stream: a break or the ice-break pause must not renegotiate
+        // the mic, which is what used to drop it. The tracks are released when
+        // the room unmounts.
+        holdMicForSpeech();
         if (recognition) {
           try {
             recognition.stop();
@@ -946,6 +1112,13 @@ export function usePanelVoice(opts: {
       scheduleRearm();
     };
 
+    // Acquire the stream as soon as the room goes live rather than waiting for
+    // the first turn: the mic is then already open and permitted before
+    // anything is spoken, and it stays open for the whole interview.
+    apiRef.current.warm = () => {
+      void openMic();
+    };
+
     apiRef.current.setEnabled = (v: boolean) => {
       enabledRef.current = v;
     };
@@ -955,6 +1128,7 @@ export function usePanelVoice(opts: {
       window.clearInterval(watchdog);
       if (idleTimerRef.current !== null) window.clearTimeout(idleTimerRef.current);
       if (rearmTimerRef.current !== null) window.clearTimeout(rearmTimerRef.current);
+      if (micRetryTimerRef.current !== null) window.clearTimeout(micRetryTimerRef.current);
       if (ttsWatchdog !== null) window.clearTimeout(ttsWatchdog);
       window.removeEventListener("pointerdown", retryGesturePlay);
       window.removeEventListener("keydown", onGestureKey);
@@ -985,6 +1159,7 @@ export function usePanelVoice(opts: {
     if (!enabled) {
       apiRef.current.pause();
     } else {
+      apiRef.current.warm();
       apiRef.current.resume();
     }
   }, [enabled]);
@@ -1010,7 +1185,6 @@ export function usePanelVoice(opts: {
     captured,
     micLevel,
     waves,
-    needMicTap,
     voiceTrouble,
     awaitedTap,
     error,

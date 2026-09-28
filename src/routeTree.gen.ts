@@ -15,12 +15,15 @@ import { Route as BasicMathTrainingRouteImport } from './routes/basic-math-train
 import { Route as CandidateAuthRouteImport } from './routes/candidate-auth'
 import { Route as CandidateProfileRouteImport } from './routes/candidate-profile'
 import { Route as ChatRouteImport } from './routes/chat'
+import { Route as ClientChatRouteImport } from './routes/client-chat'
 import { Route as ClientOnboardingRouteImport } from './routes/client-onboarding'
 import { Route as ClientProfileRouteImport } from './routes/client-profile'
 import { Route as CommunicationTrainingRouteImport } from './routes/communication-training'
 import { Route as CommunicationTrainingHistoryRouteImport } from './routes/communication-training-history'
 import { Route as CommunicationTrainingTipsRouteImport } from './routes/communication-training-tips'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as DailyTargetsRouteImport } from './routes/daily-targets'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DrivesRouteImport } from './routes/drives'
 import { Route as DsaTrainingRouteImport } from './routes/dsa-training'
@@ -31,12 +34,17 @@ import { Route as GdHistoryRouteImport } from './routes/gd-history'
 import { Route as GdRoomRouteImport } from './routes/gd-room'
 import { Route as GdTrainingRouteImport } from './routes/gd-training'
 import { Route as GetStartedRouteImport } from './routes/get-started'
+import { Route as InstituteBillingRouteImport } from './routes/institute-billing'
 import { Route as InstitutionAuthRouteImport } from './routes/institution-auth'
+import { Route as LdTrainingRouteImport } from './routes/ld-training'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as LearningRouteImport } from './routes/learning'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as MockInterviewRouteImport } from './routes/mock-interview'
+import { Route as MockInterviewHistoryRouteImport } from './routes/mock-interview-history'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PlacementCellRouteImport } from './routes/placement-cell'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ResumeBuilderRouteImport } from './routes/resume-builder'
@@ -44,6 +52,7 @@ import { Route as RoadmapDrillRouteImport } from './routes/roadmap-drill'
 import { Route as SandboxRouteImport } from './routes/sandbox'
 import { Route as SelfTrainingRouteImport } from './routes/self-training'
 import { Route as SituationalTrainingRouteImport } from './routes/situational-training'
+import { Route as StudentMessageRouteImport } from './routes/student-message'
 import { Route as StudentsRouteImport } from './routes/students'
 import { Route as TacRouteImport } from './routes/tac'
 import { Route as TechnicalTrainingRouteImport } from './routes/technical-training'
@@ -85,6 +94,11 @@ const ChatRoute = ChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientChatRoute = ClientChatRouteImport.update({
+  id: '/client-chat',
+  path: '/client-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientOnboardingRoute = ClientOnboardingRouteImport.update({
   id: '/client-onboarding',
   path: '/client-onboarding',
@@ -115,6 +129,16 @@ const CommunicationTrainingTipsRoute =
 const CompaniesRoute = CompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesRoute = CoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyTargetsRoute = DailyTargetsRouteImport.update({
+  id: '/daily-targets',
+  path: '/daily-targets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -167,14 +191,29 @@ const GetStartedRoute = GetStartedRouteImport.update({
   path: '/get-started',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstituteBillingRoute = InstituteBillingRouteImport.update({
+  id: '/institute-billing',
+  path: '/institute-billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InstitutionAuthRoute = InstitutionAuthRouteImport.update({
   id: '/institution-auth',
   path: '/institution-auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LdTrainingRoute = LdTrainingRouteImport.update({
+  id: '/ld-training',
+  path: '/ld-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearningRoute = LearningRouteImport.update({
+  id: '/learning',
+  path: '/learning',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogoutRoute = LogoutRouteImport.update({
@@ -187,6 +226,11 @@ const MockInterviewRoute = MockInterviewRouteImport.update({
   path: '/mock-interview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MockInterviewHistoryRoute = MockInterviewHistoryRouteImport.update({
+  id: '/mock-interview-history',
+  path: '/mock-interview-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -195,6 +239,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlacementCellRoute = PlacementCellRouteImport.update({
+  id: '/placement-cell',
+  path: '/placement-cell',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -230,6 +279,11 @@ const SelfTrainingRoute = SelfTrainingRouteImport.update({
 const SituationalTrainingRoute = SituationalTrainingRouteImport.update({
   id: '/situational-training',
   path: '/situational-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudentMessageRoute = StudentMessageRouteImport.update({
+  id: '/student-message',
+  path: '/student-message',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudentsRoute = StudentsRouteImport.update({
@@ -294,12 +348,15 @@ export interface FileRoutesByFullPath {
   '/candidate-auth': typeof CandidateAuthRoute
   '/candidate-profile': typeof CandidateProfileRoute
   '/chat': typeof ChatRoute
+  '/client-chat': typeof ClientChatRoute
   '/client-onboarding': typeof ClientOnboardingRoute
   '/client-profile': typeof ClientProfileRoute
   '/communication-training': typeof CommunicationTrainingRoute
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
   '/companies': typeof CompaniesRoute
+  '/courses': typeof CoursesRoute
+  '/daily-targets': typeof DailyTargetsRoute
   '/dashboard': typeof DashboardRoute
   '/drives': typeof DrivesRoute
   '/dsa-training': typeof DsaTrainingRoute
@@ -310,12 +367,17 @@ export interface FileRoutesByFullPath {
   '/gd-room': typeof GdRoomRoute
   '/gd-training': typeof GdTrainingRoute
   '/get-started': typeof GetStartedRoute
+  '/institute-billing': typeof InstituteBillingRoute
   '/institution-auth': typeof InstitutionAuthRoute
+  '/ld-training': typeof LdTrainingRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/learning': typeof LearningRoute
   '/logout': typeof LogoutRoute
   '/mock-interview': typeof MockInterviewRoute
+  '/mock-interview-history': typeof MockInterviewHistoryRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/placement-cell': typeof PlacementCellRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/reports': typeof ReportsRoute
   '/resume-builder': typeof ResumeBuilderRoute
@@ -323,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/sandbox': typeof SandboxRoute
   '/self-training': typeof SelfTrainingRoute
   '/situational-training': typeof SituationalTrainingRoute
+  '/student-message': typeof StudentMessageRoute
   '/students': typeof StudentsRoute
   '/tac': typeof TacRoute
   '/technical-training': typeof TechnicalTrainingRoute
@@ -341,12 +404,15 @@ export interface FileRoutesByTo {
   '/candidate-auth': typeof CandidateAuthRoute
   '/candidate-profile': typeof CandidateProfileRoute
   '/chat': typeof ChatRoute
+  '/client-chat': typeof ClientChatRoute
   '/client-onboarding': typeof ClientOnboardingRoute
   '/client-profile': typeof ClientProfileRoute
   '/communication-training': typeof CommunicationTrainingRoute
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
   '/companies': typeof CompaniesRoute
+  '/courses': typeof CoursesRoute
+  '/daily-targets': typeof DailyTargetsRoute
   '/dashboard': typeof DashboardRoute
   '/drives': typeof DrivesRoute
   '/dsa-training': typeof DsaTrainingRoute
@@ -357,12 +423,17 @@ export interface FileRoutesByTo {
   '/gd-room': typeof GdRoomRoute
   '/gd-training': typeof GdTrainingRoute
   '/get-started': typeof GetStartedRoute
+  '/institute-billing': typeof InstituteBillingRoute
   '/institution-auth': typeof InstitutionAuthRoute
+  '/ld-training': typeof LdTrainingRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/learning': typeof LearningRoute
   '/logout': typeof LogoutRoute
   '/mock-interview': typeof MockInterviewRoute
+  '/mock-interview-history': typeof MockInterviewHistoryRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/placement-cell': typeof PlacementCellRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/reports': typeof ReportsRoute
   '/resume-builder': typeof ResumeBuilderRoute
@@ -370,6 +441,7 @@ export interface FileRoutesByTo {
   '/sandbox': typeof SandboxRoute
   '/self-training': typeof SelfTrainingRoute
   '/situational-training': typeof SituationalTrainingRoute
+  '/student-message': typeof StudentMessageRoute
   '/students': typeof StudentsRoute
   '/tac': typeof TacRoute
   '/technical-training': typeof TechnicalTrainingRoute
@@ -389,12 +461,15 @@ export interface FileRoutesById {
   '/candidate-auth': typeof CandidateAuthRoute
   '/candidate-profile': typeof CandidateProfileRoute
   '/chat': typeof ChatRoute
+  '/client-chat': typeof ClientChatRoute
   '/client-onboarding': typeof ClientOnboardingRoute
   '/client-profile': typeof ClientProfileRoute
   '/communication-training': typeof CommunicationTrainingRoute
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
   '/companies': typeof CompaniesRoute
+  '/courses': typeof CoursesRoute
+  '/daily-targets': typeof DailyTargetsRoute
   '/dashboard': typeof DashboardRoute
   '/drives': typeof DrivesRoute
   '/dsa-training': typeof DsaTrainingRoute
@@ -405,12 +480,17 @@ export interface FileRoutesById {
   '/gd-room': typeof GdRoomRoute
   '/gd-training': typeof GdTrainingRoute
   '/get-started': typeof GetStartedRoute
+  '/institute-billing': typeof InstituteBillingRoute
   '/institution-auth': typeof InstitutionAuthRoute
+  '/ld-training': typeof LdTrainingRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/learning': typeof LearningRoute
   '/logout': typeof LogoutRoute
   '/mock-interview': typeof MockInterviewRoute
+  '/mock-interview-history': typeof MockInterviewHistoryRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/placement-cell': typeof PlacementCellRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/reports': typeof ReportsRoute
   '/resume-builder': typeof ResumeBuilderRoute
@@ -418,6 +498,7 @@ export interface FileRoutesById {
   '/sandbox': typeof SandboxRoute
   '/self-training': typeof SelfTrainingRoute
   '/situational-training': typeof SituationalTrainingRoute
+  '/student-message': typeof StudentMessageRoute
   '/students': typeof StudentsRoute
   '/tac': typeof TacRoute
   '/technical-training': typeof TechnicalTrainingRoute
@@ -438,12 +519,15 @@ export interface FileRouteTypes {
     | '/candidate-auth'
     | '/candidate-profile'
     | '/chat'
+    | '/client-chat'
     | '/client-onboarding'
     | '/client-profile'
     | '/communication-training'
     | '/communication-training-history'
     | '/communication-training-tips'
     | '/companies'
+    | '/courses'
+    | '/daily-targets'
     | '/dashboard'
     | '/drives'
     | '/dsa-training'
@@ -454,12 +538,17 @@ export interface FileRouteTypes {
     | '/gd-room'
     | '/gd-training'
     | '/get-started'
+    | '/institute-billing'
     | '/institution-auth'
+    | '/ld-training'
     | '/leaderboard'
+    | '/learning'
     | '/logout'
     | '/mock-interview'
+    | '/mock-interview-history'
     | '/notifications'
     | '/onboarding'
+    | '/placement-cell'
     | '/privacy-policy'
     | '/reports'
     | '/resume-builder'
@@ -467,6 +556,7 @@ export interface FileRouteTypes {
     | '/sandbox'
     | '/self-training'
     | '/situational-training'
+    | '/student-message'
     | '/students'
     | '/tac'
     | '/technical-training'
@@ -485,12 +575,15 @@ export interface FileRouteTypes {
     | '/candidate-auth'
     | '/candidate-profile'
     | '/chat'
+    | '/client-chat'
     | '/client-onboarding'
     | '/client-profile'
     | '/communication-training'
     | '/communication-training-history'
     | '/communication-training-tips'
     | '/companies'
+    | '/courses'
+    | '/daily-targets'
     | '/dashboard'
     | '/drives'
     | '/dsa-training'
@@ -501,12 +594,17 @@ export interface FileRouteTypes {
     | '/gd-room'
     | '/gd-training'
     | '/get-started'
+    | '/institute-billing'
     | '/institution-auth'
+    | '/ld-training'
     | '/leaderboard'
+    | '/learning'
     | '/logout'
     | '/mock-interview'
+    | '/mock-interview-history'
     | '/notifications'
     | '/onboarding'
+    | '/placement-cell'
     | '/privacy-policy'
     | '/reports'
     | '/resume-builder'
@@ -514,6 +612,7 @@ export interface FileRouteTypes {
     | '/sandbox'
     | '/self-training'
     | '/situational-training'
+    | '/student-message'
     | '/students'
     | '/tac'
     | '/technical-training'
@@ -532,12 +631,15 @@ export interface FileRouteTypes {
     | '/candidate-auth'
     | '/candidate-profile'
     | '/chat'
+    | '/client-chat'
     | '/client-onboarding'
     | '/client-profile'
     | '/communication-training'
     | '/communication-training-history'
     | '/communication-training-tips'
     | '/companies'
+    | '/courses'
+    | '/daily-targets'
     | '/dashboard'
     | '/drives'
     | '/dsa-training'
@@ -548,12 +650,17 @@ export interface FileRouteTypes {
     | '/gd-room'
     | '/gd-training'
     | '/get-started'
+    | '/institute-billing'
     | '/institution-auth'
+    | '/ld-training'
     | '/leaderboard'
+    | '/learning'
     | '/logout'
     | '/mock-interview'
+    | '/mock-interview-history'
     | '/notifications'
     | '/onboarding'
+    | '/placement-cell'
     | '/privacy-policy'
     | '/reports'
     | '/resume-builder'
@@ -561,6 +668,7 @@ export interface FileRouteTypes {
     | '/sandbox'
     | '/self-training'
     | '/situational-training'
+    | '/student-message'
     | '/students'
     | '/tac'
     | '/technical-training'
@@ -580,12 +688,15 @@ export interface RootRouteChildren {
   CandidateAuthRoute: typeof CandidateAuthRoute
   CandidateProfileRoute: typeof CandidateProfileRoute
   ChatRoute: typeof ChatRoute
+  ClientChatRoute: typeof ClientChatRoute
   ClientOnboardingRoute: typeof ClientOnboardingRoute
   ClientProfileRoute: typeof ClientProfileRoute
   CommunicationTrainingRoute: typeof CommunicationTrainingRoute
   CommunicationTrainingHistoryRoute: typeof CommunicationTrainingHistoryRoute
   CommunicationTrainingTipsRoute: typeof CommunicationTrainingTipsRoute
   CompaniesRoute: typeof CompaniesRoute
+  CoursesRoute: typeof CoursesRoute
+  DailyTargetsRoute: typeof DailyTargetsRoute
   DashboardRoute: typeof DashboardRoute
   DrivesRoute: typeof DrivesRoute
   DsaTrainingRoute: typeof DsaTrainingRoute
@@ -596,12 +707,17 @@ export interface RootRouteChildren {
   GdRoomRoute: typeof GdRoomRoute
   GdTrainingRoute: typeof GdTrainingRoute
   GetStartedRoute: typeof GetStartedRoute
+  InstituteBillingRoute: typeof InstituteBillingRoute
   InstitutionAuthRoute: typeof InstitutionAuthRoute
+  LdTrainingRoute: typeof LdTrainingRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  LearningRoute: typeof LearningRoute
   LogoutRoute: typeof LogoutRoute
   MockInterviewRoute: typeof MockInterviewRoute
+  MockInterviewHistoryRoute: typeof MockInterviewHistoryRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
+  PlacementCellRoute: typeof PlacementCellRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ReportsRoute: typeof ReportsRoute
   ResumeBuilderRoute: typeof ResumeBuilderRoute
@@ -609,6 +725,7 @@ export interface RootRouteChildren {
   SandboxRoute: typeof SandboxRoute
   SelfTrainingRoute: typeof SelfTrainingRoute
   SituationalTrainingRoute: typeof SituationalTrainingRoute
+  StudentMessageRoute: typeof StudentMessageRoute
   StudentsRoute: typeof StudentsRoute
   TacRoute: typeof TacRoute
   TechnicalTrainingRoute: typeof TechnicalTrainingRoute
@@ -665,6 +782,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/client-chat': {
+      id: '/client-chat'
+      path: '/client-chat'
+      fullPath: '/client-chat'
+      preLoaderRoute: typeof ClientChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/client-onboarding': {
       id: '/client-onboarding'
       path: '/client-onboarding'
@@ -705,6 +829,20 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/companies'
       preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses': {
+      id: '/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof CoursesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily-targets': {
+      id: '/daily-targets'
+      path: '/daily-targets'
+      fullPath: '/daily-targets'
+      preLoaderRoute: typeof DailyTargetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -777,6 +915,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GetStartedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/institute-billing': {
+      id: '/institute-billing'
+      path: '/institute-billing'
+      fullPath: '/institute-billing'
+      preLoaderRoute: typeof InstituteBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/institution-auth': {
       id: '/institution-auth'
       path: '/institution-auth'
@@ -784,11 +929,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InstitutionAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ld-training': {
+      id: '/ld-training'
+      path: '/ld-training'
+      fullPath: '/ld-training'
+      preLoaderRoute: typeof LdTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboard': {
       id: '/leaderboard'
       path: '/leaderboard'
       fullPath: '/leaderboard'
       preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learning': {
+      id: '/learning'
+      path: '/learning'
+      fullPath: '/learning'
+      preLoaderRoute: typeof LearningRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logout': {
@@ -805,6 +964,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MockInterviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mock-interview-history': {
+      id: '/mock-interview-history'
+      path: '/mock-interview-history'
+      fullPath: '/mock-interview-history'
+      preLoaderRoute: typeof MockInterviewHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -817,6 +983,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/placement-cell': {
+      id: '/placement-cell'
+      path: '/placement-cell'
+      fullPath: '/placement-cell'
+      preLoaderRoute: typeof PlacementCellRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -866,6 +1039,13 @@ declare module '@tanstack/react-router' {
       path: '/situational-training'
       fullPath: '/situational-training'
       preLoaderRoute: typeof SituationalTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/student-message': {
+      id: '/student-message'
+      path: '/student-message'
+      fullPath: '/student-message'
+      preLoaderRoute: typeof StudentMessageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/students': {
@@ -948,12 +1128,15 @@ const rootRouteChildren: RootRouteChildren = {
   CandidateAuthRoute: CandidateAuthRoute,
   CandidateProfileRoute: CandidateProfileRoute,
   ChatRoute: ChatRoute,
+  ClientChatRoute: ClientChatRoute,
   ClientOnboardingRoute: ClientOnboardingRoute,
   ClientProfileRoute: ClientProfileRoute,
   CommunicationTrainingRoute: CommunicationTrainingRoute,
   CommunicationTrainingHistoryRoute: CommunicationTrainingHistoryRoute,
   CommunicationTrainingTipsRoute: CommunicationTrainingTipsRoute,
   CompaniesRoute: CompaniesRoute,
+  CoursesRoute: CoursesRoute,
+  DailyTargetsRoute: DailyTargetsRoute,
   DashboardRoute: DashboardRoute,
   DrivesRoute: DrivesRoute,
   DsaTrainingRoute: DsaTrainingRoute,
@@ -964,12 +1147,17 @@ const rootRouteChildren: RootRouteChildren = {
   GdRoomRoute: GdRoomRoute,
   GdTrainingRoute: GdTrainingRoute,
   GetStartedRoute: GetStartedRoute,
+  InstituteBillingRoute: InstituteBillingRoute,
   InstitutionAuthRoute: InstitutionAuthRoute,
+  LdTrainingRoute: LdTrainingRoute,
   LeaderboardRoute: LeaderboardRoute,
+  LearningRoute: LearningRoute,
   LogoutRoute: LogoutRoute,
   MockInterviewRoute: MockInterviewRoute,
+  MockInterviewHistoryRoute: MockInterviewHistoryRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
+  PlacementCellRoute: PlacementCellRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ReportsRoute: ReportsRoute,
   ResumeBuilderRoute: ResumeBuilderRoute,
@@ -977,6 +1165,7 @@ const rootRouteChildren: RootRouteChildren = {
   SandboxRoute: SandboxRoute,
   SelfTrainingRoute: SelfTrainingRoute,
   SituationalTrainingRoute: SituationalTrainingRoute,
+  StudentMessageRoute: StudentMessageRoute,
   StudentsRoute: StudentsRoute,
   TacRoute: TacRoute,
   TechnicalTrainingRoute: TechnicalTrainingRoute,

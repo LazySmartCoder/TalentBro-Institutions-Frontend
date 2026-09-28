@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Building2, Copy, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
 import { Kpi, Panel, Pill } from "@/components/dash/bits";
-import { companies as fallbackCompanies, type Company as SeedCompany } from "@/lib/data";
 import {
   createCompany,
   getCompanies,
@@ -68,52 +67,36 @@ const OFFER_STATUS_LABEL: Record<string, string> = {
   revoked: "Revoked",
 };
 
-const SEED_TIER: Record<SeedCompany["tier"], DriveCompanyTier> = {
-  "Super Dream": "super_dream",
-  Dream: "dream",
-  Core: "core",
-  Mass: "mass",
+const EMPTY_DRAFT = {
+  company_name: "",
+  industry: "",
+  company_description: "",
+  work_location: "",
+  work_mode: "onsite",
+  placement_mode: "full_time",
+  tier: "core",
+  recruitment_status: "upcoming",
+  salary_min: "",
+  salary_max: "",
+  minimum_cgpa: "",
+  maximum_backlogs: "",
+  graduation_year: "",
+  job_roles: "",
+  eligible_branches: "",
+  eligible_courses: "",
+  required_skills: "",
+  selection_rounds: "",
 };
 
-const SEED_STATUS: Record<string, string> = {
-  Active: "ongoing",
-  Onboarding: "upcoming",
-  Archived: "cancelled",
-};
+type CompanyDraft = typeof EMPTY_DRAFT;
 
-// Offline fallback so the page stays usable while the backend is down.
-function seedToPlacement(c: SeedCompany): PlacementCompany {
-  return {
-    id: Number(c.id.replace("cmp-", "")) || 0,
-    company_id: c.id,
-    company_name: c.name,
-    industry: c.sector,
-    company_description: `Recruiter partner in ${c.sector}, headquartered at ${c.hq}.`,
-    job_roles: c.openRoles,
-    eligible_courses: ["B.Tech", "MCA"],
-    eligible_branches: ["CSE", "IT", "ECE"],
-    minimum_cgpa: 6.5,
-    maximum_backlogs: 2,
-    graduation_year: 2026,
-    required_skills: ["SQL", "Java"],
-    preferred_skills: [],
-    salary_min: c.ctcMin,
-    salary_max: c.ctcMax,
-    work_location: c.hq,
-    work_mode: "onsite",
-    number_of_openings: c.offers2026,
-    selection_rounds: ["Aptitude Test", "Technical Interview", "HR Round"],
-    application_deadline: null,
-    campus_visit_date: null,
-    recruitment_status: SEED_STATUS[c.status] ?? "upcoming",
-    placement_mode: "full_time",
-    offer_status: "pending",
-    tier: SEED_TIER[c.tier],
-    institution: null,
-    created_at: "",
-    updated_at: "",
-  };
-}
+const csvList = (value: string) =>
+  value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const numberOrNull = (value: string) => (value.trim() === "" ? null : Number(value));
 
 function fmtDate(value: string | null): string {
   if (!value) return "—";
@@ -127,8 +110,9 @@ function lpa(value: number | null): string {
 }
 
 function CompanyPage() {
-  const [list, setList] = useState<PlacementCompany[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [list, setList] = useState<PlacementCompany[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [q, setQ] = useState("");
   const [tier, setTier] = useState("All");
   const [status, setStatus] = useState("All");
@@ -136,16 +120,7 @@ function CompanyPage() {
   const [selected, setSelected] = useState<PlacementCompany | null>(null);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [draft, setDraft] = useState({
-    company_name: "",
-    industry: "",
-    work_location: "",
-    tier: "core",
-    salary_min: "",
-    salary_max: "",
-    number_of_openings: "",
-    job_roles: "",
-  });
+  const [draft, setDraft] = useState<CompanyDraft>(EMPTY_DRAFT);
 
   const inputCls =
     "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring/20";
@@ -158,28 +133,26 @@ function CompanyPage() {
       const created = await createCompany({
         company_name: draft.company_name.trim(),
         industry: draft.industry.trim(),
+        company_description: draft.company_description.trim(),
         work_location: draft.work_location.trim(),
+        work_mode: draft.work_mode,
+        placement_mode: draft.placement_mode,
         tier: draft.tier as DriveCompanyTier,
-        salary_min: draft.salary_min ? Number(draft.salary_min) : null,
-        salary_max: draft.salary_max ? Number(draft.salary_max) : null,
-        number_of_openings: draft.number_of_openings ? Number(draft.number_of_openings) : null,
-        job_roles: draft.job_roles
-          .split(",")
-          .map((r) => r.trim())
-          .filter(Boolean),
+        recruitment_status: draft.recruitment_status,
+        salary_min: numberOrNull(draft.salary_min),
+        salary_max: numberOrNull(draft.salary_max),
+        minimum_cgpa: numberOrNull(draft.minimum_cgpa),
+        maximum_backlogs: numberOrNull(draft.maximum_backlogs),
+        graduation_year: numberOrNull(draft.graduation_year),
+        job_roles: csvList(draft.job_roles),
+        eligible_branches: csvList(draft.eligible_branches),
+        eligible_courses: csvList(draft.eligible_courses),
+        required_skills: csvList(draft.required_skills),
+        selection_rounds: csvList(draft.selection_rounds),
       });
-      setList((prev) => [created, ...prev]);
+      setList((prev) => [created, ...(prev ?? [])]);
       toast.success(`Added ${created.company_name}`);
-      setDraft({
-        company_name: "",
-        industry: "",
-        work_location: "",
-        tier: "core",
-        salary_min: "",
-        salary_max: "",
-        number_of_openings: "",
-        job_roles: "",
-      });
+      setDraft(EMPTY_DRAFT);
       setAdding(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not add the company.");
@@ -190,25 +163,27 @@ function CompanyPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     getCompanies()
       .then((data) => {
         if (cancelled) return;
         setList(data.companies);
-        setLoaded(true);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
-        setList(fallbackCompanies.map(seedToPlacement));
-        setLoaded(true);
+        // No local seed data: an empty table that says why is better than a
+        // convincing list of companies this college never hired.
+        setList([]);
+        setLoadError(err instanceof Error ? err.message : "Could not load companies.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const shown = useMemo(
     () =>
-      list.filter(
+      (list ?? []).filter(
         (c) =>
           `${c.company_name} ${c.industry} ${c.work_location} ${c.job_roles.join(" ")}`
             .toLowerCase()
@@ -220,7 +195,7 @@ function CompanyPage() {
     [list, q, tier, status],
   );
 
-  const openings = shown.reduce((a, b) => a + (b.number_of_openings ?? 0), 0);
+  const openings = shown.reduce((a, b) => a + (b.openings ?? 0), 0);
   const topCtc = shown.reduce((a, b) => Math.max(a, b.salary_max ?? 0), 0);
 
   return (
@@ -236,12 +211,30 @@ function CompanyPage() {
         </button>
       }
     >
-      {!loaded ? (
+      {list === null ? (
         <div className="grid min-h-[50vh] place-items-center">
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
             Loading companies…
           </span>
         </div>
+      ) : loadError ? (
+        <Panel className="mt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[15px] font-semibold">Could not load your companies</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+            </div>
+            <button
+              onClick={() => {
+                setList(null);
+                setReloadKey((n) => n + 1);
+              }}
+              className="rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-accent"
+            >
+              Try again
+            </button>
+          </div>
+        </Panel>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -251,7 +244,7 @@ function CompanyPage() {
             <Kpi
               label="Super Dream"
               value={shown.filter((c) => c.tier === "super_dream").length}
-              hint="₹12 LPA+ bracket"
+              hint="top hiring bracket"
             />
           </div>
 
@@ -330,7 +323,7 @@ function CompanyPage() {
                       <p className="mono-label">Max CTC</p>
                     </div>
                     <div className="rounded-md bg-muted py-2">
-                      <p className="stat-num text-sm">{c.number_of_openings ?? "—"}</p>
+                      <p className="stat-num text-sm">{c.openings ?? "—"}</p>
                       <p className="mono-label">Openings</p>
                     </div>
                     <div className="rounded-md bg-muted py-2">
@@ -379,7 +372,7 @@ function CompanyPage() {
                         <td className="px-5 py-3 font-mono text-xs">
                           {lpa(c.salary_min)} – {lpa(c.salary_max)}
                         </td>
-                        <td className="px-5 py-3 font-mono">{c.number_of_openings ?? "—"}</td>
+                        <td className="px-5 py-3 font-mono">{c.openings ?? "—"}</td>
                         <td className="px-5 py-3">
                           <Pill tone={c.recruitment_status === "ongoing" ? "solid" : "muted"}>
                             {STATUS_LABEL[c.recruitment_status] ?? c.recruitment_status}
@@ -395,8 +388,42 @@ function CompanyPage() {
                         </td>
                       </tr>
                     ))}
+                    {shown.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-5 py-12 text-center text-sm text-muted-foreground"
+                        >
+                          No companies match these filters.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
+              </div>
+            </Panel>
+          )}
+          {shown.length === 0 && view === "grid" && (
+            <Panel className="mt-4">
+              <div className="py-8 text-center">
+                <p className="text-sm font-medium">
+                  {list.length === 0
+                    ? "No companies recorded yet."
+                    : "No companies match these filters."}
+                </p>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+                  {list.length === 0
+                    ? "Add your first campus partner and it will show up here and on the placement drives page straight away."
+                    : "Try a different search term, tier or status."}
+                </p>
+                {list.length === 0 && (
+                  <button
+                    onClick={() => setAdding(true)}
+                    className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    <Plus className="size-3.5" /> Add Company
+                  </button>
+                )}
               </div>
             </Panel>
           )}
@@ -451,6 +478,19 @@ function CompanyPage() {
                   className={`${inputCls} mt-1.5`}
                 />
               </div>
+              <div className="sm:col-span-2">
+                <label className="mono-label" htmlFor="cc-description">
+                  About the company
+                </label>
+                <textarea
+                  id="cc-description"
+                  rows={2}
+                  value={draft.company_description}
+                  onChange={(e) => setDraft({ ...draft, company_description: e.target.value })}
+                  placeholder="Shown to students when they open this drive"
+                  className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+                />
+              </div>
               <div>
                 <label className="mono-label" htmlFor="cc-tier">
                   Hiring tier
@@ -469,6 +509,23 @@ function CompanyPage() {
                 </select>
               </div>
               <div>
+                <label className="mono-label" htmlFor="cc-recruitment-status">
+                  Recruitment status
+                </label>
+                <select
+                  id="cc-recruitment-status"
+                  value={draft.recruitment_status}
+                  onChange={(e) => setDraft({ ...draft, recruitment_status: e.target.value })}
+                  className={`${inputCls} mt-1.5`}
+                >
+                  {(["upcoming", "ongoing", "completed", "cancelled"] as const).map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="mono-label" htmlFor="cc-location">
                   Work location
                 </label>
@@ -479,6 +536,40 @@ function CompanyPage() {
                   placeholder="e.g. Bangalore"
                   className={`${inputCls} mt-1.5`}
                 />
+              </div>
+              <div>
+                <label className="mono-label" htmlFor="cc-work-mode">
+                  Work mode
+                </label>
+                <select
+                  id="cc-work-mode"
+                  value={draft.work_mode}
+                  onChange={(e) => setDraft({ ...draft, work_mode: e.target.value })}
+                  className={`${inputCls} mt-1.5`}
+                >
+                  {Object.entries(WORK_MODE_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mono-label" htmlFor="cc-placement-mode">
+                  Placement mode
+                </label>
+                <select
+                  id="cc-placement-mode"
+                  value={draft.placement_mode}
+                  onChange={(e) => setDraft({ ...draft, placement_mode: e.target.value })}
+                  className={`${inputCls} mt-1.5`}
+                >
+                  {Object.entries(PLACEMENT_MODE_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mono-label" htmlFor="cc-salary-min">
@@ -511,20 +602,51 @@ function CompanyPage() {
                 />
               </div>
               <div>
-                <label className="mono-label" htmlFor="cc-openings">
-                  Openings
+                <label className="mono-label" htmlFor="cc-graduation-year">
+                  Graduating batch year
                 </label>
                 <input
-                  id="cc-openings"
+                  id="cc-graduation-year"
                   type="number"
-                  min="0"
-                  value={draft.number_of_openings}
-                  onChange={(e) => setDraft({ ...draft, number_of_openings: e.target.value })}
-                  placeholder="e.g. 20"
+                  min="2000"
+                  max="2100"
+                  value={draft.graduation_year}
+                  onChange={(e) => setDraft({ ...draft, graduation_year: e.target.value })}
+                  placeholder="e.g. 2027"
                   className={`${inputCls} mt-1.5`}
                 />
               </div>
               <div>
+                <label className="mono-label" htmlFor="cc-min-cgpa">
+                  Min CGPA
+                </label>
+                <input
+                  id="cc-min-cgpa"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={draft.minimum_cgpa}
+                  onChange={(e) => setDraft({ ...draft, minimum_cgpa: e.target.value })}
+                  placeholder="e.g. 6.5"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </div>
+              <div>
+                <label className="mono-label" htmlFor="cc-backlogs">
+                  Max backlogs
+                </label>
+                <input
+                  id="cc-backlogs"
+                  type="number"
+                  min="0"
+                  value={draft.maximum_backlogs}
+                  onChange={(e) => setDraft({ ...draft, maximum_backlogs: e.target.value })}
+                  placeholder="e.g. 2"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <label className="mono-label" htmlFor="cc-roles">
                   Job roles
                 </label>
@@ -533,6 +655,54 @@ function CompanyPage() {
                   value={draft.job_roles}
                   onChange={(e) => setDraft({ ...draft, job_roles: e.target.value })}
                   placeholder="SDE, Analyst (comma separated)"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mono-label" htmlFor="cc-branches">
+                  Eligible branches
+                </label>
+                <input
+                  id="cc-branches"
+                  value={draft.eligible_branches}
+                  onChange={(e) => setDraft({ ...draft, eligible_branches: e.target.value })}
+                  placeholder="CSE, IT, ECE (comma separated — leave blank for all)"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mono-label" htmlFor="cc-courses">
+                  Eligible courses
+                </label>
+                <input
+                  id="cc-courses"
+                  value={draft.eligible_courses}
+                  onChange={(e) => setDraft({ ...draft, eligible_courses: e.target.value })}
+                  placeholder="B.Tech, MCA (comma separated — leave blank for all)"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mono-label" htmlFor="cc-skills">
+                  Required skills
+                </label>
+                <input
+                  id="cc-skills"
+                  value={draft.required_skills}
+                  onChange={(e) => setDraft({ ...draft, required_skills: e.target.value })}
+                  placeholder="Java, SQL, DSA (comma separated)"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mono-label" htmlFor="cc-rounds">
+                  Selection rounds
+                </label>
+                <input
+                  id="cc-rounds"
+                  value={draft.selection_rounds}
+                  onChange={(e) => setDraft({ ...draft, selection_rounds: e.target.value })}
+                  placeholder="Aptitude Test, Technical Interview, HR Round"
                   className={`${inputCls} mt-1.5`}
                 />
               </div>
@@ -584,7 +754,14 @@ function CompanyPage() {
               {[
                 ["Hiring tier", TIER_LABEL[selected.tier]],
                 ["CTC band", `${lpa(selected.salary_min)} – ${lpa(selected.salary_max)}`],
-                ["Openings", String(selected.number_of_openings ?? "—")],
+                [
+                  "Openings",
+                  selected.drive_count
+                    ? `${selected.openings ?? "—"} across ${selected.drive_count} drive${
+                        selected.drive_count === 1 ? "" : "s"
+                      }`
+                    : String(selected.openings ?? "—"),
+                ],
                 ["Work location", selected.work_location || "—"],
                 ["Work mode", WORK_MODE_LABEL[selected.work_mode] ?? selected.work_mode],
                 [
@@ -629,15 +806,13 @@ function CompanyPage() {
               >
                 <Copy className="size-3.5" /> Copy details
               </button>
-              <button
-                onClick={() => {
-                  toast.success(`Drive request raised with ${selected.company_name}`);
-                  setSelected(null);
-                }}
+              <Link
+                to="/drives"
+                onClick={() => setSelected(null)}
                 className="rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
               >
-                Invite for drive
-              </button>
+                View placement drive
+              </Link>
             </div>
           </div>
         </div>

@@ -42,8 +42,11 @@ const panelists = [
   ["Carl", "Behavioral Intelligence"],
 ];
 
-function postAuthTarget(user: AuthUser): "/client-onboarding" | "/dashboard" {
-  return user.profile_complete === false ? "/client-onboarding" : "/dashboard";
+// Staff land on the assistant, which is the dashboard's front door; a profile
+// that is still incomplete is sent to onboarding first, because /api/chat/
+// refuses to answer until the institution details are filled in.
+function postAuthTarget(user: AuthUser): "/client-onboarding" | "/client-chat" {
+  return user.profile_complete === false ? "/client-onboarding" : "/client-chat";
 }
 
 function AuthPage() {
