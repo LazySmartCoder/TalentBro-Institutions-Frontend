@@ -60,6 +60,36 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1] ?? "") : null;
 }
 
+// The CSRF token, cached for the life of the page.
+//
+// It is deliberately NOT read from document.cookie on every call. The SPA
+// (ins.talentbro.in) and the API (ins-api.talentbro.in) are different
+// subdomains, so a host-only csrftoken cookie is sent back to the API but is
+// invisible to this page's JS — readCookie then returns null, the X-CSRFToken
+// header is silently omitted, and every POST comes back "403 Forbidden (CSRF
+// token missing.)". /api/auth/csrf/ returns the token in the response body, so
+// this works whatever the cookie's Domain/Secure/SameSite settings are.
+let cachedCsrfToken: string | null = null;
+
+async function fetchCsrfToken(): Promise<string> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/auth/csrf/`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+    });
+  } catch {
+    throw new ApiError(0, "Could not reach the server. Is the backend running?");
+  }
+  const data = (await res.json().catch(() => ({}))) as { csrfToken?: string };
+  // Fall back to the cookie for a server that predates the csrfToken field.
+  cachedCsrfToken = data.csrfToken ?? readCookie("csrftoken");
+  if (!cachedCsrfToken) {
+    throw new ApiError(0, "Could not obtain a CSRF token from the server.");
+  }
+  return cachedCsrfToken;
+}
+
 // A stalled request used to leave the white "Loading…" screen up forever. Every
 // fetch now aborts after a while and surfaces a retryable error instead.
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -77,10 +107,10 @@ async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
 
   const method = (init?.method ?? "GET").toUpperCase();
   if (method !== "GET" && method !== "HEAD") {
-    const csrfToken = readCookie("csrftoken");
-    if (csrfToken) {
-      headers.set("X-CSRFToken", csrfToken);
-    }
+    // Self-heal: without this a missing token used to be sent as no header at
+    // all, which surfaced as an unexplained 403 rather than a fixable error.
+    const csrfToken = cachedCsrfToken ?? readCookie("csrftoken") ?? (await fetchCsrfToken());
+    headers.set("X-CSRFToken", csrfToken);
   }
 
   const timeoutMs = init?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -129,7 +159,7 @@ async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
 }
 
 async function ensureCsrfCookie(): Promise<void> {
-  await apiFetch<{ ok: boolean }>("/api/auth/csrf/");
+  await fetchCsrfToken();
 }
 
 export async function signup(body: {
@@ -276,7 +306,7 @@ export function gdCompleteKeepalive(body: GdCompleteBody): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/gd/complete/`, {
@@ -441,7 +471,7 @@ export function finalizeCommunicationTrainingKeepalive(sessionId: string): void 
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/chat/communication/finalize/`, {
@@ -653,7 +683,7 @@ export function finalizeEnglishTrainingKeepalive(): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/speaking-skills/finalize/`, {
@@ -751,7 +781,7 @@ export function aplrSkipKeepalive(sessionId: string): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/aplr/skip/`, {
@@ -864,7 +894,7 @@ export function technicalSkipKeepalive(sessionId: string): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/technical/skip/`, {
@@ -981,7 +1011,7 @@ export function dsaSkipKeepalive(sessionId: string): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/dsa/skip/`, {
@@ -1097,7 +1127,7 @@ export function basicMathSkipKeepalive(sessionId: string): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/basic-math/skip/`, {
@@ -1219,7 +1249,7 @@ export function situationalSkipKeepalive(sessionId: string): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/situational/skip/`, {
@@ -1257,7 +1287,7 @@ export async function transcribeAudio(audioBytes: ArrayBuffer, mime: string): Pr
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", mime);
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
 
   let res: Response;
@@ -1291,7 +1321,7 @@ export async function ttsVoices(): Promise<TtsVoice[]> {
 export async function ttsGenerate(text: string, voice?: string): Promise<string> {
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   let res: Response;
   try {
@@ -1332,7 +1362,7 @@ export async function ttsGenerateWithTimings(
 ): Promise<{ url: string; wordTimes: TtsWordTiming[] }> {
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   let res: Response;
   try {
@@ -1981,7 +2011,7 @@ export function completeMockInterviewKeepalive(id: string): void {
   const headers = new Headers();
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
-  const csrfToken = readCookie("csrftoken");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
   if (csrfToken) headers.set("X-CSRFToken", csrfToken);
   try {
     void fetch(`${API_BASE}/api/interview/${id}/`, {
