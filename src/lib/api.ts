@@ -98,7 +98,15 @@ const LONG_TIMEOUT_MS = 90_000;
 
 export type ApiFetchOptions = RequestInit & { timeoutMs?: number };
 
-async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
+/** A finished request: the raw response plus its already-parsed JSON body. */
+type ApiResult = { res: Response; payload: Record<string, unknown> };
+
+/**
+ * One request, token acquisition included. Deliberately does NOT raise on a
+ * non-2xx status: the caller needs the status and body to tell an ordinary
+ * failure (a 400, a 401) apart from a CSRF rejection it can recover from.
+ */
+async function sendOnce(path: string, init?: ApiFetchOptions): Promise<ApiResult> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
   if (init?.body) {
@@ -149,6 +157,47 @@ async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
     }
   }
 
+  return { res, payload };
+}
+
+/**
+ * Did this come back as a CSRF rejection rather than a real error?
+ *
+ * Django's CsrfViewMiddleware answers a bad X-CSRFToken with a 403 whose
+ * `detail` names the reason, e.g. "CSRF token from the 'X-Csrftoken' HTTP
+ * header incorrect." — note "incorrect", not "missing": the header was sent,
+ * it just no longer matched the cookie. Matching on the wording is what
+ * separates a retryable token problem from a genuine 403 (a permission denial),
+ * which must still surface to the caller.
+ */
+function isCsrfRejection(res: Response, payload: Record<string, unknown>): boolean {
+  if (res.status !== 403) return false;
+  const detail = typeof payload["detail"] === "string" ? payload["detail"] : "";
+  return /csrf/i.test(detail);
+}
+
+async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
+  let { res, payload } = await sendOnce(path, init);
+
+  if (isCsrfRejection(res, payload)) {
+    // The cached token is stale. Django rotates the CSRF secret inside
+    // django.contrib.auth.login() and logout() (views.py login_view/logout_view
+    // both go through them), so signing in replaces the csrftoken cookie
+    // server-side while this module still holds the pre-login token. Every
+    // later write then sends a token the cookie no longer matches — which is
+    // what made PATCH /api/auth/profile/ fail right after a successful login.
+    //
+    // Dropping the cache and refetching repairs that, and repairs every other
+    // source of drift too (a session expiring and re-authenticating, another
+    // tab signing in or out), so no individual caller has to remember to
+    // refresh. Replaying is safe: the check runs in middleware, before the view,
+    // so the rejected attempt changed nothing on the server. Bounded to one
+    // retry so a genuinely unauthorised 403 still reaches the caller as an error.
+    cachedCsrfToken = null;
+    await fetchCsrfToken();
+    ({ res, payload } = await sendOnce(path, init));
+  }
+
   if (!res.ok) {
     const detail =
       typeof payload["detail"] === "string" ? payload["detail"] : `Request failed (${res.status}).`;
@@ -174,6 +223,8 @@ export async function signup(body: {
     method: "POST",
     body: JSON.stringify(body),
   });
+  // Signup signs the new user in server-side, which rotates the CSRF secret.
+  await ensureCsrfCookie();
   setCollegeName(data.user.institution);
   return data.user;
 }
@@ -188,6 +239,11 @@ export async function login(body: {
     method: "POST",
     body: JSON.stringify(body),
   });
+  // Django's auth.login() rotates the CSRF secret, so the response just replaced
+  // the csrftoken cookie. The cached token is now the pre-login one and every
+  // later write would 403 with "CSRF token ... incorrect" until something
+  // refetched it — re-sync here so the first write after signing in just works.
+  await ensureCsrfCookie();
   setCollegeName(data.user.institution);
   return data.user;
 }
@@ -203,6 +259,8 @@ export async function changePassword(oldPassword: string, newPassword: string): 
 export async function logout(): Promise<void> {
   await ensureCsrfCookie();
   await apiFetch<{ ok: boolean }>("/api/auth/logout/", { method: "POST" });
+  // logout() rotates the CSRF secret too, discarding the token cached above.
+  cachedCsrfToken = null;
   setCollegeName(null);
 }
 
@@ -212,6 +270,8 @@ export async function deleteAccount(password?: string): Promise<void> {
     method: "POST",
     body: JSON.stringify({ password }),
   });
+  // The session is flushed server-side, so the cached token is dead with it.
+  cachedCsrfToken = null;
   setCollegeName(null);
 }
 
