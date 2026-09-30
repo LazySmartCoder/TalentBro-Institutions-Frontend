@@ -353,7 +353,7 @@ function Overview() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {d.company_name} ·{" "}
-                    <span className="text-muted-foreground">{d.roles[0] ?? d.industry}</span>
+                    <span className="text-muted-foreground">{d.role || d.industry}</span>
                   </p>
                   <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     {d.campus_visit_date ?? "Date TBD"} · {d.mode} · ₹{d.ctc_min ?? "—"}–

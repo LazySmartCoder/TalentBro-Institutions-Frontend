@@ -1,8 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Loader2, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { deleteChatSession } from "@/lib/api";
-import { CHAT_SESSIONS_KEY, chatSessionsQuery } from "@/lib/chat-sessions";
+import { CHAT_SESSIONS_KEY, chatSessionsInfiniteQuery } from "@/lib/chat-sessions";
+import { usePagedScroll } from "@/lib/use-paged-scroll";
 import { cn } from "@/lib/utils";
 
 // A placeholder row left behind by an abandoned draft is noise, so it never shows.
@@ -12,17 +13,29 @@ const isDraft = (title: string, messageCount: number) => title === "New chat" &&
 // click away from Students, Companies, Drives and the rest. Selecting a thread
 // navigates to the chat page with that session in the URL, which keeps the list
 // and the open thread in step as the user moves around the dashboard.
+//
+// The list is paged, so only the newest handful of chats is fetched up front and
+// the rest arrive as the user scrolls to the end.
 export function ClientChatRail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data } = useQuery(chatSessionsQuery());
+  const pages = useInfiniteQuery(chatSessionsInfiniteQuery());
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSession = useRouterState({
     select: (s) => (s.location.search as { session?: string }).session,
   });
 
   const onChatPage = pathname.startsWith("/client-chat");
-  const sessions = (data ?? []).filter((s) => !isDraft(s.title, s.message_count));
+  const sessions = (pages.data?.pages.flatMap((page) => page.sessions) ?? []).filter(
+    (s) => !isDraft(s.title, s.message_count),
+  );
+
+  const loadMore = pages.hasNextPage
+    ? () => {
+        if (!pages.isFetchingNextPage) void pages.fetchNextPage();
+      }
+    : () => {};
+  const sentinel = usePagedScroll(loadMore, pages.hasNextPage !== false);
 
   async function handleDelete(id: string) {
     try {
@@ -88,6 +101,11 @@ export function ClientChatRail() {
             </div>
           ))
         )}
+        <div ref={sentinel} aria-hidden className="flex justify-center py-2">
+          {pages.isFetchingNextPage ? (
+            <Loader2 className="size-3.5 animate-spin text-sidebar-foreground/60" />
+          ) : null}
+        </div>
       </div>
     </div>
   );

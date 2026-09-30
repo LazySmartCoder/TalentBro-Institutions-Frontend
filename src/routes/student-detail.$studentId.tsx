@@ -12,7 +12,6 @@ import {
   Mail,
   MessageCircle,
   Radar as RadarIcon,
-  Sparkles,
   Target,
   TrendingUp,
   User,
@@ -71,7 +70,7 @@ function fmtCtc(value?: number | null) {
 }
 
 const PLACEMENT_LABELS: Record<string, string> = {
-  not_started: "Not started",
+  not_started: "Ineligible",
   applying: "Applying",
   shortlisted: "Shortlisted",
   placed: "Placed",
@@ -403,21 +402,18 @@ function StudentDetailPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                    <Sparkles className="size-3.5 text-primary" /> Candidate Profile
-                    {student.is_self && (
-                      <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                        YOU
-                      </span>
-                    )}
-                  </div>
-                  <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+                  <h1 className="text-2xl font-bold sm:text-3xl">
                     {student.full_name || "Candidate"}
                   </h1>
                   {deptBadge && (
                     <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                       <Building2 className="size-3.5" /> {deptBadge}
                     </div>
+                  )}
+                  {student.bio && (
+                    <p className="mt-2 max-w-xl text-sm font-semibold text-muted-foreground">
+                      {student.bio}
+                    </p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {student.cgpa != null && (
@@ -445,9 +441,7 @@ function StudentDetailPage() {
                     {student.placement_eligible && (
                       <Badge variant="outline" className="gap-1">
                         <Target className="size-3" />
-                        {student.placement_eligible_override == null
-                          ? "Placement eligible"
-                          : "Eligible · office override"}
+                        Placement eligible
                       </Badge>
                     )}
                   </div>
@@ -610,6 +604,22 @@ function StudentDetailPage() {
                 />
               )}
               {ctc && <FactRow label="Expected CTC" value={ctc} />}
+              <div className="py-2.5">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Extracurricular activities
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {student.extracurricular_activities.length > 0 ? (
+                    student.extracurricular_activities.map((a) => (
+                      <Badge key={a} variant="outline">
+                        {a}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

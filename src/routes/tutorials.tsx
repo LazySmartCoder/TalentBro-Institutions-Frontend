@@ -996,10 +996,9 @@ function TutorialsPage() {
 
         // Pull the last 3 chat sessions and derive topics from what was asked.
         try {
-          const sessions = await chatSessions();
-          const recent = sessions.slice(0, 3);
+          const { sessions } = await chatSessions({ limit: 3 });
           const details = await Promise.all(
-            recent.map((s) => chatSessionDetail(s.id).catch(() => null)),
+            sessions.map((s) => chatSessionDetail(s.id).catch(() => null)),
           );
           const chatTexts = details
             .filter((d): d is NonNullable<typeof d> => Boolean(d))

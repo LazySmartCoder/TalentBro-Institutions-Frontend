@@ -26,6 +26,7 @@ import { AppNavHeader } from "@/components/tb/app-nav";
 import { GateError, GateLoading, useQuoteSplash } from "@/components/load-state";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { usePagedHistoryState, type PracticeRollupRow } from "@/lib/paged-history";
 import {
   Dialog,
   DialogContent,
@@ -122,7 +123,7 @@ type ResultBanner = {
   solution: string;
 } | null;
 
-function deriveStats(sessions: APLRTrainingSession[]) {
+function deriveStats(sessions: PracticeRollupRow[]) {
   const solved = sessions.filter((s) => s.status === "solved");
   const gaveUp = sessions.filter((s) => s.status === "gave_up");
   const xp = sessions.reduce((acc, s) => acc + s.points_awarded, 0);
@@ -155,12 +156,12 @@ type CategoryInsight = {
   improvement: number | null;
 };
 
-function accOf(list: APLRTrainingSession[]): number {
+function accOf(list: PracticeRollupRow[]): number {
   if (list.length === 0) return 0;
   return Math.round((list.filter((s) => s.status === "solved").length / list.length) * 100);
 }
 
-function deriveCategoryInsights(sessions: APLRTrainingSession[]): CategoryInsight[] {
+function deriveCategoryInsights(sessions: PracticeRollupRow[]): CategoryInsight[] {
   const resolved = sessions.filter((s) => s.status !== "active");
   return CATEGORY_META.filter(
     (c) => c.slug !== "" && resolved.some((s) => s.category === c.slug),
@@ -214,7 +215,17 @@ function AplrPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { splash, splashDone } = useQuoteSplash();
 
-  const [sessions, setSessions] = useState<APLRTrainingSession[]>([]);
+  // The recent-rounds list is paged: one page of sessions at a time, with the
+  // next fetched as the reader scrolls. Stats and category insights are derived
+  // from `rollup`, which covers the whole record, so they do not shift as pages
+  // load.
+  const {
+    sessions,
+    rollup,
+    isLoadingMore,
+    refresh: refreshSessions,
+    listEnd,
+  } = usePagedHistoryState<APLRTrainingSession, PracticeRollupRow>({ queryFn: aplrList });
   const [session, setSession] = useState<APLRTrainingSession | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -233,10 +244,11 @@ function AplrPage() {
   const activeSessionRef = useRef<string | null>(null);
   activeSessionRef.current = session?.status === "active" ? session.id : null;
 
-  const stats = deriveStats(sessions);
-  const insights = deriveCategoryInsights(sessions);
+  const stats = deriveStats(rollup);
+  const insights = deriveCategoryInsights(rollup);
   const overallImprovement = (() => {
-    const resolved = sessions
+    // Split oldest-to-newest across the whole record, not the loaded pages.
+    const resolved = rollup
       .filter((s) => s.status !== "active")
       .sort((a, b) => a.created_at.localeCompare(b.created_at));
     if (resolved.length < 4) return null;
@@ -297,11 +309,10 @@ function AplrPage() {
   async function initialize() {
     let list: APLRTrainingSession[] = [];
     try {
-      list = await aplrList();
+      list = await refreshSessions();
     } catch {
       list = [];
     }
-    setSessions(list);
     const active = list.find((s) => s.status === "active");
     if (active) {
       // A question left unanswered on a previous visit is skipped, never resumed.
@@ -311,7 +322,7 @@ function AplrPage() {
         /* best-effort */
       }
       try {
-        setSessions(await aplrList());
+        await refreshSessions();
       } catch {
         /* best-effort refresh */
       }
@@ -351,7 +362,7 @@ function AplrPage() {
       setInput("");
       setFlow("idle");
       try {
-        setSessions(await aplrList());
+        await refreshSessions();
       } catch {
         /* best-effort refresh */
       }
@@ -395,7 +406,7 @@ function AplrPage() {
         });
         setCountdown(NEXT_DELAY_SECONDS);
         try {
-          setSessions(await aplrList());
+          await refreshSessions();
         } catch {
           /* best-effort refresh */
         }
@@ -921,6 +932,14 @@ function AplrPage() {
                     </div>
                   );
                 })}
+
+                {/* Sentinel: pull the next page of rounds once the reader scrolls
+                    to the end of the ones already loaded. */}
+                <div ref={listEnd} aria-hidden className="flex justify-center py-3">
+                  {isLoadingMore ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : null}
+                </div>
               </div>
             </div>
 

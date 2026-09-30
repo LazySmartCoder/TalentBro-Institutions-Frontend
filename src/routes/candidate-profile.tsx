@@ -54,6 +54,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { GateError, GateLoading } from "@/components/load-state";
+import { TagInput } from "@/components/tb/tag-input";
 
 const title = "My Profile | TalentBro";
 
@@ -285,25 +286,42 @@ function Chips({ items }: { items: string[] }) {
   );
 }
 
-function ItemCards({ items, type }: { items: unknown[]; type: "project" | "intern" | "work" }) {
+type ItemCardKind = "project" | "intern" | "work" | "activity";
+
+// Which keys of a stored item are worth showing, in order, per kind. Activities
+// arrive as plain tag strings, but an object still renders its useful parts.
+const ITEM_KEYS: Record<ItemCardKind, [string[], string[], string[]]> = {
+  project: [
+    ["title", "name", "project"],
+    ["tech", "stack", "description"],
+    ["description", "link", "url"],
+  ],
+  intern: [
+    ["company", "role", "org", "title"],
+    ["role", "position", "duration"],
+    ["period", "duration", "description", "summary"],
+  ],
+  work: [
+    ["company", "role", "org", "title"],
+    ["role", "position", "duration"],
+    ["period", "duration", "description", "summary"],
+  ],
+  activity: [
+    ["title", "name", "activity", "organisation"],
+    ["role", "org", "category", "type"],
+    ["description", "summary", "duration", "link"],
+  ],
+};
+
+function ItemCards({ items, type }: { items: unknown[]; type: ItemCardKind }) {
   if (!items.length) return <p className="text-xs text-muted-foreground">Nothing added yet.</p>;
+  const [firstKeys, secondKeys, thirdKeys] = ITEM_KEYS[type];
   return (
     <div className="space-y-3">
       {items.map((item, i) => {
-        const first = itemLabel(
-          item,
-          type === "project" ? ["title", "name", "project"] : ["company", "role", "org", "title"],
-        );
-        const second = itemLabel(
-          item,
-          type === "project" ? ["tech", "stack", "description"] : ["role", "position", "duration"],
-        );
-        const third = itemLabel(
-          item,
-          type === "project"
-            ? ["description", "link", "url"]
-            : ["period", "duration", "description", "summary"],
-        );
+        const first = itemLabel(item, firstKeys);
+        const second = itemLabel(item, secondKeys);
+        const third = itemLabel(item, thirdKeys);
         return (
           <div key={i} className="rounded-lg border border-border/70 bg-muted/30 px-4 py-3.5">
             <p className="text-sm font-semibold">{first}</p>
@@ -339,6 +357,7 @@ type Draft = {
   bio: string;
   skills: string;
   certifications: string;
+  extracurricular_activities: string[];
   expected_ctc: string;
   preferred_roles: string;
   preferred_locations: string;
@@ -363,6 +382,7 @@ function draftFrom(payload: CandidateProfilePayload): Draft {
     bio: "",
     skills: "",
     certifications: "",
+    extracurricular_activities: [],
     expected_ctc: "",
     preferred_roles: "",
     preferred_locations: "",
@@ -388,6 +408,7 @@ function draftFrom(payload: CandidateProfilePayload): Draft {
           bio: p.bio ?? "",
           skills: toCsv(p.skills),
           certifications: toCsv(p.certifications),
+          extracurricular_activities: p.extracurricular_activities ?? [],
           expected_ctc: p.expected_ctc != null ? String(p.expected_ctc) : "",
           preferred_roles: toCsv(p.preferred_roles),
           preferred_locations: toCsv(p.preferred_locations),
@@ -569,6 +590,10 @@ function CandidateProfilePage() {
     return (value: string) => setDraft((d) => (d ? { ...d, [key]: value } : d));
   }
 
+  function setActivityTags(next: string[]) {
+    setDraft((d) => (d ? { ...d, extracurricular_activities: next } : d));
+  }
+
   async function save() {
     if (!draft || saving) return;
     const requiredFields = [
@@ -604,6 +629,7 @@ function CandidateProfilePage() {
       bio: draft.bio.trim(),
       skills: csvToList(draft.skills),
       certifications: csvToList(draft.certifications),
+      extracurricular_activities: draft.extracurricular_activities,
       preferred_roles: csvToList(draft.preferred_roles),
       preferred_locations: csvToList(draft.preferred_locations),
       preferred_language: draft.preferred_language.trim(),
@@ -937,6 +963,15 @@ function CandidateProfilePage() {
                     value={draft.certifications}
                     onChange={setD("certifications")}
                   />
+                  <TagInput
+                    id="extracurricular_activities"
+                    label="Extracurricular activities"
+                    labelClassName="mb-1 block text-xs font-medium text-muted-foreground"
+                    placeholder="e.g. Debate club, Smart India Hackathon, NSS volunteer"
+                    hint="Press Enter to add each club, event or activity."
+                    value={draft.extracurricular_activities}
+                    onChange={setActivityTags}
+                  />
                   <Field
                     id="preferred_roles"
                     label="Preferred roles (comma separated)"
@@ -1110,6 +1145,10 @@ function CandidateProfilePage() {
 
             <Section icon={<Award className="size-4" />} title="Certifications">
               <Chips items={p?.certifications ?? []} />
+            </Section>
+
+            <Section icon={<Sparkles className="size-4" />} title="Extracurricular activities">
+              <ItemCards items={p?.extracurricular_activities ?? []} type="activity" />
             </Section>
 
             <Section icon={<FolderGit2 className="size-4" />} title="Projects">

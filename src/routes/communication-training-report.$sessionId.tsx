@@ -227,9 +227,6 @@ function ReportSkeleton() {
 function ReportView({ session }: { session: CommunicationTrainingSession }) {
   const analyzed = session.finalized_at !== null && session.communication_score > 0;
   const radarData = categoryRadar(session);
-  const barData = [...METRICS]
-    .map((m) => ({ label: m.label, score: scoreOf(session, m.key) }))
-    .sort((a, b) => b.score - a.score);
   const metricRows = METRICS.map((m, i) => ({
     ...m,
     score: scoreOf(session, m.key),
@@ -257,15 +254,12 @@ function ReportView({ session }: { session: CommunicationTrainingSession }) {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <RadarCard data={radarData} />
-        <BarCard data={barData} />
-      </div>
+      <RadarCard data={radarData} />
 
       <SpeechMetricsCard session={session} />
 
       {(strengths.length > 0 || weak.length > 0) && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4">
           {strengths.length > 0 && <StrengthsCard rows={strengths} />}
           {weak.length > 0 && <WeakCard rows={weak} />}
         </div>
@@ -442,15 +436,15 @@ function RadarCard({ data }: { data: { category: string; score: number }[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80 w-full">
+        <div className="h-96 w-full sm:h-[30rem]">
           <ResponsiveContainer width="100%" height="100%">
-            <RechartsRadarChart data={data} outerRadius="70%">
+            <RechartsRadarChart data={data} outerRadius="78%">
               <PolarGrid stroke="currentColor" strokeOpacity={0.15} />
-              <PolarAngleAxis dataKey="category" tick={{ fontSize: 10, fill: "currentColor" }} />
+              <PolarAngleAxis dataKey="category" tick={{ fontSize: 12, fill: "currentColor" }} />
               <PolarRadiusAxis
                 domain={[0, 100]}
                 tickCount={5}
-                tick={{ fontSize: 9, fill: "currentColor", opacity: 0.6 }}
+                tick={{ fontSize: 10, fill: "currentColor", opacity: 0.6 }}
               />
               <Tooltip
                 content={<ChartTip />}
@@ -463,49 +457,6 @@ function RadarCard({ data }: { data: { category: string; score: number }[] }) {
         <p className="mt-2 text-center text-xs text-muted-foreground">
           Average of the individual scores within each group.
         </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function BarCard({ data }: { data: { label: string; score: number }[] }) {
-  return (
-    <Card className="rounded-2xl border-border">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BarChart3 className="size-4 text-primary" /> Dimension Scores
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 20 }}>
-              <CartesianGrid stroke="currentColor" strokeOpacity={0.1} horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} stroke="currentColor" tick={false} />
-              <YAxis
-                type="category"
-                dataKey="label"
-                width={120}
-                stroke="currentColor"
-                tick={{ fontSize: 10, fill: "currentColor" }}
-              />
-              <Tooltip
-                content={<ChartTip />}
-                cursor={{ fill: "currentColor", fillOpacity: 0.06 }}
-              />
-              <Bar
-                dataKey="score"
-                name="Score"
-                radius={[0, 4, 4, 0]}
-                label={{ position: "right", fontSize: 10, fill: "currentColor" }}
-              >
-                {data.map((d, i) => (
-                  <Cell key={d.label} fill={metricColor(i)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </CardContent>
     </Card>
   );

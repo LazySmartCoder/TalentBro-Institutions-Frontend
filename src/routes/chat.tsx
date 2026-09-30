@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -11,6 +13,7 @@ import {
 import {
   Bot,
   BriefcaseBusiness,
+  Building2,
   Check,
   ChevronsLeft,
   ChevronsRight,
@@ -35,7 +38,6 @@ import { Typewriter } from "@/components/chat/rich-text";
 import {
   chat,
   chatSessionDetail,
-  chatSessions,
   deleteChatSession,
   getCandidateRoadmap,
   getNotifications,
@@ -46,8 +48,11 @@ import {
   translateTexts,
   type AuthUser,
   type ChatMessage,
+  type ChatSessionPage,
   type ProfileRanks,
 } from "@/lib/api";
+import { CHAT_SESSIONS_KEY, chatSessionsInfiniteQuery } from "@/lib/chat-sessions";
+import { usePagedScroll } from "@/lib/use-paged-scroll";
 import {
   DAILY_TARGET_MAX_ITEMS,
   DAILY_TARGET_MAX_MINUTES,
@@ -133,7 +138,7 @@ const ROADMAP_PROMPT = "Help me with an appropriate Roadmap for this month";
 // empty state feels native. Order matches the translation response slice.
 const NEW_CHAT_READY = "Ready when you are.";
 const NEW_CHAT_DESC =
-  "Your AI placement-prep coach. Ask me anything about interviews, resumes, DSA, management, aptitude or communication — I'm here to get you placement ready.";
+  "Your AI placement bro is online. 💀 DSA or communication got you fighting for your life? Resume needs CPR? Interview tomorrow? Ask away. Let's get that placement. 🫡";
 const NEW_CHAT_PLACEHOLDER = "Ask TalentBro anything…";
 const NEW_CHAT_COPY = [NEW_CHAT_READY, NEW_CHAT_DESC, NEW_CHAT_PLACEHOLDER];
 
@@ -406,6 +411,61 @@ function loadSessions(): ChatSession[] {
   }
 }
 
+function sortRecent(a: ChatSession, b: ChatSession): number {
+  return (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt);
+}
+
+/**
+ * Folds the pages the server has handed us into the local mirror.
+ *
+ * The mirror is the offline fallback, so server rows win on every field the
+ * server owns, but a locally-held conversation keeps its messages: a background
+ * refetch of page one must never roll the open thread back to the persisted copy.
+ *
+ * `complete` means the server said the final page is in, which is the only point
+ * at which its list is exhaustive. Until then an unlisted local row is far more
+ * likely to be a page we have not scrolled to yet than a chat deleted on another
+ * device, so pruning waits for the walk to finish.
+ */
+function mergeServerPages(
+  previous: ChatSession[],
+  pages: ChatSessionPage[],
+  complete: boolean,
+): ChatSession[] {
+  // A plain record rather than a Map: the lucide `Map` icon is imported in this
+  // module, so the global constructor is shadowed and unreachable by name.
+  const prior: Record<string, ChatSession> = {};
+  for (const s of previous) prior[s.id] = s;
+  const listed = new Set<string>();
+  const fromServer: ChatSession[] = [];
+
+  for (const page of pages) {
+    for (const srv of page.sessions) {
+      listed.add(srv.id);
+      // An abandoned draft is noise left behind by a chat that never really
+      // started, so it never earns a row in the list.
+      if (srv.message_count === 0) continue;
+      const existing = prior[srv.id];
+      fromServer.push({
+        id: srv.id,
+        serverId: srv.id,
+        // A locally retitled thread is the student's own wording; keep it over
+        // the server's placeholder.
+        title: existing && existing.title !== "New chat" ? existing.title : srv.title || "New chat",
+        createdAt: new Date(srv.created_at).getTime(),
+        updatedAt: new Date(srv.updated_at).getTime(),
+        messages: existing?.messages ?? [],
+      });
+    }
+  }
+
+  // Drafts that never reached the server have no page to be reconciled against,
+  // so they always survive. Anything the server did assign an id to is only
+  // dropped once we know the list is complete.
+  const untouched = previous.filter((s) => !listed.has(s.id) && (!s.serverId || !complete));
+  return [...fromServer, ...untouched].sort(sortRecent);
+}
+
 /**
  * How today's practice target reads in the navbar. Progress is judged from time
  * actually spent on the surface (see `practice-time.ts`), not from rows the
@@ -507,6 +567,7 @@ function TargetCountField({
 
 function ChatPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { prompt } = Route.useSearch();
   const promptRef = useRef(prompt);
   const [pendingPrompt, setPendingPrompt] = useState("");
@@ -689,38 +750,10 @@ function ChatPage() {
           void navigate({ to: "/onboarding", replace: true });
           return;
         }
-        const local = loadSessions();
-        let stored = local;
-        try {
-          const list = await chatSessions();
-          const serverIds = new Set(list.map((x) => x.id));
-          const serverSessions: ChatSession[] = list
-            .filter((srv) => srv.message_count > 0)
-            .map((srv) => {
-              const existing = local.find((s) => s.serverId === srv.id || s.id === srv.id);
-              const createdAt = new Date(srv.created_at).getTime();
-              return {
-                id: srv.id,
-                serverId: srv.id,
-                title:
-                  existing && existing.title !== "New chat"
-                    ? existing.title
-                    : srv.title || "New chat",
-                createdAt,
-                updatedAt: new Date(srv.updated_at).getTime(),
-                messages: existing?.messages ?? [],
-              };
-            });
-          // Server is the source of truth for anything that has been assigned a
-          // serverId: entries whose serverId is no longer listed were deleted
-          // (here or on another device) and are stale ghosts — drop them. Only
-          // keep truly local sessions that never reached the server.
-          const locals = local.filter((s) => !s.serverId && !serverIds.has(s.id));
-          stored = [...serverSessions, ...locals];
-          persist(stored);
-        } catch {
-          // offline — keep local-only sessions
-        }
+        // Paint from the local mirror straight away; the paged server walk below
+        // folds in anything newer. A failed walk simply leaves this untouched.
+        const stored = loadSessions();
+        if (!cancelled) persist(stored);
         if (!cancelled) {
           persistActive("");
           if (promptRef.current) {
@@ -747,6 +780,37 @@ function ChatPage() {
       cancelled = true;
     };
   }, [navigate]);
+
+  // The "Chats" list in the sidebar is paged: only the newest page is fetched on
+  // mount, and the next one is pulled when the student scrolls to the end. A
+  // student with a long chat history therefore never blocks the page on a
+  // request for all of it. Gated on the session so an anonymous or non-student
+  // visitor never hits the endpoint at all.
+  const sessionPages = useInfiniteQuery(chatSessionsInfiniteQuery());
+  const {
+    hasNextPage: moreSessions,
+    isFetchingNextPage: loadingMoreSessions,
+    fetchNextPage,
+  } = sessionPages;
+  const loadMoreSessions = useCallback(() => {
+    if (moreSessions && !loadingMoreSessions) void fetchNextPage();
+  }, [moreSessions, loadingMoreSessions, fetchNextPage]);
+
+  // Every page that lands is folded into the mirror, so the list grows as the
+  // student scrolls instead of being replaced wholesale. `persist` reads the
+  // live list through an updater, so it is deliberately left out of the deps: it
+  // is a fresh closure each render and would restart the effect every time.
+  useEffect(() => {
+    const pages = sessionPages.data?.pages ?? [];
+    const last = pages.at(-1);
+    if (!last) return;
+    persist((prev) => mergeServerPages(prev, pages, last.has_more === false));
+  }, [sessionPages.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sessionsSentinel = usePagedScroll(
+    loadMoreSessions,
+    status === "ready" && moreSessions !== false,
+  );
 
   // The target badge is a live "have I actually done it today" signal, so it is
   // refetched whenever the candidate returns to the tab after practising
@@ -825,10 +889,6 @@ function ChatPage() {
     }
   }, [sessions, sending, activeId, loaded]);
 
-  function sortRecent(a: ChatSession, b: ChatSession): number {
-    return (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt);
-  }
-
   function writeStorage(sorted: ChatSession[]) {
     try {
       localStorage.setItem(STORAGE_SESSIONS, JSON.stringify(sorted));
@@ -837,10 +897,15 @@ function ChatPage() {
     }
   }
 
-  function persist(next: ChatSession[]) {
-    const sorted = [...next].sort(sortRecent);
-    setSessions(sorted);
-    writeStorage(sorted);
+  // Accepts an updater as well as a plain array so callers that merge against the
+  // live list (rather than a stale copy they captured earlier) stay correct.
+  function persist(next: ChatSession[] | ((prev: ChatSession[]) => ChatSession[])) {
+    setSessions((prev) => {
+      const resolved = typeof next === "function" ? next(prev) : next;
+      const sorted = [...resolved].sort(sortRecent);
+      writeStorage(sorted);
+      return sorted;
+    });
   }
 
   function updateSession(id: string, updater: (s: ChatSession) => ChatSession) {
@@ -1010,6 +1075,9 @@ function ChatPage() {
         setError("Couldn't delete the chat. Check your connection and try again.");
         return;
       }
+      // Deleting a row shifts every later page window by one, so the cached
+      // pages are refetched from the top to keep the walk aligned.
+      void queryClient.invalidateQueries({ queryKey: CHAT_SESSIONS_KEY });
     }
     const next = sessions.filter((s) => s.id !== id);
     persist(next);
@@ -1085,6 +1153,9 @@ function ChatPage() {
             : s,
         ),
       );
+      // A brand-new or just-touched chat moves to the top of the server's
+      // ordering, which shifts every cached page window; refetch to realign.
+      void queryClient.invalidateQueries({ queryKey: CHAT_SESSIONS_KEY });
       setAnimating(true);
     } catch (err) {
       const message =
@@ -1795,6 +1866,14 @@ function ChatPage() {
               </button>
               <button
                 type="button"
+                onClick={() => void navigate({ to: "/company-drives" })}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Building2 className="size-4 shrink-0" />
+                Company/Drives
+              </button>
+              <button
+                type="button"
                 onClick={() => void navigate({ to: "/resume-builder" })}
                 className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
@@ -1863,6 +1942,15 @@ function ChatPage() {
                 </div>
               ))
             )}
+            {/* Reaching this row means the student has seen the whole list so
+                far, so the next page goes out; the spinner sits here until it
+                lands. Once the server reports no further pages the row stays but
+                stays empty, which keeps the observer attached and inert. */}
+            <div ref={sessionsSentinel} aria-hidden className="flex justify-center py-2">
+              {loadingMoreSessions ? (
+                <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+              ) : null}
+            </div>
           </div>
 
           <div className="border-t border-border p-3">

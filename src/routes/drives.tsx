@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -9,8 +9,24 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Building2, Filter, Loader2, Search } from "lucide-react";
+import {
+  BadgeCheck,
+  Briefcase,
+  CalendarClock,
+  Filter,
+  GraduationCap,
+  IndianRupee,
+  Loader2,
+  MapPin,
+  Pencil,
+  Plus,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Shell } from "@/components/dash/Shell";
+import { CreateDriveDialog } from "@/components/dash/CreateDriveDialog";
 import {
   Bar,
   Kpi,
@@ -20,7 +36,13 @@ import {
   chartCursor,
   chartTooltip,
 } from "@/components/dash/bits";
-import { getDrives, type DriveCompanyTier, type PlacementDrive } from "@/lib/api";
+import {
+  getCompanies,
+  getDrives,
+  type DriveCompanyTier,
+  type PlacementCompany,
+  type PlacementDrive,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/drives")({
   head: () => ({
@@ -68,6 +90,155 @@ function visitParts(iso: string): { month: string; day: string } {
   return { month: MONTHS[d.getMonth()] ?? "—", day: String(d.getDate()) };
 }
 
+function DriveDetailModal({
+  drive,
+  onClose,
+  onEdit,
+}: {
+  drive: PlacementDrive;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  // Every field the card and the old snapshot between them used to show, so
+  // opening the sheet is a complete replacement for both.
+  const facts: [string, string][] = [
+    ["Company", drive.company_name],
+    ["Industry", drive.industry || "—"],
+    ["Recruiter tier", TIER_META[drive.tier]?.label ?? drive.tier],
+    ["Drive title", drive.title || "—"],
+    ["Job role", drive.role || "—"],
+    ["Recruitment status", drive.status],
+    ["Drive type", drive.drive_mode.replace(/_/g, " ")],
+    ["Placement mode", drive.placement_mode.replace(/_/g, " ")],
+    ["Work mode", drive.mode],
+    ["Location", drive.location || "—"],
+    ["Total vacancies", drive.total_vacancies != null ? String(drive.total_vacancies) : "—"],
+    ["Openings", String(drive.openings ?? 0)],
+    ["Eligible candidates", `${drive.eligible_count} students`],
+    ["CTC range", `${drive.ctc_min ?? "—"}–${drive.ctc_max ?? "—"} LPA`],
+    ["Minimum CGPA", drive.minimum_cgpa != null ? String(drive.minimum_cgpa) : "—"],
+    ["Backlogs allowed", drive.maximum_backlogs != null ? String(drive.maximum_backlogs) : "—"],
+    ["Graduation year", drive.graduation_year != null ? String(drive.graduation_year) : "—"],
+    ["Campus visit", fmtDate(drive.campus_visit_date)],
+    ["Application deadline", fmtDate(drive.application_deadline)],
+    ["Offer status", drive.offer_status ? drive.offer_status.replace(/_/g, " ") : "—"],
+  ];
+
+  const groups: { label: string; items: string[] }[] = [
+    { label: "Eligible branches", items: drive.eligible_branches },
+    { label: "Eligible courses", items: drive.eligible_courses },
+    { label: "Required skills", items: drive.required_skills },
+    { label: "Preferred skills", items: drive.preferred_skills },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${drive.title} details`}
+      onClick={onClose}
+    >
+      <div
+        className="panel max-h-[88vh] w-full max-w-3xl overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-bold">{drive.title || drive.company_name}</h2>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+              {drive.company_name}
+              {drive.role ? ` · ${drive.role}` : ""}
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <Pill tone={drive.status === "Live" ? "solid" : "outline"}>{drive.status}</Pill>
+              <Pill tone={TIER_META[drive.tier]?.tone ?? "muted"}>
+                {TIER_META[drive.tier]?.label ?? drive.tier}
+              </Pill>
+              {drive.offer_status && (
+                <Pill tone="outline">
+                  <span className="capitalize">{drive.offer_status.replace(/_/g, " ")}</span>
+                </Pill>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="shrink-0 rounded-md p-1 hover:bg-accent"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3">
+          {facts.map(([label, value]) => (
+            <div key={label} className="rounded-md border border-border px-3.5 py-2.5">
+              <p className="mono-label">{label}</p>
+              <p className="mt-1 text-sm font-medium capitalize">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {groups.some((g) => g.items.length > 0) && (
+          <div className="grid gap-4 border-t border-border px-6 py-5 sm:grid-cols-2">
+            {groups
+              .filter((g) => g.items.length > 0)
+              .map((g) => (
+                <div key={g.label}>
+                  <p className="mono-label">{g.label}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {g.items.map((item) => (
+                      <Pill key={item} tone="outline">
+                        {item}
+                      </Pill>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+
+        <div className="border-t border-border px-6 py-5">
+          <p className="mono-label">Selection rounds</p>
+          {drive.selection_rounds.length > 0 ? (
+            <ol className="mt-2 space-y-2">
+              {drive.selection_rounds.map((r, i) => (
+                <li key={`${r}-${i}`} className="flex items-center gap-3 text-sm">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-muted font-mono text-[11px] font-bold">
+                    {i + 1}
+                  </span>
+                  <span className="font-medium">{r}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-1.5 text-sm text-muted-foreground">No rounds recorded.</p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-border px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <Pencil className="size-3.5" /> Edit drive
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DrivesPage() {
   const [list, setList] = useState<PlacementDrive[] | null>(null);
   const [driveCount, setDriveCount] = useState(0);
@@ -75,7 +246,30 @@ function DrivesPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  // The drive whose full detail sheet is open, and the one being edited. Kept
+  // apart from `activeId` (which only drives the right-hand rail) so closing a
+  // sheet does not move the selection out from under the rail.
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [companies, setCompanies] = useState<PlacementCompany[]>([]);
+
+  // Loaded once for the company picker in the create-drive dialog. A failure
+  // here is not worth surfacing: the dialog falls back to fetching its own.
+  useEffect(() => {
+    let cancelled = false;
+    getCompanies()
+      .then((res) => {
+        if (!cancelled) setCompanies(res.companies);
+      })
+      .catch(() => {
+        if (!cancelled) setCompanies([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,12 +295,21 @@ function DrivesPage() {
     (d) =>
       (filter === "All" || d.status === filter) &&
       (q.trim() === "" ||
-        `${d.company_name} ${d.industry} ${d.roles.join(" ")} ${d.location ?? ""}`
+        `${d.company_name} ${d.industry} ${d.role} ${d.location ?? ""}`
           .toLowerCase()
           .includes(q.trim().toLowerCase())),
   );
-  const active = all.find((d) => d.company_id === activeId) ?? shown[0] ?? null;
+  // Keyed on the drive, not the company: one company can now run several drives
+  // and each is its own card with its own dates, rounds and status.
+  const active = all.find((d) => d.drive_id === activeId) ?? shown[0] ?? null;
+  // The sheet and the editor both resolve against the live list, so an amended
+  // card is what the open dialog is showing.
+  const openDrive = all.find((d) => d.drive_id === openId) ?? null;
+  const editingDrive = all.find((d) => d.drive_id === editingId) ?? null;
   const bestPool = Math.max(1, ...all.map((d) => d.eligible_count));
+  // Largest opening count on record, so the openings bar is measured against
+  // the best drive rather than against itself (which would always read 100%).
+  const bestOpenings = Math.max(1, ...all.map((d) => d.openings ?? 0));
 
   if (list === null) {
     return (
@@ -160,14 +363,14 @@ function DrivesPage() {
   return (
     <Shell
       title="Placement Drives"
-      subtitle="Drives come from the companies recorded on the Companies page — with the eligible pool standing behind each one"
+      subtitle="Every hiring event a registered company has run, with the eligible pool behind each one"
       actions={
-        <Link
-          to="/companies"
+        <button
+          onClick={() => setCreating(true)}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
         >
-          <Building2 className="size-3.5" /> Add Company
-        </Link>
+          <Plus className="size-3.5" /> Schedule Drive
+        </button>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -243,88 +446,152 @@ function DrivesPage() {
         </div>
       </Panel>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
-        <div className="space-y-4 xl:col-span-2">
-          {shown.map((d) => (
-            <button
-              key={d.company_id}
-              onClick={() => setActiveId(d.company_id)}
-              className={`panel block w-full p-5 text-left transition-shadow hover:shadow-md ${
-                active?.company_id === d.company_id ? "ring-2 ring-ring/30" : ""
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">
-                    {d.company_name}
-                    {d.roles.length > 0 ? (
-                      <span className="text-muted-foreground"> — {d.roles.join(", ")}</span>
-                    ) : (
-                      <span className="text-muted-foreground"> — {d.industry}</span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                    {fmtDate(d.campus_visit_date)} · {d.mode} · {d.location ?? "Location TBD"} · ₹
-                    {d.ctc_min ?? "—"}–{d.ctc_max ?? "—"} LPA
-                    {d.minimum_cgpa !== null ? ` · CGPA ≥ ${d.minimum_cgpa}` : ""}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Pill tone={d.status === "Live" ? "solid" : "outline"}>{d.status}</Pill>
-                  <Pill tone={TIER_META[d.tier]?.tone ?? "muted"}>
-                    {TIER_META[d.tier]?.label ?? d.tier}
-                  </Pill>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  ["Openings", d.openings ?? 0, d.openings ?? 0],
-                  ["Eligible", d.eligible_count, bestPool],
-                  [
-                    "Selection rounds",
-                    d.selection_rounds.length,
-                    Math.max(1, d.selection_rounds.length),
-                  ],
-                  ["Backlogs allowed", d.maximum_backlogs ?? 0, 1],
-                ].map(([l, v, max]) => (
-                  <div key={l as string}>
-                    <p className="mono-label">{l}</p>
-                    <p className="stat-num text-lg">{v}</p>
-                    <div className="mt-1.5">
-                      <Bar value={Number(v)} max={Number(max) || 1} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {d.eligible_branches.length > 0 ? (
-                  d.eligible_branches.map((b) => <Pill key={b}>{b}</Pill>)
-                ) : (
-                  <Pill>All branches</Pill>
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:col-span-2">
+          {shown.map((d) => {
+            const isActive = active?.drive_id === d.drive_id;
+            return (
+              <button
+                key={d.drive_id}
+                onClick={() => {
+                  setActiveId(d.drive_id);
+                  setOpenId(d.drive_id);
+                }}
+                aria-haspopup="dialog"
+                className={cn(
+                  "dash-panel flex h-full flex-col p-4 text-left transition-all hover:shadow-md",
+                  isActive && "ring-2 ring-ring",
                 )}
-                {d.eligible_courses.length > 0
-                  ? d.eligible_courses.map((c) => <Pill key={c}>all {c}</Pill>)
-                  : null}
-              </div>
-            </button>
-          ))}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {d.company_name}
+                      {d.role ? (
+                        <span className="font-normal text-muted-foreground"> — {d.role}</span>
+                      ) : (
+                        <span className="font-normal text-muted-foreground"> — {d.industry}</span>
+                      )}
+                    </p>
+                    <p className="mono-label mt-1.5">
+                      {fmtDate(d.campus_visit_date)} · {d.mode}
+                      {d.location ? ` · ${d.location}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Pill tone={d.status === "Live" ? "solid" : "outline"}>{d.status}</Pill>
+                    <Pill tone={TIER_META[d.tier]?.tone ?? "muted"}>
+                      {TIER_META[d.tier]?.label ?? d.tier}
+                    </Pill>
+                  </div>
+                </div>
+
+                {/* Only the two figures that are genuinely comparative get a bar:
+                    opening count and eligible pool are both measured across the
+                    drives on record, so their bars say something. Rounds and
+                    backlogs are absolute counts with no meaningful ceiling, so
+                    they stay as plain numbers. */}
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {[
+                    {
+                      icon: Briefcase,
+                      label: "Openings",
+                      value: d.openings ?? 0,
+                      max: bestOpenings,
+                    },
+                    {
+                      icon: Users,
+                      label: "Eligible pool",
+                      value: d.eligible_count,
+                      max: bestPool,
+                    },
+                    {
+                      icon: CalendarClock,
+                      label: "Selection rounds",
+                      value: d.selection_rounds.length,
+                    },
+                    {
+                      icon: GraduationCap,
+                      label: "Backlogs allowed",
+                      value: d.maximum_backlogs ?? 0,
+                    },
+                  ].map(({ icon: Icon, label, value, max }) => (
+                    <div key={label} className="rounded-md border border-border/60 px-3 py-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className="size-3.5 text-muted-foreground" />
+                        <p className="mono-label">{label}</p>
+                      </div>
+                      <p className="stat-num mt-1.5 text-lg">{value}</p>
+                      {max != null && (
+                        <div className="mt-1.5">
+                          <Bar value={value} max={max || 1} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                  {d.ctc_min != null || d.ctc_max != null ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <IndianRupee className="size-3.5" />
+                      {d.ctc_min ?? "—"}–{d.ctc_max ?? "—"} LPA
+                    </span>
+                  ) : null}
+                  {d.minimum_cgpa !== null && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <GraduationCap className="size-3.5" /> CGPA ≥ {d.minimum_cgpa}
+                    </span>
+                  )}
+                  {d.application_deadline && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarClock className="size-3.5" /> Apply by{" "}
+                      {fmtDate(d.application_deadline)}
+                    </span>
+                  )}
+                  {d.location && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="size-3.5" /> {d.location}
+                    </span>
+                  )}
+                  {d.offer_status && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <BadgeCheck className="size-3.5" />
+                      <span className="capitalize">{d.offer_status.replace(/_/g, " ")}</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/60 pt-3">
+                  {d.eligible_branches.length > 0 ? (
+                    d.eligible_branches.map((b) => <Pill key={b}>{b}</Pill>)
+                  ) : (
+                    <Pill>All branches</Pill>
+                  )}
+                  {d.eligible_courses.map((c) => (
+                    <Pill key={c} tone="outline">
+                      All {c}
+                    </Pill>
+                  ))}
+                </div>
+              </button>
+            );
+          })}
           {shown.length === 0 && (
-            <Panel>
+            <Panel className="sm:col-span-2 xl:col-span-2">
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {all.length === 0
-                  ? "No drives yet — record a company and its drive appears here automatically."
+                  ? "No drives yet — register a company, then create a drive when it goes to hire."
                   : "No drives match this filter or search."}
               </p>
               {all.length === 0 && (
-                <div className="flex justify-center pb-6">
-                  <Link
-                    to="/companies"
+                <div className="flex flex-wrap justify-center gap-2 pb-6">
+                  <button
+                    onClick={() => setCreating(true)}
                     className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
                   >
-                    <Building2 className="size-3.5" /> Add Company
-                  </Link>
+                    <Plus className="size-3.5" /> Schedule Drive
+                  </button>
                 </div>
               )}
             </Panel>
@@ -332,49 +599,6 @@ function DrivesPage() {
         </div>
 
         <div className="space-y-4">
-          <Panel
-            title="Drive Snapshot"
-            description={active ? active.company_name : "Select a drive"}
-          >
-            {active ? (
-              <div className="space-y-3">
-                {[
-                  ["Open roles", String(active.openings ?? 0)],
-                  ["Eligible candidates", `${active.eligible_count} students`],
-                  [
-                    "Minimum CGPA",
-                    active.minimum_cgpa !== null ? String(active.minimum_cgpa) : "—",
-                  ],
-                  ["Backlogs allowed", String(active.maximum_backlogs ?? 0)],
-                  ["Apply by", fmtDate(active.application_deadline)],
-                  ["Campus visit", fmtDate(active.campus_visit_date)],
-                  [
-                    "Offer status",
-                    active.offer_status ? active.offer_status.replace("_", " ") : "—",
-                  ],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-md border border-border px-3.5 py-2.5">
-                    <p className="mono-label">{label}</p>
-                    <p className="mt-1 truncate text-sm font-medium">{value}</p>
-                  </div>
-                ))}
-                <div className="pt-1">
-                  <div className="flex justify-between text-xs">
-                    <span>Front of the queue</span>
-                    <span className="font-mono text-muted-foreground">
-                      {active.eligible_count} of {bestPool} highest pool
-                    </span>
-                  </div>
-                  <div className="mt-1.5">
-                    <Bar value={active.eligible_count} max={bestPool} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">No drive selected.</p>
-            )}
-          </Panel>
-
           <Panel
             title="Selection Rounds"
             description={active ? active.company_name : "Select a drive"}
@@ -409,7 +633,7 @@ function DrivesPage() {
                   const { month, day } = visitParts(d.campus_visit_date as string);
                   return (
                     <li
-                      key={`${d.company_id}-${d.campus_visit_date}`}
+                      key={`${d.drive_id}-${d.campus_visit_date}`}
                       className="flex gap-3 px-5 py-3.5"
                     >
                       <div className="grid w-16 shrink-0 place-items-center rounded-md border border-border px-1 py-1 text-center">
@@ -436,6 +660,50 @@ function DrivesPage() {
           </Panel>
         </div>
       </div>
+
+      {openDrive && !editingDrive && (
+        <DriveDetailModal
+          drive={openDrive}
+          onClose={() => setOpenId(null)}
+          onEdit={() => setEditingId(openDrive.drive_id)}
+        />
+      )}
+
+      {editingDrive && (
+        <CreateDriveDialog
+          companies={companies}
+          editing={editingDrive}
+          onClose={() => setEditingId(null)}
+          onCreated={() => setEditingId(null)}
+          onUpdated={(updated) => {
+            // Swap the amended card in place rather than refetching, so the
+            // right-hand rail and the open sheet stay on the same drive.
+            setList((prev) =>
+              (prev ?? []).map((d) => (d.drive_id === updated.drive_id ? updated : d)),
+            );
+            setEditingId(null);
+            setOpenId(updated.drive_id);
+            setActiveId(updated.drive_id);
+          }}
+        />
+      )}
+
+      {creating && (
+        <CreateDriveDialog
+          companies={companies}
+          onClose={() => setCreating(false)}
+          onCreated={(created) => {
+            // Splice the new drive in rather than refetching: the create call
+            // already returns the full card, and it is the one the user wants to
+            // look at next.
+            setList((prev) => [created, ...(prev ?? [])]);
+            setDriveCount((n) => n + 1);
+            setActiveId(created.drive_id);
+            setFilter("All");
+            setQ("");
+          }}
+        />
+      )}
     </Shell>
   );
 }

@@ -1,11 +1,40 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Download, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  CircleAlert,
+  Download,
+  ExternalLink,
+  Loader2,
+  Search,
+  SlidersHorizontal,
+  Upload,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
-import { Kpi, Panel, Pill, chartColors, chartCursor, chartTooltip } from "@/components/dash/bits";
-import { getStudents, type PlacementStatus, type StudentRecord } from "@/lib/api";
+import {
+  Kpi,
+  Panel,
+  Pill,
+  chartColors,
+  chartCursor,
+  chartFill,
+  chartTooltip,
+} from "@/components/dash/bits";
+import { addStudents, checkStudentsExist, getInstitutionOverview, getStudents } from "@/lib/api";
+import type { ExistingStudent, PlacementStatus, StudentRecord } from "@/lib/api";
 
 export const Route = createFileRoute("/students")({
   // The header search in the dashboard shell lands here with a ?q= term, so the
@@ -38,11 +67,14 @@ const STATUS_OPTIONS: { value: "All" | "placed" | "not_placed"; label: string }[
   { value: "not_placed", label: "Not Placed" },
 ];
 
+// The stored key stays "not_started" for historical rows; it reads as
+// "Ineligible" in the UI because that is what the eligibility rule now means by
+// it - a not_started candidate is ineligible whatever their readiness score is.
 const STATUS_LABEL: Record<PlacementStatus, string> = {
   placed: "Placed",
   shortlisted: "Shortlisted",
   applying: "Applying",
-  not_started: "Not Started",
+  not_started: "Ineligible",
 };
 
 function statusTone(status: PlacementStatus): "solid" | "outline" | "muted" {
@@ -51,16 +83,40 @@ function statusTone(status: PlacementStatus): "solid" | "outline" | "muted" {
   return "outline";
 }
 
-// Whether this student counts as placement eligible anywhere in the product.
-// The API already resolves the staff override against the readiness score, so
-// the only condition left is the CGPA-on-record gate that every backend
-// aggregate applies — without it this page would disagree with the dashboard,
-// reports and drive pools.
-function isEligible(s: StudentRecord): boolean {
-  return s.placement_eligible && s.cgpa != null;
+/** Lifetime platform minutes as "2h 15m" / "45 min". */
+function fmtDuration(minutes?: number | null) {
+  const total = Math.max(0, Math.round(minutes ?? 0));
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return hours === 0 ? `${mins} min` : `${hours}h ${mins}m`;
 }
 
-const CSV_COLUMNS: [(keyof StudentRecord) | ((s: StudentRecord) => unknown), string][] = [
+/** AI spend in INR to the paisa; it accrues in fractions of a rupee. */
+function fmtInr(value?: number | null) {
+  if (value == null) return "—";
+  return `₹${value.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function fmtDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// Whether this student counts as placement eligible anywhere in the product.
+// Eligibility is decided once, server-side, from the readiness score
+// (score >= 40). Reading the resolved flag rather than recomputing it here is
+// what stops this page from drifting from the dashboard, reports and drive
+// pools: there is only one rule and only one implementation of it.
+function isEligible(s: StudentRecord): boolean {
+  return s.placement_eligible;
+}
+
+const CSV_COLUMNS: [keyof StudentRecord | ((s: StudentRecord) => unknown), string][] = [
   ["id", "Candidate ID"],
   ["full_name", "Name"],
   ["department", "Department"],
@@ -89,9 +145,9 @@ function downloadStudentsCsv(rows: StudentRecord[], fileLabel: string) {
   const body = [
     CSV_COLUMNS.map(([, header]) => header).join(","),
     ...rows.map((row) =>
-      CSV_COLUMNS.map(([key]) =>
-        csvCell(typeof key === "function" ? key(row) : row[key]),
-      ).join(","),
+      CSV_COLUMNS.map(([key]) => csvCell(typeof key === "function" ? key(row) : row[key])).join(
+        ",",
+      ),
     ),
   ].join("\n");
   const url = URL.createObjectURL(new Blob([`\uFEFF${body}`], { type: "text/csv;charset=utf-8" }));
@@ -116,35 +172,61 @@ function StudentsPage() {
   const [minCgpa, setMinCgpa] = useState(0);
   const [sort, setSort] = useState<"name" | "cgpa" | "expected_ctc" | "performance">("cgpa");
   const [selected, setSelected] = useState<StudentRecord | null>(null);
+  const [addingStudents, setAddingStudents] = useState(false);
   const [page, setPage] = useState(0);
-  // Department options are collected from the records the API actually returns,
-  // so the filter never offers a branch this college doesn't have.
-  const [departments, setDepartments] = useState<string[]>([]);
-  const searchRef = useRef(qFromUrl ?? "");
+  // The college's own departments, as configured on the institution record. Both
+  // the branch chart and the department filter are built from this list, so they
+  // show exactly the departments the college declared instead of whatever the
+  // filtered rows happen to contain.
+  const [institutionDepartments, setInstitutionDepartments] = useState<string[]>([]);
+  const [institutionName, setInstitutionName] = useState<string | null>(null);
+  // Bumped after a bulk add so the directory re-reads the roll and the new
+  // students show up without the placement cell having to reload by hand.
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getInstitutionOverview()
+      .then((res) => {
+        if (cancelled) return;
+        setInstitutionDepartments((res.institution.departments ?? []).map((d) => d.trim()));
+        setInstitutionName(res.institution.name || null);
+      })
+      // Non-fatal: the chart and filter then fall back to having no departments.
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const incoming = qFromUrl ?? "";
     setQ((current) => (current === incoming ? current : incoming));
   }, [qFromUrl]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      searchRef.current = q;
-      setPage(0);
-      void navigate({
-        to: "/students",
-        search: q.trim() ? { q: q.trim() } : {},
-        replace: true,
-      });
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [q, navigate]);
+  // Searching is an explicit submit — the button beside the box, or Enter in it.
+  // Typing only fills the box, so nothing refetches until the term is committed.
+  //
+  // `resetScroll: false` is the load-bearing part: the router treats this as a
+  // navigation and would otherwise scroll the window back to the top, yanking
+  // the table out from under the user. `replace` keeps a search from burying the
+  // page under history entries.
+  function submitSearch() {
+    const term = q.trim();
+    setPage(0);
+    void navigate({
+      to: "/students",
+      search: term ? { q: term } : {},
+      replace: true,
+      resetScroll: false,
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
     setError(null);
     const query: Parameters<typeof getStudents>[0] = {
-      q: searchRef.current,
+      q: qFromUrl ?? "",
       dept,
       status,
       eligible: false,
@@ -157,13 +239,6 @@ function StudentsPage() {
         setRows(res.students);
         setCollegeTotal(res.total);
         setCollegeStrength(res.approximate_student_strength);
-        setDepartments((prev) => {
-          const seen = new Set(prev);
-          for (const student of res.students) {
-            if (student.department) seen.add(student.department);
-          }
-          return [...seen].sort((a, b) => a.localeCompare(b));
-        });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -173,26 +248,53 @@ function StudentsPage() {
     return () => {
       cancelled = true;
     };
-  }, [dept, status, minCgpa, sort, q]);
+  }, [dept, status, minCgpa, sort, qFromUrl, reloadToken]);
 
   const filtered = rows ?? [];
   const placed = filtered.filter((s) => s.placement_status === "placed");
   const cgpas = filtered.map((s) => s.cgpa).filter((c): c is number => c !== null);
   const avgCgpa = cgpas.length ? cgpas.reduce((a, b) => a + b, 0) / cgpas.length : 0;
-  // Counted from the API's resolved flag, not recomputed from the readiness
-  // score here, so this card cannot drift from the table column below it or
-  // from the dashboard's eligible count.
+  // Students in the selection whose readiness score clears the placement bar.
   const eligible = filtered.filter(isEligible).length;
 
-  const branchMap = new Map<string, { label: string; total: number; placed: number }>();
-  for (const s of filtered) {
-    const name = s.department?.trim() || "Unassigned";
-    const entry = branchMap.get(name) ?? { label: name, total: 0, placed: 0 };
-    entry.total += 1;
-    if (s.placement_status === "placed") entry.placed += 1;
-    branchMap.set(name, entry);
-  }
-  const branches = [...branchMap.values()].sort((a, b) => b.total - a.total);
+  // Same pipeline as before, computed off whatever the filters currently select.
+  // "Eligible" reuses the KPI figure above rather than re-deriving it, so this
+  // chart and the card beside it can never print two different numbers for the
+  // same word. The first bar is Ineligible - everyone in the selection who did
+  // not clear the readiness bar - so the chart opens with the split that decides
+  // the rest of the pipeline.
+  const inSelection = filtered.filter(
+    (s) =>
+      s.placement_status === "applying" ||
+      s.placement_status === "shortlisted" ||
+      s.placement_status === "placed",
+  ).length;
+  const shortlisted = filtered.filter((s) => s.placement_status === "shortlisted").length;
+  const momentum = [
+    { stage: "Ineligible", value: filtered.length - eligible },
+    { stage: "Eligible", value: eligible },
+    { stage: "Applied", value: inSelection },
+    { stage: "Shortlisted", value: shortlisted },
+    { stage: "Placed", value: placed.length },
+  ];
+  const momentumMax = Math.max(1, ...momentum.map((m) => m.value));
+
+  // The chart shows exactly the departments listed on the institution record and
+  // nothing else: one bar per configured department, counting only the students
+  // sitting in that department. A student whose department is not in the list is
+  // left out of the chart rather than inventing a branch the college never set up.
+  const branches = institutionDepartments
+    .filter(Boolean)
+    .map((department) => {
+      const key = department.toLowerCase();
+      const inBranch = filtered.filter((s) => (s.department?.trim().toLowerCase() ?? "") === key);
+      return {
+        label: department,
+        total: inBranch.length,
+        placed: inBranch.filter((s) => s.placement_status === "placed").length,
+      };
+    })
+    .sort((a, b) => b.total - a.total);
 
   const pageSize = 12;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -208,13 +310,21 @@ function StudentsPage() {
           : `${filtered.length} of the live batch match the current filters`
       }
       actions={
-        <button
-          onClick={() => downloadStudentsCsv(filtered, new Date().toISOString().slice(0, 10))}
-          disabled={filtered.length === 0}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
-        >
-          <Download className="size-3.5" /> Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAddingStudents(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <UserPlus className="size-3.5" /> Add Students
+          </button>
+          <button
+            onClick={() => downloadStudentsCsv(filtered, new Date().toISOString().slice(0, 10))}
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            <Download className="size-3.5" /> Export CSV
+          </button>
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -233,14 +343,14 @@ function StudentsPage() {
           value={avgCgpa ? avgCgpa.toFixed(2) : "—"}
           hint="matching filters"
         />
-        <Kpi label="Eligible" value={eligible} hint="readiness score above 40" />
+        <Kpi label="Eligible" value={eligible} hint="readiness score 40 or above" />
       </div>
 
       {branches.length > 1 && (
         <Panel
           className="mt-4"
           title="Students by branch"
-          description="Headcount and placements per department, from the rows matching the filters below"
+          description="Headcount and placements for the departments listed on your institution record"
         >
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={branches} margin={{ left: -22, right: 6, top: 6 }}>
@@ -276,18 +386,61 @@ function StudentsPage() {
         </Panel>
       )}
 
+      <Panel
+        className="mt-4"
+        title="Placement Momentum"
+        description="Students at each stage of this season's pipeline"
+      >
+        {filtered.length > 0 ? (
+          <ResponsiveContainer width="100%" height={268}>
+            <BarChart data={momentum} margin={{ left: -18, right: 6, top: 6 }}>
+              <CartesianGrid stroke={chartColors.grid} vertical={false} />
+              <XAxis dataKey="stage" tickLine={false} axisLine={false} fontSize={11} />
+              <YAxis tickLine={false} axisLine={false} fontSize={11} domain={[0, momentumMax]} />
+              <Tooltip contentStyle={chartTooltip} cursor={chartCursor} />
+              <Bar dataKey="value" name="Students" radius={[4, 4, 0, 0]} barSize={44}>
+                {momentum.map((d, i) => (
+                  <Cell key={d.stage} fill={chartFill(i)} />
+                ))}
+                <LabelList dataKey="value" position="top" fontSize={11} fill="oklch(0.35 0 0)" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            No students match the current filters, so there is no pipeline to chart.
+          </p>
+        )}
+      </Panel>
+
       <Panel className="mt-4" bodyClassName="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, candidate ID or branch…"
-              aria-label="Search students"
-              className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
-            />
-          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitSearch();
+            }}
+            className="flex min-w-[220px] flex-1 items-center gap-2"
+          >
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search by name, candidate ID or branch…"
+                aria-label="Search students"
+                className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+              />
+            </div>
+            <button
+              type="submit"
+              aria-label="Search"
+              title="Search"
+              className="grid size-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <Search className="size-4" />
+            </button>
+          </form>
           <select
             value={dept}
             onChange={(e) => setDept(e.target.value)}
@@ -295,7 +448,7 @@ function StudentsPage() {
             className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none"
           >
             <option value="All">All departments</option>
-            {departments.map((d) => (
+            {institutionDepartments.map((d) => (
               <option key={d}>{d}</option>
             ))}
           </select>
@@ -458,6 +611,13 @@ function StudentsPage() {
       </Panel>
 
       {selected && <StudentModal student={selected} onClose={() => setSelected(null)} />}
+      {addingStudents && (
+        <AddStudentsModal
+          institutionName={institutionName}
+          onClose={() => setAddingStudents(false)}
+          onSaved={() => setReloadToken((n) => n + 1)}
+        />
+      )}
     </Shell>
   );
 }
@@ -487,6 +647,13 @@ function StudentModal({ student, onClose }: { student: StudentRecord; onClose: (
             <X className="size-4" />
           </button>
         </div>
+
+        {student.bio && (
+          <div className="border-b border-border px-6 py-4">
+            <p className="mono-label">Headline</p>
+            <p className="mt-1.5 text-sm italic text-muted-foreground">{student.bio}</p>
+          </div>
+        )}
 
         <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
           {[
@@ -518,18 +685,15 @@ function StudentModal({ student, onClose }: { student: StudentRecord; onClose: (
               "Expected CTC",
               student.expected_ctc ? `₹${student.expected_ctc.toFixed(1)} LPA` : "—",
             ],
-            [
-              "Placement eligible",
-              student.placement_eligible_override == null
-                ? isEligible(student)
-                  ? "Yes · follows readiness"
-                  : "No · below readiness bar"
-                : `${isEligible(student) ? "Yes" : "No"} · set by placement office`,
-            ],
+            ["Placement eligible", isEligible(student) ? "Yes" : "No"],
             ["ID verified", student.id_verified ? "Yes" : "Pending"],
             ["Phone", student.mobile_number ?? "—"],
-            ["Gender", student.gender ? student.gender.replace("_", " ") : "—"],
-            ["Account", student.account_status ? student.account_status.replace("_", " ") : "—"],
+            ["Gender", student.gender ? student.gender.replace(/_/g, " ") : "—"],
+            ["Account", student.account_status ? student.account_status.replace(/_/g, " ") : "—"],
+            ["Preferred language", student.preferred_language ?? "—"],
+            ["Joined", fmtDate(student.created_at)],
+            ["Time on platform", fmtDuration(student.time_spent)],
+            ["AI cost consumed", fmtInr(student.cost_incurred)],
           ].map(([label, value]) => (
             <div key={label} className="rounded-md border border-border px-3.5 py-2.5">
               <p className="mono-label">{label}</p>
@@ -560,6 +724,37 @@ function StudentModal({ student, onClose }: { student: StudentRecord; onClose: (
                 student.preferred_roles.map((r) => (
                   <Pill key={r} tone="outline">
                     {r}
+                  </Pill>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">None recorded.</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 px-6 pb-5 sm:grid-cols-2">
+          <div>
+            <p className="mono-label">Preferred locations</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(student.preferred_locations?.length ?? 0) > 0 ? (
+                student.preferred_locations.map((loc) => (
+                  <Pill key={loc} tone="outline">
+                    {loc}
+                  </Pill>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">None recorded.</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="mono-label">Extracurricular activities</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(student.extracurricular_activities?.length ?? 0) > 0 ? (
+                student.extracurricular_activities.map((a) => (
+                  <Pill key={a} tone="outline">
+                    {a}
                   </Pill>
                 ))
               ) : (
@@ -640,6 +835,433 @@ function StudentModal({ student, onClose }: { student: StudentRecord; onClose: (
           >
             Open readiness profile
           </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Add students ────────────────────────────────────────────────────────────
+// Staff collect the email addresses of the students they want on the platform
+// either by typing them one at a time (each one becomes a tag) or by uploading
+// a sheet exported from Excel. Both paths feed the same list, de-duplicated on
+// the normalised address so a spreadsheet and a few typed extras can be mixed.
+
+// Deliberately permissive: this only has to catch the shape of an address, the
+// real validation happens once the address is turned into an account.
+const EMAIL_SHAPE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/;
+// Used to lift addresses out of an uploaded sheet, where they sit in a cell
+// alongside commas, quotes and a header row that simply will not match.
+const EMAIL_SCAN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const EMAIL_INPUT_SPLIT = /[\s,;]+/;
+
+function normalizeEmail(value: string): string {
+  return value
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .replace(/^["'(]+|["'),;]+$/g, "")
+    .toLowerCase();
+}
+
+// Show a college's site as its host rather than the full URL, keeping the line
+// readable. Bare hosts are passed through unchanged.
+function websiteLabel(url: string): string {
+  try {
+    return new URL(url.includes("://") ? url : `https://${url}`).host;
+  } catch {
+    return url;
+  }
+}
+
+// Merge a batch of addresses into the tag list, keeping the first spelling of
+// each address and silently dropping the repeats a sheet or a paste produces.
+function mergeEmails(current: string[], incoming: string[]): string[] {
+  const seen = new Set(current);
+  const next = [...current];
+  for (const value of incoming) {
+    const email = normalizeEmail(value);
+    if (!EMAIL_SHAPE.test(email) || seen.has(email)) continue;
+    seen.add(email);
+    next.push(email);
+  }
+  return next;
+}
+
+function AddStudentsModal({
+  institutionName,
+  onClose,
+  onSaved,
+}: {
+  institutionName: string | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [emails, setEmails] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  const [rejected, setRejected] = useState<string[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileNote, setFileNote] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // Addresses that already sit on a candidate profile, keyed by address. The
+  // check runs as the list changes so a clash is visible before saving, not
+  // discovered as a silent skip afterwards.
+  const [existing, setExisting] = useState<Record<string, ExistingStudent>>({});
+  const [checking, setChecking] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Debounced so typing a list does not fire a request per keystroke, and so a
+  // pasted sheet settles into one check.
+  useEffect(() => {
+    if (emails.length === 0) {
+      setExisting({});
+      setChecking(false);
+      return;
+    }
+    let cancelled = false;
+    setChecking(true);
+    const timer = window.setTimeout(() => {
+      checkStudentsExist(emails)
+        .then((res) => {
+          if (cancelled) return;
+          const next: Record<string, ExistingStudent> = {};
+          for (const row of res.existing) next[row.email] = row;
+          setExisting(next);
+        })
+        // A failed check is not worth interrupting the flow over: the save path
+        // still refuses to duplicate anyone.
+        .catch(() => {
+          if (!cancelled) setExisting({});
+        })
+        .finally(() => {
+          if (!cancelled) setChecking(false);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [emails]);
+
+  const existingList = emails.map((email) => existing[email]).filter((row) => row !== undefined);
+  const clashing = existingList.filter((row) => !row.same_college);
+  const alreadyHere = existingList.filter((row) => row.same_college);
+  // Addresses that are genuinely new, i.e. what a save will actually add.
+  const addable = emails.filter((email) => existing[email] === undefined);
+
+  // Commit the address currently being typed. Anything that is not an address
+  // is parked in `rejected` so the staff member can see it was dropped rather
+  // than watching the keystrokes disappear.
+  function commitDraft() {
+    const raw = draft;
+    setDraft("");
+    const parts = raw.split(EMAIL_INPUT_SPLIT).map(normalizeEmail).filter(Boolean);
+    if (parts.length === 0) return;
+    const good = parts.filter((part) => EMAIL_SHAPE.test(part));
+    const bad = parts.filter((part) => !EMAIL_SHAPE.test(part));
+    if (good.length > 0) setEmails((current) => mergeEmails(current, good));
+    if (bad.length > 0) {
+      setRejected((current) => {
+        const next = [...current];
+        for (const part of bad) if (!next.includes(part)) next.push(part);
+        return next;
+      });
+    }
+  }
+
+  function onDraftKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "," || e.key === ";") {
+      e.preventDefault();
+      commitDraft();
+      return;
+    }
+    // Backspace on an empty field peels off the last tag, the usual tag-input
+    // behaviour.
+    if (e.key === "Backspace" && draft === "" && emails.length > 0) {
+      setEmails((current) => current.slice(0, -1));
+    }
+  }
+
+  function removeEmail(email: string) {
+    setEmails((current) => current.filter((e) => e !== email));
+  }
+
+  async function readFile(file: File) {
+    setFileName(file.name);
+    // A .xlsx is a zip archive, not text, so it cannot be read without a
+    // spreadsheet parser. Say so plainly instead of silently finding nothing.
+    if (/\.xlsx?$/i.test(file.name)) {
+      setFileNote(
+        "Excel workbooks (.xlsx) can't be read here. In Excel choose File → Save As → CSV, then upload that file.",
+      );
+      return;
+    }
+    const text = await file.text();
+    const found = text.match(EMAIL_SCAN) ?? [];
+    if (found.length === 0) {
+      setFileNote(`No email addresses found in ${file.name}.`);
+      return;
+    }
+    setEmails((current) => mergeEmails(current, found));
+    setFileNote(
+      `Added ${found.length} address${found.length === 1 ? "" : "es"} from ${file.name}. Duplicates were skipped.`,
+    );
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) void readFile(file);
+    // Reset so re-picking the same file still fires a change event.
+    e.target.value = "";
+  }
+
+  async function submit() {
+    if (draft.trim()) commitDraft();
+    // commitDraft clears `draft` asynchronously, so read the list as it stands
+    // and fall back to the just-typed address when it was the only one.
+    const batch = draft.trim() ? mergeEmails(emails, [draft]) : emails;
+    if (batch.length === 0) return;
+    // Only send the addresses the check says are new, so the "already on a roll"
+    // rows are never even part of the write.
+    const fresh = batch.filter((email) => existing[email] === undefined);
+    if (fresh.length === 0) {
+      toast.warning("Nothing to add", {
+        description: "Every address you entered is already on a candidate profile.",
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await addStudents(fresh);
+      const parts = [`${res.created} student${res.created === 1 ? "" : "s"} added`];
+      if (res.skipped > 0) {
+        parts.push(`${res.skipped} already on a roll`);
+      }
+      if (res.invalid.length > 0) {
+        parts.push(`${res.invalid.length} not an email address`);
+      }
+      if (res.created > 0) toast.success(parts.join(" · "));
+      else toast.warning("Nothing was added", { description: parts.join(" · ") });
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not add students.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center">
+      <div className="panel max-h-[88vh] w-full max-w-xl overflow-y-auto">
+        <div className="flex items-start justify-between border-b border-border px-6 py-5">
+          <div>
+            <h2 className="text-lg font-bold">Add Students</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Type the email addresses below, or upload a sheet of them.
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="rounded-md p-1 hover:bg-accent">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="space-y-5 px-6 py-5">
+          <div>
+            <p className="mono-label">Email addresses</p>
+            <div className="mt-2 flex flex-wrap gap-1.5 rounded-md border border-input bg-card p-2 focus-within:ring-2 focus-within:ring-ring/20">
+              {emails.map((email) => (
+                <span
+                  key={email}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs"
+                >
+                  {email}
+                  <button
+                    onClick={() => removeEmail(email)}
+                    aria-label={`Remove ${email}`}
+                    className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={onDraftKeyDown}
+                onBlur={commitDraft}
+                placeholder={emails.length === 0 ? "student@college.edu" : "Add another…"}
+                aria-label="Student email address"
+                className="h-7 min-w-[180px] flex-1 bg-transparent px-1 text-sm outline-none"
+              />
+            </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              Press Enter, comma or space after each address. Backspace removes the last one.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <div>
+            <p className="mono-label">Upload a sheet</p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.txt,.tsv,text/csv,text/plain"
+              onChange={onFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) void readFile(file);
+              }}
+              className={`mt-2 flex w-full flex-col items-center gap-1.5 rounded-md border border-dashed px-4 py-7 text-center transition-colors ${
+                dragging ? "border-foreground bg-accent" : "border-border hover:bg-accent"
+              }`}
+            >
+              <Upload className="size-4 text-muted-foreground" />
+              <span className="text-xs font-medium">
+                {fileName ?? "Click to upload, or drop a file here"}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                CSV or TXT exported from Excel — one address per row
+              </span>
+            </button>
+            {fileNote && <p className="mt-2 text-[10px] text-muted-foreground">{fileNote}</p>}
+          </div>
+
+          {rejected.length > 0 && (
+            <div className="rounded-md border border-border px-3.5 py-2.5">
+              <p className="mono-label">Not an email address</p>
+              <p className="mt-1 text-xs text-muted-foreground">{rejected.join(", ")}</p>
+            </div>
+          )}
+
+          {/* Addresses that already sit on a candidate profile. The clash is
+              shown here, while the list is being built, rather than only
+              surfacing as a silent skip when the save comes back. */}
+          {(checking || existingList.length > 0) && (
+            <div className="rounded-md border border-border px-3.5 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="mono-label">Already in the candidate profile</p>
+                {checking && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+              </div>
+
+              {checking && existingList.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">Checking…</p>
+              )}
+
+              {!checking && existingList.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  None of these addresses are on a candidate profile yet.
+                </p>
+              )}
+
+              {alreadyHere.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs font-medium">
+                    {alreadyHere.length} already on {institutionName ?? "your"} roll
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {alreadyHere.map((row) => (
+                      <li key={row.email} className="text-[11px] text-muted-foreground">
+                        <span className="mono">{row.email}</span>
+                        <span> — {row.college || "Unassigned"}</span>
+                        {row.website && (
+                          <a
+                            href={row.website}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="ml-1 inline-flex items-center gap-0.5 underline hover:text-foreground"
+                          >
+                            {websiteLabel(row.website)}
+                            <ExternalLink className="size-2.5" />
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {clashing.length > 0 && (
+                <div className="mt-2.5">
+                  <p className="flex items-center gap-1.5 text-xs font-medium">
+                    <CircleAlert className="size-3.5 shrink-0" />
+                    {clashing.length} already on another college's roll
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {clashing.map((row) => (
+                      <li key={row.email} className="text-[11px] text-muted-foreground">
+                        <span className="mono">{row.email}</span>
+                        <span> — exists in the candidate profile of </span>
+                        <span className="font-medium text-foreground">
+                          {row.college || "an unassigned college"}
+                        </span>
+                        {row.website && (
+                          <a
+                            href={row.website}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="ml-1 inline-flex items-center gap-0.5 underline hover:text-foreground"
+                          >
+                            {websiteLabel(row.website)}
+                            <ExternalLink className="size-2.5" />
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    These will be left where they are. They will not be moved to your college.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-6 py-4">
+          <span className="text-xs text-muted-foreground">
+            {addable.length} of {emails.length} new
+            {emails.length - addable.length > 0 &&
+              ` · ${emails.length - addable.length} already in the candidate profile`}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              disabled={saving}
+              className="rounded-md border border-border px-3.5 py-2 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submit}
+              disabled={saving || addable.length === 0}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {saving && <Loader2 className="size-3.5 animate-spin" />}
+              {saving
+                ? "Adding…"
+                : addable.length === 0 && emails.length > 0
+                  ? "Nothing to add"
+                  : `Add ${addable.length} student${addable.length === 1 ? "" : "s"}`}
+            </button>
+          </div>
         </div>
       </div>
     </div>

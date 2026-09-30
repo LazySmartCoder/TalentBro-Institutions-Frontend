@@ -27,7 +27,6 @@ import {
 } from "recharts";
 import { AppNavHeader, AppNavIconButton } from "@/components/tb/app-nav";
 import { getReadinessLeaderboard, me, type LeaderboardResponse } from "@/lib/api";
-import { PERF_PILLARS, formatPillarRank, pillarStanding } from "@/lib/perf";
 import { cn } from "@/lib/utils";
 import { GateError, GateLoading } from "@/components/load-state";
 
@@ -523,6 +522,15 @@ function LeaderboardPage() {
                         {s.department || "No department"}
                         {s.cgpa != null && ` · CGPA ${s.cgpa}`}
                       </p>
+                      {/* Headline, so the board reads as people rather than rows. */}
+                      {s.bio && (
+                        <p
+                          className="truncate text-[11px] font-semibold text-muted-foreground/90"
+                          title={s.bio}
+                        >
+                          {s.bio}
+                        </p>
+                      )}
                     </div>
                     <div className="hidden text-xs text-muted-foreground sm:block">
                       {s.overall_rank != null
@@ -532,14 +540,6 @@ function LeaderboardPage() {
                         {s.department_rank != null
                           ? `Dept #${s.department_rank} of ${s.department_total}`
                           : "No dept rank"}
-                      </p>
-                      {/* Mock and self-training are ranked on their own cohorts,
-                          so they are reported separately here too. */}
-                      <p className="mt-0.5 font-mono text-[10px] tabular-nums">
-                        {PERF_PILLARS.map((pillar) => {
-                          const standing = pillarStanding(s.pillars, pillar.key);
-                          return `${pillar.short} ${formatPillarRank(standing)}`;
-                        }).join(" · ")}
                       </p>
                     </div>
                     <div className="hidden sm:block">

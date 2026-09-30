@@ -442,8 +442,20 @@ function GdRoom() {
   }
 
   async function send() {
-    const text = draft.trim();
-    if (!text || phase === "ended") return;
+    if (phase === "ended") return;
+    // Pressing send while the mic is live has to carry the words already spoken
+    // and tear the recognizer down. Otherwise it keeps streaming transcripts
+    // back into the composer, so the text reappears after the message is out.
+    if (recording || sttActiveRef.current) {
+      const spoken = liveSttText();
+      const base = sttBaseRef.current.trim();
+      const pending = spoken ? (base ? `${base} ${spoken}` : spoken) : base;
+      stopMicRecording();
+      setDraft(pending);
+      draftRef.current = pending;
+    }
+    const text = draftRef.current.trim();
+    if (!text) return;
     setDraft("");
     draftRef.current = "";
     // If the student calls out a specific panelist (e.g. "come again rahul"),
@@ -1036,7 +1048,7 @@ function GdRoom() {
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" /> Live
                 </span>
               </div>
-              <ul className="mt-3 space-y-1.5 overflow-y-auto">
+              <ul className="no-scrollbar mt-3 space-y-1.5 overflow-y-auto">
                 {inRoom.map((p) => (
                   <li
                     key={p.from}

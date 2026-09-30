@@ -1,12 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Building2, Copy, Plus, Search, X } from "lucide-react";
+import { Building2, Copy, Pencil, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
 import { Kpi, Panel, Pill } from "@/components/dash/bits";
 import {
   createCompany,
   getCompanies,
+  updateCompany,
+  type CompanyUpdatePayload,
   type DriveCompanyTier,
   type PlacementCompany,
 } from "@/lib/api";
@@ -31,7 +33,6 @@ export const Route = createFileRoute("/companies")({
 });
 
 const TIERS = ["All", "Super Dream", "Dream", "Core", "Mass"];
-const STATUS = ["All", "Upcoming", "Ongoing", "Completed", "Cancelled"];
 
 const TIER_LABEL: Record<DriveCompanyTier, string> = {
   super_dream: "Super Dream",
@@ -40,52 +41,22 @@ const TIER_LABEL: Record<DriveCompanyTier, string> = {
   mass: "Mass",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  upcoming: "Upcoming",
-  ongoing: "Ongoing",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
-
-const WORK_MODE_LABEL: Record<string, string> = {
-  remote: "Remote",
-  hybrid: "Hybrid",
-  onsite: "On-site",
-  field: "Field / Outside",
-};
-
-const PLACEMENT_MODE_LABEL: Record<string, string> = {
-  full_time: "Full-time",
-  internship_ppo: "Internship + PPO",
-  contract: "Contract",
-};
-
-const OFFER_STATUS_LABEL: Record<string, string> = {
-  pending: "Pending",
-  offered: "Offered",
-  on_hold: "On Hold",
-  revoked: "Revoked",
-};
-
+// Registering a recruiter. Roles, skills, dates, rounds, status and offer
+// state are deliberately absent: those describe a hiring event and are set on
+// the drive when the company actually goes to hire.
 const EMPTY_DRAFT = {
   company_name: "",
   industry: "",
   company_description: "",
   work_location: "",
-  work_mode: "onsite",
-  placement_mode: "full_time",
   tier: "core",
-  recruitment_status: "upcoming",
   salary_min: "",
   salary_max: "",
   minimum_cgpa: "",
   maximum_backlogs: "",
   graduation_year: "",
-  job_roles: "",
   eligible_branches: "",
   eligible_courses: "",
-  required_skills: "",
-  selection_rounds: "",
 };
 
 type CompanyDraft = typeof EMPTY_DRAFT;
@@ -98,15 +69,235 @@ const csvList = (value: string) =>
 
 const numberOrNull = (value: string) => (value.trim() === "" ? null : Number(value));
 
-function fmtDate(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
+const INPUT_CLS =
+  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring/20";
 
 function lpa(value: number | null): string {
   return value == null ? "—" : `₹${value} LPA`;
+}
+
+// Pre-fill the form from a saved company. The API stores numbers as null and
+// lists as arrays, the form wants editable strings, so this is the one place
+// that conversion happens.
+function draftFrom(company: PlacementCompany): CompanyDraft {
+  return {
+    company_name: company.company_name,
+    industry: company.industry,
+    company_description: company.company_description,
+    work_location: company.work_location,
+    tier: company.tier,
+    salary_min: company.salary_min == null ? "" : String(company.salary_min),
+    salary_max: company.salary_max == null ? "" : String(company.salary_max),
+    minimum_cgpa: company.minimum_cgpa == null ? "" : String(company.minimum_cgpa),
+    maximum_backlogs: company.maximum_backlogs == null ? "" : String(company.maximum_backlogs),
+    graduation_year: company.graduation_year == null ? "" : String(company.graduation_year),
+    eligible_branches: company.eligible_branches.join(", "),
+    eligible_courses: company.eligible_courses.join(", "),
+  };
+}
+
+function payloadFrom(draft: CompanyDraft): CompanyUpdatePayload {
+  return {
+    company_name: draft.company_name.trim(),
+    industry: draft.industry.trim(),
+    company_description: draft.company_description.trim(),
+    work_location: draft.work_location.trim(),
+    tier: draft.tier as DriveCompanyTier,
+    salary_min: numberOrNull(draft.salary_min),
+    salary_max: numberOrNull(draft.salary_max),
+    minimum_cgpa: numberOrNull(draft.minimum_cgpa),
+    maximum_backlogs: numberOrNull(draft.maximum_backlogs),
+    graduation_year: numberOrNull(draft.graduation_year),
+    eligible_branches: csvList(draft.eligible_branches),
+    eligible_courses: csvList(draft.eligible_courses),
+  };
+}
+
+// Shared by the add modal and the edit form inside the view modal. Declared at
+// module scope on purpose: a component defined inside CompanyPage would be a new
+// type on every render and remount the inputs, dropping focus on each keystroke.
+function CompanyFields({
+  draft,
+  onChange,
+  idPrefix,
+}: {
+  draft: CompanyDraft;
+  onChange: (next: CompanyDraft) => void;
+  idPrefix: string;
+}) {
+  const set = (key: keyof CompanyDraft) => (value: string) => onChange({ ...draft, [key]: value });
+  const field = (key: keyof CompanyDraft) => `${idPrefix}-${key}`;
+
+  return (
+    <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <label className="mono-label" htmlFor={field("company_name")}>
+          Company name *
+        </label>
+        <input
+          id={field("company_name")}
+          value={draft.company_name}
+          onChange={(e) => set("company_name")(e.target.value)}
+          placeholder="e.g. TCS"
+          className={`${INPUT_CLS} mt-1.5`}
+          required
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="mono-label" htmlFor={field("industry")}>
+          Industry
+        </label>
+        <input
+          id={field("industry")}
+          value={draft.industry}
+          onChange={(e) => set("industry")(e.target.value)}
+          placeholder="e.g. IT Services"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="mono-label" htmlFor={field("company_description")}>
+          About the company
+        </label>
+        <textarea
+          id={field("company_description")}
+          rows={2}
+          value={draft.company_description}
+          onChange={(e) => set("company_description")(e.target.value)}
+          placeholder="Shown to students when they open this drive"
+          className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+        />
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("tier")}>
+          Hiring tier
+        </label>
+        <select
+          id={field("tier")}
+          value={draft.tier}
+          onChange={(e) => set("tier")(e.target.value)}
+          className={`${INPUT_CLS} mt-1.5`}
+        >
+          {(["core", "mass", "dream", "super_dream"] as const).map((t) => (
+            <option key={t} value={t}>
+              {TIER_LABEL[t]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("work_location")}>
+          Work location
+        </label>
+        <input
+          id={field("work_location")}
+          value={draft.work_location}
+          onChange={(e) => set("work_location")(e.target.value)}
+          placeholder="e.g. Bangalore"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("salary_min")}>
+          Min CTC (LPA)
+        </label>
+        <input
+          id={field("salary_min")}
+          type="number"
+          min="0"
+          step="0.5"
+          value={draft.salary_min}
+          onChange={(e) => set("salary_min")(e.target.value)}
+          placeholder="e.g. 4"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("salary_max")}>
+          Max CTC (LPA)
+        </label>
+        <input
+          id={field("salary_max")}
+          type="number"
+          min="0"
+          step="0.5"
+          value={draft.salary_max}
+          onChange={(e) => set("salary_max")(e.target.value)}
+          placeholder="e.g. 8"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("graduation_year")}>
+          Graduating batch year
+        </label>
+        <input
+          id={field("graduation_year")}
+          type="number"
+          min="2000"
+          max="2100"
+          value={draft.graduation_year}
+          onChange={(e) => set("graduation_year")(e.target.value)}
+          placeholder="e.g. 2027"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("minimum_cgpa")}>
+          Min CGPA
+        </label>
+        <input
+          id={field("minimum_cgpa")}
+          type="number"
+          min="0"
+          max="10"
+          step="0.1"
+          value={draft.minimum_cgpa}
+          onChange={(e) => set("minimum_cgpa")(e.target.value)}
+          placeholder="e.g. 6.5"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div>
+        <label className="mono-label" htmlFor={field("maximum_backlogs")}>
+          Max backlogs
+        </label>
+        <input
+          id={field("maximum_backlogs")}
+          type="number"
+          min="0"
+          value={draft.maximum_backlogs}
+          onChange={(e) => set("maximum_backlogs")(e.target.value)}
+          placeholder="e.g. 2"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="mono-label" htmlFor={field("eligible_branches")}>
+          Eligible branches
+        </label>
+        <input
+          id={field("eligible_branches")}
+          value={draft.eligible_branches}
+          onChange={(e) => set("eligible_branches")(e.target.value)}
+          placeholder="CSE, IT, ECE (comma separated — leave blank for all)"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="mono-label" htmlFor={field("eligible_courses")}>
+          Eligible courses
+        </label>
+        <input
+          id={field("eligible_courses")}
+          value={draft.eligible_courses}
+          onChange={(e) => set("eligible_courses")(e.target.value)}
+          placeholder="B.Tech, MCA (comma separated — leave blank for all)"
+          className={`${INPUT_CLS} mt-1.5`}
+        />
+      </div>
+    </div>
+  );
 }
 
 function CompanyPage() {
@@ -115,45 +306,59 @@ function CompanyPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [q, setQ] = useState("");
   const [tier, setTier] = useState("All");
-  const [status, setStatus] = useState("All");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<PlacementCompany | null>(null);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<CompanyDraft>(EMPTY_DRAFT);
+  // The view modal doubles as the edit screen: `editing` only ever flips while
+  // `selected` is open, so there is no separate route or dialog for it.
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState<CompanyDraft>(EMPTY_DRAFT);
+  const [savingEdit, setSavingEdit] = useState(false);
 
-  const inputCls =
-    "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring/20";
+  function openCompany(company: PlacementCompany) {
+    setSelected(company);
+    setEditing(false);
+  }
+
+  function startEdit() {
+    if (!selected) return;
+    setEditDraft(draftFrom(selected));
+    setEditing(true);
+  }
+
+  async function submitEdit(e: FormEvent) {
+    e.preventDefault();
+    if (!selected || !editDraft.company_name.trim() || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const updated = await updateCompany(selected.id, payloadFrom(editDraft));
+      setList((prev) => (prev ?? []).map((c) => (c.id === updated.id ? updated : c)));
+      setSelected(updated);
+      setEditing(false);
+      toast.success(`Updated ${updated.company_name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the changes.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   async function submitCompany(e: FormEvent) {
     e.preventDefault();
     if (!draft.company_name.trim() || saving) return;
     setSaving(true);
     try {
-      const created = await createCompany({
-        company_name: draft.company_name.trim(),
-        industry: draft.industry.trim(),
-        company_description: draft.company_description.trim(),
-        work_location: draft.work_location.trim(),
-        work_mode: draft.work_mode,
-        placement_mode: draft.placement_mode,
-        tier: draft.tier as DriveCompanyTier,
-        recruitment_status: draft.recruitment_status,
-        salary_min: numberOrNull(draft.salary_min),
-        salary_max: numberOrNull(draft.salary_max),
-        minimum_cgpa: numberOrNull(draft.minimum_cgpa),
-        maximum_backlogs: numberOrNull(draft.maximum_backlogs),
-        graduation_year: numberOrNull(draft.graduation_year),
-        job_roles: csvList(draft.job_roles),
-        eligible_branches: csvList(draft.eligible_branches),
-        eligible_courses: csvList(draft.eligible_courses),
-        required_skills: csvList(draft.required_skills),
-        selection_rounds: csvList(draft.selection_rounds),
-      });
+      const created = await createCompany(payloadFrom(draft));
       setList((prev) => [created, ...(prev ?? [])]);
       toast.success(`Added ${created.company_name}`);
       setDraft(EMPTY_DRAFT);
       setAdding(false);
+      // The AI profile is written by the backend after it responds, so the row
+      // we just pushed in has no company_ai_info yet. Refetch once a few seconds
+      // later to pull it in; the list looks identical either way until it lands.
+      setTimeout(() => setReloadKey((k) => k + 1), 4000);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not add the company.");
     } finally {
@@ -185,14 +390,12 @@ function CompanyPage() {
     () =>
       (list ?? []).filter(
         (c) =>
-          `${c.company_name} ${c.industry} ${c.work_location} ${c.job_roles.join(" ")}`
+          `${c.company_name} ${c.industry} ${c.work_location}`
             .toLowerCase()
             .includes(q.toLowerCase()) &&
-          (tier === "All" || TIER_LABEL[c.tier] === tier) &&
-          (status === "All" ||
-            (STATUS_LABEL[c.recruitment_status] ?? c.recruitment_status) === status),
+          (tier === "All" || TIER_LABEL[c.tier] === tier),
       ),
-    [list, q, tier, status],
+    [list, q, tier],
   );
 
   const openings = shown.reduce((a, b) => a + (b.openings ?? 0), 0);
@@ -268,15 +471,6 @@ function CompanyPage() {
                   <option key={t}>{t}</option>
                 ))}
               </select>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="h-9 rounded-md border border-input bg-card px-3 text-sm"
-              >
-                {STATUS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
               <div className="flex rounded-md border border-border p-0.5">
                 {(["grid", "table"] as const).map((v) => (
                   <button
@@ -298,7 +492,7 @@ function CompanyPage() {
               {shown.map((c) => (
                 <button
                   key={c.id}
-                  onClick={() => setSelected(c)}
+                  onClick={() => openCompany(c)}
                   className="panel p-5 text-left transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -331,15 +525,9 @@ function CompanyPage() {
                       <p className="mono-label">Min CGPA</p>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {c.job_roles.slice(0, 3).map((r) => (
-                      <Pill key={r}>{r}</Pill>
-                    ))}
-                  </div>
                   <p className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground">
-                    {PLACEMENT_MODE_LABEL[c.placement_mode] ?? c.placement_mode} ·{" "}
-                    {STATUS_LABEL[c.recruitment_status] ?? c.recruitment_status} · visit{" "}
-                    {fmtDate(c.campus_visit_date)}
+                    {c.drive_count ?? 0} drive{(c.drive_count ?? 0) === 1 ? "" : "s"} on record
+                    {(c.drive_count ?? 0) === 0 && " · no drives yet"}
                   </p>
                 </button>
               ))}
@@ -350,7 +538,7 @@ function CompanyPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left">
-                      {["Company", "Tier", "Industry", "CTC Band", "Openings", "Status", ""].map(
+                      {["Company", "Tier", "Industry", "CTC Band", "Openings", "Drives", ""].map(
                         (h) => (
                           <th key={h} className="mono-label px-5 py-3 font-normal">
                             {h}
@@ -374,13 +562,13 @@ function CompanyPage() {
                         </td>
                         <td className="px-5 py-3 font-mono">{c.openings ?? "—"}</td>
                         <td className="px-5 py-3">
-                          <Pill tone={c.recruitment_status === "ongoing" ? "solid" : "muted"}>
-                            {STATUS_LABEL[c.recruitment_status] ?? c.recruitment_status}
+                          <Pill tone={(c.drive_count ?? 0) > 0 ? "solid" : "muted"}>
+                            {c.drive_count ?? 0}
                           </Pill>
                         </td>
                         <td className="px-5 py-3 text-right">
                           <button
-                            onClick={() => setSelected(c)}
+                            onClick={() => openCompany(c)}
                             className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
                           >
                             View
@@ -413,8 +601,8 @@ function CompanyPage() {
                 </p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
                   {list.length === 0
-                    ? "Add your first campus partner and it will show up here and on the placement drives page straight away."
-                    : "Try a different search term, tier or status."}
+                    ? "Register your first campus partner here, then create a drive when they go to hire."
+                    : "Try a different search term or tier."}
                 </p>
                 {list.length === 0 && (
                   <button
@@ -452,261 +640,7 @@ function CompanyPage() {
                 <X className="size-4" />
               </button>
             </div>
-            <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-name">
-                  Company name *
-                </label>
-                <input
-                  id="cc-name"
-                  value={draft.company_name}
-                  onChange={(e) => setDraft({ ...draft, company_name: e.target.value })}
-                  placeholder="e.g. TCS"
-                  className={`${inputCls} mt-1.5`}
-                  required
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-industry">
-                  Industry
-                </label>
-                <input
-                  id="cc-industry"
-                  value={draft.industry}
-                  onChange={(e) => setDraft({ ...draft, industry: e.target.value })}
-                  placeholder="e.g. IT Services"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-description">
-                  About the company
-                </label>
-                <textarea
-                  id="cc-description"
-                  rows={2}
-                  value={draft.company_description}
-                  onChange={(e) => setDraft({ ...draft, company_description: e.target.value })}
-                  placeholder="Shown to students when they open this drive"
-                  className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20"
-                />
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-tier">
-                  Hiring tier
-                </label>
-                <select
-                  id="cc-tier"
-                  value={draft.tier}
-                  onChange={(e) => setDraft({ ...draft, tier: e.target.value })}
-                  className={`${inputCls} mt-1.5`}
-                >
-                  {(["core", "mass", "dream", "super_dream"] as const).map((t) => (
-                    <option key={t} value={t}>
-                      {TIER_LABEL[t]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-recruitment-status">
-                  Recruitment status
-                </label>
-                <select
-                  id="cc-recruitment-status"
-                  value={draft.recruitment_status}
-                  onChange={(e) => setDraft({ ...draft, recruitment_status: e.target.value })}
-                  className={`${inputCls} mt-1.5`}
-                >
-                  {(["upcoming", "ongoing", "completed", "cancelled"] as const).map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-location">
-                  Work location
-                </label>
-                <input
-                  id="cc-location"
-                  value={draft.work_location}
-                  onChange={(e) => setDraft({ ...draft, work_location: e.target.value })}
-                  placeholder="e.g. Bangalore"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-work-mode">
-                  Work mode
-                </label>
-                <select
-                  id="cc-work-mode"
-                  value={draft.work_mode}
-                  onChange={(e) => setDraft({ ...draft, work_mode: e.target.value })}
-                  className={`${inputCls} mt-1.5`}
-                >
-                  {Object.entries(WORK_MODE_LABEL).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-placement-mode">
-                  Placement mode
-                </label>
-                <select
-                  id="cc-placement-mode"
-                  value={draft.placement_mode}
-                  onChange={(e) => setDraft({ ...draft, placement_mode: e.target.value })}
-                  className={`${inputCls} mt-1.5`}
-                >
-                  {Object.entries(PLACEMENT_MODE_LABEL).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-salary-min">
-                  Min CTC (LPA)
-                </label>
-                <input
-                  id="cc-salary-min"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={draft.salary_min}
-                  onChange={(e) => setDraft({ ...draft, salary_min: e.target.value })}
-                  placeholder="e.g. 4"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-salary-max">
-                  Max CTC (LPA)
-                </label>
-                <input
-                  id="cc-salary-max"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={draft.salary_max}
-                  onChange={(e) => setDraft({ ...draft, salary_max: e.target.value })}
-                  placeholder="e.g. 8"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-graduation-year">
-                  Graduating batch year
-                </label>
-                <input
-                  id="cc-graduation-year"
-                  type="number"
-                  min="2000"
-                  max="2100"
-                  value={draft.graduation_year}
-                  onChange={(e) => setDraft({ ...draft, graduation_year: e.target.value })}
-                  placeholder="e.g. 2027"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-min-cgpa">
-                  Min CGPA
-                </label>
-                <input
-                  id="cc-min-cgpa"
-                  type="number"
-                  min="0"
-                  max="10"
-                  step="0.1"
-                  value={draft.minimum_cgpa}
-                  onChange={(e) => setDraft({ ...draft, minimum_cgpa: e.target.value })}
-                  placeholder="e.g. 6.5"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div>
-                <label className="mono-label" htmlFor="cc-backlogs">
-                  Max backlogs
-                </label>
-                <input
-                  id="cc-backlogs"
-                  type="number"
-                  min="0"
-                  value={draft.maximum_backlogs}
-                  onChange={(e) => setDraft({ ...draft, maximum_backlogs: e.target.value })}
-                  placeholder="e.g. 2"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-roles">
-                  Job roles
-                </label>
-                <input
-                  id="cc-roles"
-                  value={draft.job_roles}
-                  onChange={(e) => setDraft({ ...draft, job_roles: e.target.value })}
-                  placeholder="SDE, Analyst (comma separated)"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-branches">
-                  Eligible branches
-                </label>
-                <input
-                  id="cc-branches"
-                  value={draft.eligible_branches}
-                  onChange={(e) => setDraft({ ...draft, eligible_branches: e.target.value })}
-                  placeholder="CSE, IT, ECE (comma separated — leave blank for all)"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-courses">
-                  Eligible courses
-                </label>
-                <input
-                  id="cc-courses"
-                  value={draft.eligible_courses}
-                  onChange={(e) => setDraft({ ...draft, eligible_courses: e.target.value })}
-                  placeholder="B.Tech, MCA (comma separated — leave blank for all)"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-skills">
-                  Required skills
-                </label>
-                <input
-                  id="cc-skills"
-                  value={draft.required_skills}
-                  onChange={(e) => setDraft({ ...draft, required_skills: e.target.value })}
-                  placeholder="Java, SQL, DSA (comma separated)"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mono-label" htmlFor="cc-rounds">
-                  Selection rounds
-                </label>
-                <input
-                  id="cc-rounds"
-                  value={draft.selection_rounds}
-                  onChange={(e) => setDraft({ ...draft, selection_rounds: e.target.value })}
-                  placeholder="Aptitude Test, Technical Interview, HR Round"
-                  className={`${inputCls} mt-1.5`}
-                />
-              </div>
-            </div>
+            <CompanyFields draft={draft} onChange={setDraft} idPrefix="cc" />
             <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
               <button
                 type="button"
@@ -745,75 +679,113 @@ function CompanyPage() {
                 <X className="size-4" />
               </button>
             </div>
-            {selected.company_description && (
-              <p className="border-b border-border px-6 py-4 text-sm text-muted-foreground">
-                {selected.company_description}
-              </p>
-            )}
-            <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
-              {[
-                ["Hiring tier", TIER_LABEL[selected.tier]],
-                ["CTC band", `${lpa(selected.salary_min)} – ${lpa(selected.salary_max)}`],
-                [
-                  "Openings",
-                  selected.drive_count
-                    ? `${selected.openings ?? "—"} across ${selected.drive_count} drive${
-                        selected.drive_count === 1 ? "" : "s"
-                      }`
-                    : String(selected.openings ?? "—"),
-                ],
-                ["Work location", selected.work_location || "—"],
-                ["Work mode", WORK_MODE_LABEL[selected.work_mode] ?? selected.work_mode],
-                [
-                  "Placement mode",
-                  PLACEMENT_MODE_LABEL[selected.placement_mode] ?? selected.placement_mode,
-                ],
-                [
-                  "Recruitment status",
-                  STATUS_LABEL[selected.recruitment_status] ?? selected.recruitment_status,
-                ],
-                [
-                  "Offer status",
-                  OFFER_STATUS_LABEL[selected.offer_status] ?? selected.offer_status,
-                ],
-                ["Min CGPA", String(selected.minimum_cgpa ?? "—")],
-                ["Max backlogs", String(selected.maximum_backlogs ?? "—")],
-                ["Batch year", String(selected.graduation_year ?? "—")],
-                ["Application deadline", fmtDate(selected.application_deadline)],
-                ["Campus visit", fmtDate(selected.campus_visit_date)],
-                ["Eligible courses", selected.eligible_courses.join(", ") || "—"],
-                ["Eligible branches", selected.eligible_branches.join(", ") || "—"],
-                ["Required skills", selected.required_skills.join(", ") || "—"],
-                ["Preferred skills", selected.preferred_skills.join(", ") || "—"],
-                ["Job roles", selected.job_roles.join(", ") || "—"],
-                ["Selection rounds", selected.selection_rounds.join(" → ") || "—"],
-              ].map(([l, v]) => (
-                <div key={l} className="rounded-md border border-border px-3.5 py-2.5">
-                  <p className="mono-label">{l}</p>
-                  <p className="mt-1 truncate text-sm font-medium">{v}</p>
+            {editing ? (
+              <form onSubmit={submitEdit}>
+                <p className="border-b border-border px-6 py-4 text-sm text-muted-foreground">
+                  Update the details your placement cell records for this partner. The AI profile
+                  below is generated and stays as it is.
+                </p>
+                <CompanyFields draft={editDraft} onChange={setEditDraft} idPrefix="ec" />
+                <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit || !editDraft.company_name.trim()}
+                    className="rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingEdit ? "Saving…" : "Save changes"}
+                  </button>
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
-              <button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(
-                    `${selected.company_name} — ${selected.company_id}`,
-                  );
-                  toast.success(`Copied ${selected.company_name} details`);
-                }}
-                className="inline-flex items-center gap-2 rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-accent"
-              >
-                <Copy className="size-3.5" /> Copy details
-              </button>
-              <Link
-                to="/drives"
-                onClick={() => setSelected(null)}
-                className="rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
-              >
-                View placement drive
-              </Link>
-            </div>
+              </form>
+            ) : (
+              <>
+                {selected.company_description && (
+                  <p className="border-b border-border px-6 py-4 text-sm text-muted-foreground">
+                    {selected.company_description}
+                  </p>
+                )}
+                {selected.company_ai_info.map((block, i) => (
+                  <section
+                    key={`${block.name}-${i}`}
+                    className="border-b border-border px-6 py-4 last:border-b-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display text-sm font-bold">{block.name}</h3>
+                      <Pill tone="muted">AI profile</Pill>
+                    </div>
+                    {block.short_desc && (
+                      <p className="mt-1.5 text-sm text-muted-foreground">{block.short_desc}</p>
+                    )}
+                    {block.known_for && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        <span className="mono-label">Known for</span> {block.known_for}
+                      </p>
+                    )}
+                    {block.big_desc && (
+                      <p className="mt-2 text-sm leading-relaxed text-foreground/85">
+                        {block.big_desc}
+                      </p>
+                    )}
+                  </section>
+                ))}
+                <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
+                  {[
+                    ["Hiring tier", TIER_LABEL[selected.tier]],
+                    ["CTC band", `${lpa(selected.salary_min)} – ${lpa(selected.salary_max)}`],
+                    [
+                      "Drives",
+                      `${selected.drive_count ?? 0} on record${
+                        (selected.drive_count ?? 0) === 0 ? " — nothing scheduled yet" : ""
+                      }`,
+                    ],
+                    [
+                      "Openings",
+                      selected.drive_count
+                        ? `${selected.openings ?? "—"} across ${selected.drive_count} drive${
+                            selected.drive_count === 1 ? "" : "s"
+                          }`
+                        : String(selected.openings ?? "—"),
+                    ],
+                    ["Work location", selected.work_location || "—"],
+                    ["Min CGPA", String(selected.minimum_cgpa ?? "—")],
+                    ["Max backlogs", String(selected.maximum_backlogs ?? "—")],
+                    ["Batch year", String(selected.graduation_year ?? "—")],
+                    ["Eligible courses", selected.eligible_courses.join(", ") || "—"],
+                    ["Eligible branches", selected.eligible_branches.join(", ") || "—"],
+                  ].map(([l, v]) => (
+                    <div key={l} className="rounded-md border border-border px-3.5 py-2.5">
+                      <p className="mono-label">{l}</p>
+                      <p className="mt-1 truncate text-sm font-medium">{v}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        `${selected.company_name} — ${selected.company_id}`,
+                      );
+                      toast.success(`Copied ${selected.company_name} details`);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-accent"
+                  >
+                    <Copy className="size-3.5" /> Copy details
+                  </button>
+                  <button
+                    onClick={startEdit}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    <Pencil className="size-3.5" /> Edit
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

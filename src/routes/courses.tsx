@@ -16,8 +16,10 @@ import { GateError, GateLoading } from "@/components/load-state";
 import {
   courseSegments,
   getCourses,
+  getProfile,
   me,
   type AuthUser,
+  type CandidateProfile,
   type CourseWeaknessSegment,
   type CourseraCourse,
   type CourseraCoursesResponse,
@@ -200,10 +202,12 @@ function WeaknessPicker({
   segments,
   activeQuery,
   isAuto,
+  profile,
 }: {
   segments: CourseWeaknessSegment[];
   activeQuery: string | undefined;
   isAuto: boolean;
+  profile: CandidateProfile | null;
 }) {
   if (segments.length === 0) return null;
 
@@ -247,7 +251,70 @@ function WeaknessPicker({
           </Link>
         )}
       </div>
+
+      <ProfileSnapshot profile={profile} activeQuery={activeQuery} />
     </Panel>
+  );
+}
+
+const PROFILE_GROUPS: { label: string; values: (profile: CandidateProfile) => string[] }[] = [
+  { label: "Skills", values: (profile) => profile.skills },
+  { label: "Job roles", values: (profile) => profile.preferred_roles },
+  { label: "Extracurricular", values: (profile) => profile.extracurricular_activities },
+];
+
+/**
+ * What the candidate has on their profile, so the courses below can be read
+ * against the role they are actually targeting rather than a generic search.
+ * Each entry links to the same `?q=` search the weakness chips drive, so a
+ * profile skill and a weakness segment are interchangeable ways to search.
+ */
+function ProfileSnapshot({
+  profile,
+  activeQuery,
+}: {
+  profile: CandidateProfile | null;
+  activeQuery: string | undefined;
+}) {
+  if (!profile) return null;
+
+  // The profile endpoint serialises these tag columns straight from the row, so
+  // an empty profile arrives as `null` rather than `[]`. Treat anything that
+  // isn't a list as empty instead of letting `.filter` throw and take the page
+  // down with it.
+  const groups = PROFILE_GROUPS.map((group) => {
+    const values = group.values(profile);
+    return { label: group.label, values: Array.isArray(values) ? values.filter(Boolean) : [] };
+  }).filter((group) => group.values.length > 0);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="mt-5 grid gap-4 border-t border-border/60 pt-5 sm:grid-cols-3">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="dash-mono-label">{group.label}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {group.values.map((value) => (
+              <Link
+                key={value}
+                to="/courses"
+                search={{ q: value }}
+                aria-current={value === activeQuery ? "true" : undefined}
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                  value === activeQuery
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-foreground hover:bg-muted",
+                )}
+              >
+                {value}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -324,6 +391,7 @@ function CoursesPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [data, setData] = useState<CourseraCoursesResponse | null>(null);
   const [segments, setSegments] = useState<CourseWeaknessSegment[]>([]);
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
   // Held until the segments land, so the grid is fetched once with the right
   // query instead of fetching the default and immediately refetching.
   const [segmentsResolved, setSegmentsResolved] = useState(false);
@@ -362,6 +430,23 @@ function CoursesPage() {
 
   // Tracked weaknesses decide the query. The backend already orders them weakest
   // first, so segments[0] is the gap worth attacking next.
+  // The candidate's own skills, target roles and activities, shown alongside the
+  // weakness chips. A failure here is not worth an error state on this page.
+  useEffect(() => {
+    if (status !== "ready") return;
+    let cancelled = false;
+    getProfile()
+      .then((result) => {
+        if (!cancelled) setProfile(result.profile ?? null);
+      })
+      .catch(() => {
+        // Purely additive context, so it can be missing without breaking the page.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
   useEffect(() => {
     if (status !== "ready") return;
     let cancelled = false;
@@ -455,7 +540,12 @@ function CoursesPage() {
         </div>
 
         {segments.length > 0 && (
-          <WeaknessPicker segments={segments} activeQuery={activeQuery} isAuto={isAuto} />
+          <WeaknessPicker
+            segments={segments}
+            activeQuery={activeQuery}
+            isAuto={isAuto}
+            profile={profile}
+          />
         )}
 
         {segments.length === 0 && segmentsResolved && (

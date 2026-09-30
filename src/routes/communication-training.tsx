@@ -1028,8 +1028,11 @@ function CommunicationTrainingPage() {
     void (async () => {
       let iceBreaker = WELCOME_MESSAGE;
       try {
-        const list = await communicationTrainingList();
-        const last = list
+        // Only the most recent finished session is needed to pick up the
+        // conversation, and that is always on the first page, so one bounded
+        // page is enough here.
+        const page = await communicationTrainingList();
+        const last = page.sessions
           .filter((s) => s.finalized_at && s.communication_score > 0)
           .sort(
             (a, b) =>

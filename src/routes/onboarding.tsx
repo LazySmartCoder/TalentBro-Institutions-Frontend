@@ -1,13 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type * as Tesseract from "tesseract.js";
 import {
   ArrowRight,
@@ -48,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LogoutConfirmDialog } from "@/components/logout-confirm";
+import { TagInput } from "@/components/tb/tag-input";
 
 const title = "Onboarding | TalentBro";
 const description =
@@ -140,6 +133,7 @@ type Draft = {
   certifications: string[];
   projects: string[];
   internships: string[];
+  extracurricular_activities: string[];
   preferred_roles: string[];
   preferred_locations: string[];
   expected_ctc: string;
@@ -167,6 +161,7 @@ const EMPTY_DRAFT: Draft = {
   certifications: [],
   projects: [],
   internships: [],
+  extracurricular_activities: [],
   preferred_roles: [],
   preferred_locations: [],
   expected_ctc: "",
@@ -235,6 +230,7 @@ function draftFromProfile(p: CandidateProfile | null, accountName?: string): Dra
     certifications: toStrList(p.certifications),
     projects: toStrList(p.projects),
     internships: toStrList(p.internships),
+    extracurricular_activities: toStrList(p.extracurricular_activities),
     preferred_roles: toStrList(p.preferred_roles),
     preferred_locations: toStrList(p.preferred_locations),
     expected_ctc: p.expected_ctc != null ? String(p.expected_ctc) : "",
@@ -290,7 +286,7 @@ const STEPS = [
   },
   {
     id: "experience",
-    title: "Projects & internships",
+    title: "Projects, internships & activities",
     subtitle: "The work you've done catches every recruiter's eye. Add quick one-liners for now.",
     icon: Briefcase,
   },
@@ -332,95 +328,6 @@ function Field({
         {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       {children}
-      {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function TagInput({
-  id,
-  label,
-  placeholder,
-  hint,
-  value,
-  onChange,
-  disabled,
-}: {
-  id: string;
-  label: string;
-  placeholder?: string;
-  hint?: string;
-  value: string[];
-  onChange: (next: string[]) => void;
-  disabled?: boolean;
-}) {
-  const [text, setText] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function commit() {
-    const parts = text
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parts.length) {
-      onChange([
-        ...value,
-        ...parts.filter((p) => !value.some((v) => v.toLowerCase() === p.toLowerCase())),
-      ]);
-    }
-    setText("");
-  }
-
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      commit();
-    } else if (e.key === "Backspace" && !text && value.length > 0) {
-      onChange(value.slice(0, -1));
-    }
-  }
-
-  function removeAt(idx: number) {
-    onChange(value.filter((_, i) => i !== idx));
-  }
-
-  return (
-    <div>
-      <label htmlFor={id} className={labelClass}>
-        {label}
-      </label>
-      <div className="rounded-xl border border-input bg-card px-3 py-2.5 focus-within:ring-2 focus-within:ring-ring/25">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {value.map((item, idx) => (
-            <span
-              key={`${item}-${idx}`}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 pl-2.5 pr-1 py-1 text-[11px] font-medium"
-            >
-              {item}
-              <button
-                type="button"
-                aria-label={`Remove ${item}`}
-                onClick={() => removeAt(idx)}
-                disabled={disabled}
-                className="grid size-4 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground disabled:cursor-not-allowed"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          ))}
-          <input
-            ref={inputRef}
-            id={id}
-            value={text}
-            disabled={disabled}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={() => commit()}
-            placeholder={value.length === 0 ? placeholder : "Add another…"}
-            className="min-w-32 flex-1 border-0 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed"
-          />
-        </div>
-      </div>
       {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -1027,6 +934,7 @@ function OnboardingPage() {
       certifications: data.certifications,
       projects: data.projects,
       internships: data.internships,
+      extracurricular_activities: data.extracurricular_activities,
       preferred_roles: data.preferred_roles,
       preferred_locations: data.preferred_locations,
       expected_ctc: data.expected_ctc.trim() ? Number(data.expected_ctc) : null,
@@ -1349,6 +1257,14 @@ function OnboardingPage() {
               hint="Press Enter to add each internship."
               value={data.internships}
               onChange={(next) => set("internships", next)}
+            />
+            <TagInput
+              id="extracurricular_activities"
+              label="Extracurricular activities"
+              placeholder="e.g. Debate club, Smart India Hackathon, NSS volunteer"
+              hint="Optional — press Enter to add each club, event or activity."
+              value={data.extracurricular_activities}
+              onChange={(next) => set("extracurricular_activities", next)}
             />
           </div>
         );

@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { BarChart3, ChevronRight, Clock, Loader2, Mic, TrendingUp, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { communicationTrainingList, type CommunicationTrainingSession } from "@/lib/api";
+import { usePagedHistoryList, type PracticeRollupRow } from "@/lib/paged-history";
 
 const title = "TalentBro | Communication Training History";
 const description =
@@ -57,24 +57,31 @@ function formatDate(value: string | null | undefined): string {
 
 function HistoryPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError, refetch } = useQuery({
+  // Paged: sessions arrive a page at a time and the list grows on scroll.
+  const {
+    sessions: data,
+    summary,
+    listEnd,
+    isPending: isLoading,
+    isError,
+    refetch,
+    isFetchingNextPage,
+  } = usePagedHistoryList<CommunicationTrainingSession, PracticeRollupRow>({
     queryKey: ["communication-training-history"],
     queryFn: communicationTrainingList,
-    staleTime: 30_000,
   });
 
-  // Overall progress across every analysed session (newest-first from the API).
-  const analyzed = (data ?? []).filter(
-    (s) => s.finalized_at !== null && (s.communication_score ?? 0) > 0,
-  );
-  const total = analyzed.length;
-  const scores = analyzed.map((s) => s.communication_score ?? 0);
-  const overall = total ? Math.round(scores.reduce((sum, v) => sum + v, 0) / total) : 0;
-  const best = total ? Math.max(...scores) : 0;
-  const latest = total ? (scores[0] ?? 0) : 0; // newest first in the list
-  const first = total ? (scores[scores.length - 1] ?? 0) : 0;
+  // Overall progress comes from the server's whole-record summary, not from the
+  // rows loaded so far, so the averages and the first-to-latest trend describe
+  // every session instead of shifting as the reader scrolls.
+  const total = summary?.analyzed_count ?? 0;
+  const overall = summary?.overall ?? 0;
+  const best = summary?.best ?? 0;
+  const latest = summary?.latest ?? 0;
+  const first = summary?.first ?? 0;
   const improvement = latest - first;
   const level = commLevel(overall);
+  const lastPracticedAt = summary?.last_practiced_at ?? null;
 
   const formatScore = (v: number) => `${v}%`;
 
@@ -116,7 +123,7 @@ function HistoryPage() {
           </div>
         )}
 
-        {!isLoading && !isError && (data ?? []).length === 0 && (
+        {!isLoading && !isError && data.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card/40 px-6 py-20 text-center">
             <Mic className="size-10 text-muted-foreground" />
             <h2 className="mt-4 text-lg font-semibold">No practice sessions yet</h2>
@@ -169,7 +176,7 @@ function HistoryPage() {
                       Last practiced
                     </p>
                     <p className="mt-1 text-[11px] font-medium leading-tight text-muted-foreground">
-                      {formatDate(analyzed[0]?.finalized_at)}
+                      {formatDate(lastPracticedAt)}
                     </p>
                   </div>
                 </div>
@@ -218,9 +225,9 @@ function HistoryPage() {
               </p>
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 {METRICS.map((m, i) => {
-                  const value = Math.round(
-                    analyzed.reduce((sum, s) => sum + (Number(s[m.key]) || 0), 0) / total,
-                  );
+                  // Whole-record average from the server, for the same reason as
+                  // the score figures above.
+                  const value = summary?.averages[m.key] ?? 0;
                   return (
                     <div key={m.key}>
                       <div className="mb-1 flex items-center justify-between text-xs">
@@ -241,9 +248,9 @@ function HistoryPage() {
           </div>
         )}
 
-        {!isLoading && !isError && (data ?? []).length > 0 && (
+        {!isLoading && !isError && data.length > 0 && (
           <div className="grid gap-3">
-            {(data ?? []).map((session) => (
+            {data.map((session) => (
               <SessionCard
                 key={session.id}
                 session={session}
@@ -255,6 +262,14 @@ function HistoryPage() {
                 }
               />
             ))}
+
+            {/* Once this row scrolls into view the reader has seen everything so
+                far, so the next page goes out and the spinner waits here. */}
+            <div ref={listEnd} aria-hidden className="flex justify-center py-4">
+              {isFetchingNextPage ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : null}
+            </div>
           </div>
         )}
       </div>

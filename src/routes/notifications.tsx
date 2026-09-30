@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,14 +23,16 @@ import {
   createNotification,
   deleteNotification,
   getDrives,
-  getNotifications,
+  getNotificationPage,
   markNotificationsRead,
   me,
   type NotificationItem,
+  type NotificationPage,
   type NotificationSender,
   type PlacementDrive,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { usePagedScroll } from "@/lib/use-paged-scroll";
 import { GateLoading, GateError } from "@/components/load-state";
 
 const title = "TalentBro | Notifications";
@@ -62,32 +64,119 @@ const SENDER_ICONS: Record<NotificationSender, typeof Building2> = {
   "TalentBro Platform": Sparkles,
 };
 
+/**
+ * The same paging pattern the self-training history screens use: the feed is
+ * pulled 50 rows at a time, the scroll sentinel appends the next page, and the
+ * two inbox filters run on the server before slicing so a 50-row window never
+ * hides matching rows that live on a later page. `unread` is always the whole
+ * feed's count, so the bell badge and subtitle stay truthful no matter how far
+ * down the reader has scrolled.
+ */
+const NOTIFICATION_PAGE_SIZE = 50;
+
+function usePagedNotifications({
+  sender,
+  onlyUnread,
+}: {
+  sender: "All" | NotificationSender;
+  onlyUnread: boolean;
+}) {
+  const [items, setItems] = useState<NotificationItem[] | null>(null);
+  const [unread, setUnread] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const offsetRef = useRef(0);
+  const fetchingMore = useRef(false);
+  // Read through a ref so the page-request closures never force the scroll
+  // sentinel to tear down and rebuild when the filter chips change.
+  const filtersRef = useRef({ sender, onlyUnread });
+  filtersRef.current = { sender, onlyUnread };
+
+  const pageRequest = useCallback(() => {
+    const { sender: s, onlyUnread: uo } = filtersRef.current;
+    return {
+      limit: NOTIFICATION_PAGE_SIZE,
+      offset: offsetRef.current,
+      ...(s === "All" ? {} : { sender: s }),
+      unreadOnly: uo,
+    };
+  }, []);
+
+  const applyFirstPage = useCallback((page: NotificationPage) => {
+    setItems(page.notifications);
+    setUnread(page.unread);
+    setHasMore(page.has_more);
+    offsetRef.current = page.notifications.length;
+  }, []);
+
+  /** Replace the window with the newest page. Call whenever filters change. */
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      offsetRef.current = 0;
+      applyFirstPage(await getNotificationPage(pageRequest()));
+    } catch (err) {
+      setItems([]);
+      setUnread(0);
+      setHasMore(false);
+      offsetRef.current = 0;
+      setLoadError(err instanceof Error ? err.message : "Could not load announcements.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pageRequest, applyFirstPage]);
+
+  const loadMore = useCallback(async () => {
+    if (fetchingMore.current) return;
+    fetchingMore.current = true;
+    setIsLoadingMore(true);
+    try {
+      const page = await getNotificationPage(pageRequest());
+      setItems((prev) => (prev ? [...prev, ...page.notifications] : page.notifications));
+      setHasMore(page.has_more);
+      offsetRef.current += page.notifications.length;
+    } catch {
+      // Keep the loaded window intact; the sentinel retries when in view again.
+    } finally {
+      fetchingMore.current = false;
+      setIsLoadingMore(false);
+    }
+  }, [pageRequest]);
+
+  const onSentinel = useCallback(() => {
+    if (hasMore && !isLoadingMore) void loadMore();
+  }, [hasMore, isLoadingMore, loadMore]);
+
+  const listEnd = usePagedScroll(onSentinel, hasMore);
+
+  return {
+    items,
+    unread,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadError,
+    setItems,
+    setUnread,
+    refresh,
+    listEnd,
+  };
+}
+
 function StudentNotifications() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<NotificationItem[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [sender, setSender] = useState<"All" | NotificationSender>("All");
   const [unreadOnly, setUnreadOnly] = useState(false);
 
+  const { items, unread, isLoadingMore, loadError, setItems, setUnread, refresh, listEnd } =
+    usePagedNotifications({ sender, onlyUnread: unreadOnly });
+
   useEffect(() => {
-    let cancelled = false;
-    setLoadError(null);
-    getNotifications()
-      .then((data) => {
-        if (cancelled) return;
-        setItems(data.notifications);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        // No demo feed on failure: an honest "couldn't load" beats announcements
-        // the placement cell never actually sent.
-        setItems([]);
-        setLoadError(err instanceof Error ? err.message : "Could not load announcements.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void refresh();
+  }, [sender, unreadOnly, refresh]);
 
   const list = useMemo(() => {
     const filtered = (items ?? []).filter(
@@ -101,12 +190,11 @@ function StudentNotifications() {
       );
   }, [items, sender, unreadOnly]);
 
-  const unread = (items ?? []).filter((n) => !n.read).length;
-
   const senders: ("All" | NotificationSender)[] = ["All", "Placement Cell", "TalentBro Platform"];
 
   function markAllRead() {
     setItems((p) => (p ?? []).map((n) => ({ ...n, read: true })));
+    setUnread(0);
     void markNotificationsRead(undefined, true).catch(() => {});
   }
 
@@ -114,6 +202,7 @@ function StudentNotifications() {
     const target = (items ?? []).find((n) => n.id === id);
     if (!target || target.read) return;
     setItems((p) => (p ?? []).map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setUnread((u) => Math.max(0, u - 1));
     void markNotificationsRead(id).catch(() => {});
   }
 
@@ -264,6 +353,15 @@ function StudentNotifications() {
               </li>
             );
           })}
+          {list.length > 0 && (
+            <li aria-hidden className="flex justify-center py-4">
+              <div ref={listEnd}>
+                {isLoadingMore ? (
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                ) : null}
+              </div>
+            </li>
+          )}
           {list.length === 0 && (
             <li className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card px-5 py-16 text-center">
               <BellOff className="size-5 text-muted-foreground" />
@@ -320,7 +418,7 @@ function buildReminders(drives: PlacementDrive[]): Reminder[] {
         day: String(date.getDate()),
         month: date.toLocaleDateString("en-IN", { month: "short" }),
         title: `${drive.company_name} — ${kind}`,
-        meta: `${drive.status} · ${drive.roles.slice(0, 2).join(", ") || drive.industry}`,
+        meta: `${drive.status} · ${drive.role || drive.industry}`,
       });
     };
     add(drive.campus_visit_date, "Campus visit");
@@ -330,9 +428,6 @@ function buildReminders(drives: PlacementDrive[]): Reminder[] {
 }
 
 function AdminNotifications() {
-  const [items, setItems] = useState<NotificationItem[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
   const [drives, setDrives] = useState<PlacementDrive[]>([]);
   const [sender, setSender] = useState<"All" | NotificationSender>("All");
   const [q, setQ] = useState("");
@@ -341,19 +436,15 @@ function AdminNotifications() {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "", important: false, pinned: false });
 
-  const load = useCallback(() => {
+  const { items, unread, isLoadingMore, loadError, setItems, setUnread, refresh, listEnd } =
+    usePagedNotifications({ sender, onlyUnread: unreadOnly });
+
+  useEffect(() => {
+    void refresh();
+  }, [sender, unreadOnly, refresh]);
+
+  useEffect(() => {
     let cancelled = false;
-    setLoadError(null);
-    getNotifications()
-      .then((data) => {
-        if (cancelled) return;
-        setItems(data.notifications);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setItems([]);
-        setLoadError(err instanceof Error ? err.message : "Could not load notifications.");
-      });
     getDrives()
       .then((data) => {
         if (cancelled) return;
@@ -368,8 +459,6 @@ function AdminNotifications() {
     };
   }, []);
 
-  useEffect(() => load(), [load, reloadKey]);
-
   const list = useMemo(
     () =>
       (items ?? []).filter(
@@ -381,7 +470,6 @@ function AdminNotifications() {
     [items, q, sender, unreadOnly],
   );
 
-  const unread = (items ?? []).filter((n) => !n.read).length;
   const reminders = useMemo(() => buildReminders(drives), [drives]);
   const driveAlerts = useMemo(() => {
     const now = Date.now();
@@ -394,6 +482,7 @@ function AdminNotifications() {
 
   function markAllRead() {
     setItems((p) => (p ?? []).map((n) => ({ ...n, read: true })));
+    setUnread(0);
     markNotificationsRead(undefined, true)
       .then(() => toast.success("All notifications marked as read"))
       .catch((err: unknown) =>
@@ -403,8 +492,9 @@ function AdminNotifications() {
 
   function markRead(id: string) {
     setItems((p) => (p ?? []).map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setUnread((u) => Math.max(0, u - 1));
     void markNotificationsRead(id).catch(() => {
-      load();
+      refresh();
     });
   }
 
@@ -595,10 +685,7 @@ function AdminNotifications() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-destructive/5 px-5 py-3">
                 <p className="text-xs text-destructive">{loadError}</p>
                 <button
-                  onClick={() => {
-                    setItems(null);
-                    setReloadKey((n) => n + 1);
-                  }}
+                  onClick={() => void refresh()}
                   className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
                 >
                   Try again
@@ -641,6 +728,15 @@ function AdminNotifications() {
                   </div>
                 </li>
               ))}
+              {list.length > 0 && (
+                <li aria-hidden className="flex justify-center px-5 py-4">
+                  <div ref={listEnd}>
+                    {isLoadingMore ? (
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    ) : null}
+                  </div>
+                </li>
+              )}
               {list.length === 0 && (
                 <li className="flex flex-col items-center gap-2 px-5 py-16 text-center">
                   <BellOff className="size-5 text-muted-foreground" />

@@ -22,6 +22,7 @@ import { Route as CommunicationTrainingRouteImport } from './routes/communicatio
 import { Route as CommunicationTrainingHistoryRouteImport } from './routes/communication-training-history'
 import { Route as CommunicationTrainingTipsRouteImport } from './routes/communication-training-tips'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as CompanyDrivesRouteImport } from './routes/company-drives'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as DailyTargetsRouteImport } from './routes/daily-targets'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -58,6 +59,7 @@ import { Route as TacRouteImport } from './routes/tac'
 import { Route as TechnicalTrainingRouteImport } from './routes/technical-training'
 import { Route as TutorialsRouteImport } from './routes/tutorials'
 import { Route as CommunicationTrainingReportSessionIdRouteImport } from './routes/communication-training-report.$sessionId'
+import { Route as CompanyDrivesCompanyIdRouteImport } from './routes/company-drives_.$companyId'
 import { Route as EnglishTrainingReportSessionIdRouteImport } from './routes/english-training-report.$sessionId'
 import { Route as GdReportGdIdRouteImport } from './routes/gd-report.$gdId'
 import { Route as InterviewAnalysisInterviewIdRouteImport } from './routes/interview-analysis.$interviewId'
@@ -129,6 +131,11 @@ const CommunicationTrainingTipsRoute =
 const CompaniesRoute = CompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyDrivesRoute = CompanyDrivesRouteImport.update({
+  id: '/company-drives',
+  path: '/company-drives',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoursesRoute = CoursesRouteImport.update({
@@ -312,6 +319,11 @@ const CommunicationTrainingReportSessionIdRoute =
     path: '/communication-training-report/$sessionId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CompanyDrivesCompanyIdRoute = CompanyDrivesCompanyIdRouteImport.update({
+  id: '/company-drives_/$companyId',
+  path: '/company-drives/$companyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EnglishTrainingReportSessionIdRoute =
   EnglishTrainingReportSessionIdRouteImport.update({
     id: '/english-training-report/$sessionId',
@@ -355,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
   '/companies': typeof CompaniesRoute
+  '/company-drives': typeof CompanyDrivesRoute
   '/courses': typeof CoursesRoute
   '/daily-targets': typeof DailyTargetsRoute
   '/dashboard': typeof DashboardRoute
@@ -391,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/technical-training': typeof TechnicalTrainingRoute
   '/tutorials': typeof TutorialsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
+  '/company-drives/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
   '/gd-report/$gdId': typeof GdReportGdIdRoute
   '/interview-analysis/$interviewId': typeof InterviewAnalysisInterviewIdRoute
@@ -411,6 +425,7 @@ export interface FileRoutesByTo {
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
   '/companies': typeof CompaniesRoute
+  '/company-drives': typeof CompanyDrivesRoute
   '/courses': typeof CoursesRoute
   '/daily-targets': typeof DailyTargetsRoute
   '/dashboard': typeof DashboardRoute
@@ -447,6 +462,7 @@ export interface FileRoutesByTo {
   '/technical-training': typeof TechnicalTrainingRoute
   '/tutorials': typeof TutorialsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
+  '/company-drives/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
   '/gd-report/$gdId': typeof GdReportGdIdRoute
   '/interview-analysis/$interviewId': typeof InterviewAnalysisInterviewIdRoute
@@ -468,6 +484,7 @@ export interface FileRoutesById {
   '/communication-training-history': typeof CommunicationTrainingHistoryRoute
   '/communication-training-tips': typeof CommunicationTrainingTipsRoute
   '/companies': typeof CompaniesRoute
+  '/company-drives': typeof CompanyDrivesRoute
   '/courses': typeof CoursesRoute
   '/daily-targets': typeof DailyTargetsRoute
   '/dashboard': typeof DashboardRoute
@@ -504,6 +521,7 @@ export interface FileRoutesById {
   '/technical-training': typeof TechnicalTrainingRoute
   '/tutorials': typeof TutorialsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
+  '/company-drives_/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
   '/gd-report/$gdId': typeof GdReportGdIdRoute
   '/interview-analysis/$interviewId': typeof InterviewAnalysisInterviewIdRoute
@@ -526,6 +544,7 @@ export interface FileRouteTypes {
     | '/communication-training-history'
     | '/communication-training-tips'
     | '/companies'
+    | '/company-drives'
     | '/courses'
     | '/daily-targets'
     | '/dashboard'
@@ -562,6 +581,7 @@ export interface FileRouteTypes {
     | '/technical-training'
     | '/tutorials'
     | '/communication-training-report/$sessionId'
+    | '/company-drives/$companyId'
     | '/english-training-report/$sessionId'
     | '/gd-report/$gdId'
     | '/interview-analysis/$interviewId'
@@ -582,6 +602,7 @@ export interface FileRouteTypes {
     | '/communication-training-history'
     | '/communication-training-tips'
     | '/companies'
+    | '/company-drives'
     | '/courses'
     | '/daily-targets'
     | '/dashboard'
@@ -618,6 +639,7 @@ export interface FileRouteTypes {
     | '/technical-training'
     | '/tutorials'
     | '/communication-training-report/$sessionId'
+    | '/company-drives/$companyId'
     | '/english-training-report/$sessionId'
     | '/gd-report/$gdId'
     | '/interview-analysis/$interviewId'
@@ -638,6 +660,7 @@ export interface FileRouteTypes {
     | '/communication-training-history'
     | '/communication-training-tips'
     | '/companies'
+    | '/company-drives'
     | '/courses'
     | '/daily-targets'
     | '/dashboard'
@@ -674,6 +697,7 @@ export interface FileRouteTypes {
     | '/technical-training'
     | '/tutorials'
     | '/communication-training-report/$sessionId'
+    | '/company-drives_/$companyId'
     | '/english-training-report/$sessionId'
     | '/gd-report/$gdId'
     | '/interview-analysis/$interviewId'
@@ -695,6 +719,7 @@ export interface RootRouteChildren {
   CommunicationTrainingHistoryRoute: typeof CommunicationTrainingHistoryRoute
   CommunicationTrainingTipsRoute: typeof CommunicationTrainingTipsRoute
   CompaniesRoute: typeof CompaniesRoute
+  CompanyDrivesRoute: typeof CompanyDrivesRoute
   CoursesRoute: typeof CoursesRoute
   DailyTargetsRoute: typeof DailyTargetsRoute
   DashboardRoute: typeof DashboardRoute
@@ -731,6 +756,7 @@ export interface RootRouteChildren {
   TechnicalTrainingRoute: typeof TechnicalTrainingRoute
   TutorialsRoute: typeof TutorialsRoute
   CommunicationTrainingReportSessionIdRoute: typeof CommunicationTrainingReportSessionIdRoute
+  CompanyDrivesCompanyIdRoute: typeof CompanyDrivesCompanyIdRoute
   EnglishTrainingReportSessionIdRoute: typeof EnglishTrainingReportSessionIdRoute
   GdReportGdIdRoute: typeof GdReportGdIdRoute
   InterviewAnalysisInterviewIdRoute: typeof InterviewAnalysisInterviewIdRoute
@@ -829,6 +855,13 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/companies'
       preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company-drives': {
+      id: '/company-drives'
+      path: '/company-drives'
+      fullPath: '/company-drives'
+      preLoaderRoute: typeof CompanyDrivesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/courses': {
@@ -1083,6 +1116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunicationTrainingReportSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/company-drives_/$companyId': {
+      id: '/company-drives_/$companyId'
+      path: '/company-drives/$companyId'
+      fullPath: '/company-drives/$companyId'
+      preLoaderRoute: typeof CompanyDrivesCompanyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/english-training-report/$sessionId': {
       id: '/english-training-report/$sessionId'
       path: '/english-training-report/$sessionId'
@@ -1135,6 +1175,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommunicationTrainingHistoryRoute: CommunicationTrainingHistoryRoute,
   CommunicationTrainingTipsRoute: CommunicationTrainingTipsRoute,
   CompaniesRoute: CompaniesRoute,
+  CompanyDrivesRoute: CompanyDrivesRoute,
   CoursesRoute: CoursesRoute,
   DailyTargetsRoute: DailyTargetsRoute,
   DashboardRoute: DashboardRoute,
@@ -1172,6 +1213,7 @@ const rootRouteChildren: RootRouteChildren = {
   TutorialsRoute: TutorialsRoute,
   CommunicationTrainingReportSessionIdRoute:
     CommunicationTrainingReportSessionIdRoute,
+  CompanyDrivesCompanyIdRoute: CompanyDrivesCompanyIdRoute,
   EnglishTrainingReportSessionIdRoute: EnglishTrainingReportSessionIdRoute,
   GdReportGdIdRoute: GdReportGdIdRoute,
   InterviewAnalysisInterviewIdRoute: InterviewAnalysisInterviewIdRoute,

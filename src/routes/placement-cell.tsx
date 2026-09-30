@@ -5,30 +5,28 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { Building, CalendarRange, Clock, Mail, MapPin, Phone, Users } from "lucide-react";
+import { Building, CalendarRange, Clock, Mail, MapPin, Phone, UserPlus, Users } from "lucide-react";
 import { Shell } from "@/components/dash/Shell";
-import {
-  Kpi,
-  Panel,
-  Pill,
-  chartColors,
-  chartCursor,
-  chartFill,
-  chartTooltip,
-} from "@/components/dash/bits";
+import { AddMemberDialog } from "@/components/dash/AddMemberDialog";
+import { Kpi, Panel, Pill, chartColors, chartCursor, chartTooltip } from "@/components/dash/bits";
 import { GateError, GateLoading } from "@/components/load-state";
-import { getInstitutionOverview, type InstitutionOverview } from "@/lib/api";
+import {
+  getInstitutionOverview,
+  getPlacementCellMembers,
+  type InstitutionOverview,
+  type PlacementCellMember,
+} from "@/lib/api";
 
 // Everything on this page is read from /api/institution/overview/ for the signed
-// in staff member's own college — the funnel, the department stats, the office
-// contact and the recruiter count. There is no local seed data to drift from
-// the database.
+// in staff member's own college — the department stats, the office contact and
+// the recruiter count. There is no local seed data to drift from the database.
+// The pipeline funnel lives on /students instead, where it tracks the filters
+// the placement cell is actually looking at.
 const RESPONSIBILITIES = [
   "Drive scheduling & student shortlisting",
   "Company onboarding & campus visit management",
@@ -62,12 +60,12 @@ export const Route = createFileRoute("/placement-cell")({
       {
         name: "description",
         content:
-          "The Training & Placement Cell behind your college's drives — pipeline momentum, department analytics and the office your students can reach.",
+          "The Training & Placement Cell behind your college's drives — department analytics, the placement office and who staffs it.",
       },
       { property: "og:title", content: "Placement Cell — TalentBro" },
       {
         property: "og:description",
-        content: "Placement pipeline momentum, department analytics and the placement office.",
+        content: "Department analytics and the placement office behind your college's drives.",
       },
     ],
   }),
@@ -78,6 +76,11 @@ function PlacementCellPage() {
   const [overview, setOverview] = useState<InstitutionOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // The roster is only needed to know whether this account may add members, and
+  // to fold a newly-added colleague in without a round trip.
+  const [members, setMembers] = useState<PlacementCellMember[] | null>(null);
+  const [canAddMembers, setCanAddMembers] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +92,27 @@ function PlacementCellPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Could not load the placement cell.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPlacementCellMembers()
+      .then((data) => {
+        if (cancelled) return;
+        setMembers(data.members);
+        setCanAddMembers(data.can_add_members);
+      })
+      .catch(() => {
+        // Not fatal: the page is about the college, and the server independently
+        // refuses the add if this account is not a Master. Hiding the button is
+        // the right failure mode.
+        if (cancelled) return;
+        setMembers(null);
+        setCanAddMembers(false);
       });
     return () => {
       cancelled = true;
@@ -112,9 +136,7 @@ function PlacementCellPage() {
   const institution = overview.institution;
   const client = overview.client;
   const kpis = overview.kpis;
-  const funnel = overview.funnel;
   const depts = overview.departments.map((d) => ({ ...d, avgCtc: d.avg_expected_ctc }));
-  const funnelMax = Math.max(1, ...funnel.map((f) => f.value));
   const placed = Math.max(kpis.placed, 1);
   const offerRate = Math.round((kpis.placed / placed) * 100);
 
@@ -132,10 +154,20 @@ function PlacementCellPage() {
       title="Placement Cell"
       subtitle={`${institution.placement_department_name}, ${institution.name}`}
       actions={
-        <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium">
-          <Building className="size-3.5 text-muted-foreground" />
-          {institution.institution_type || "Institution"}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium">
+            <Building className="size-3.5 text-muted-foreground" />
+            {institution.institution_type || "Institution"}
+          </span>
+          {canAddMembers && (
+            <button
+              onClick={() => setAddingMember(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+            >
+              <UserPlus className="size-3.5" /> Add Member
+            </button>
+          )}
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -166,33 +198,6 @@ function PlacementCellPage() {
           hint={`${kpis.unverified} still pending`}
         />
       </div>
-
-      <Panel
-        className="mt-4"
-        title="Placement Momentum"
-        description="Students at each stage of this season's pipeline"
-      >
-        {funnel.length > 0 ? (
-          <ResponsiveContainer width="100%" height={268}>
-            <BarChart data={funnel} margin={{ left: -18, right: 6, top: 6 }}>
-              <CartesianGrid stroke={chartColors.grid} vertical={false} />
-              <XAxis dataKey="stage" tickLine={false} axisLine={false} fontSize={11} />
-              <YAxis tickLine={false} axisLine={false} fontSize={11} domain={[0, funnelMax]} />
-              <Tooltip contentStyle={chartTooltip} cursor={chartCursor} />
-              <ChartBar dataKey="value" name="Students" radius={[4, 4, 0, 0]} barSize={44}>
-                {funnel.map((d, i) => (
-                  <Cell key={d.stage} fill={chartFill(i)} />
-                ))}
-                <LabelList dataKey="value" position="top" fontSize={11} fill="oklch(0.35 0 0)" />
-              </ChartBar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            No pipeline activity recorded yet.
-          </p>
-        )}
-      </Panel>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Panel
@@ -350,6 +355,21 @@ function PlacementCellPage() {
             ))}
           </div>
         </Panel>
+      )}
+
+      {addingMember && (
+        <AddMemberDialog
+          onClose={() => setAddingMember(false)}
+          onAdded={(member) =>
+            setMembers((prev) =>
+              prev
+                ? [...prev.filter((m) => m.id !== member.id), member].sort((a, b) =>
+                    a.full_name.localeCompare(b.full_name),
+                  )
+                : [member],
+            )
+          }
+        />
       )}
     </Shell>
   );

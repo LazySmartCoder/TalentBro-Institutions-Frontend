@@ -1,9 +1,33 @@
 import { setCollegeName } from "@/lib/branding";
+import type { GdRollupRow, HistoryPage, PracticeRollupRow } from "@/lib/paged-history";
+
+/**
+ * Build the `?limit=&offset=` suffix for a paged history request, including the
+ * leading `?` and including nothing at all when neither is given, so a call
+ * without arguments still hits the endpoint's own default page.
+ */
+function historyQuery({ limit, offset }: { limit?: number; offset?: number }): string {
+  const search = new URLSearchParams();
+  if (typeof limit === "number") search.set("limit", String(limit));
+  if (typeof offset === "number") search.set("offset", String(offset));
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+export type { HistoryPage, PracticeRollupRow };
 
 const API_BASE = ((import.meta.env["VITE_API_URL"] as string | undefined) ?? "").replace(
   /\/+$/,
   "",
 );
+
+// Absolute URL for a backend path, for the cases the browser has to follow
+// itself rather than go through `apiFetch` — an <a download> pointing at a
+// generated file, for instance. The session cookie rides along on a normal
+// navigation, so an authenticated endpoint works as a plain link.
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
 
 // Every account has exactly one Role: Student (candidate) or Institution Staff.
 // Note: candidates and students are the same in this project.
@@ -295,9 +319,14 @@ export type GdTrainingRecord = {
 
 // Every GD round a student completes is saved on the backend; list them
 // newest first for the history page.
-export async function gdList(): Promise<GdTrainingRecord[]> {
-  const data = await apiFetch<{ sessions: GdTrainingRecord[] }>("/api/gd/history/");
-  return data.sessions ?? [];
+export async function gdList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<GdTrainingRecord, GdRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<GdTrainingRecord, GdRollupRow>>(`/api/gd/history/${search}`);
 }
 
 // Full detail (roster, AI summary and transcript) for one saved GD round.
@@ -470,11 +499,16 @@ export type CommunicationTrainingSession = {
   transcript?: { role: "user" | "assistant"; content: string; created_at: string }[];
 };
 
-export async function communicationTrainingList(): Promise<CommunicationTrainingSession[]> {
-  const payload = await apiFetch<{ sessions: CommunicationTrainingSession[] }>(
-    "/api/chat/communication/history/",
+export async function communicationTrainingList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<CommunicationTrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<CommunicationTrainingSession, PracticeRollupRow>>(
+    `/api/chat/communication/history/${search}`,
   );
-  return payload.sessions ?? [];
 }
 
 export async function communicationTrainingDetail(
@@ -519,11 +553,16 @@ export type EnglishTrainingSession = {
   transcript?: { role: "user" | "assistant"; content: string; created_at: string }[];
 };
 
-export async function englishTrainingList(): Promise<EnglishTrainingSession[]> {
-  const payload = await apiFetch<{ sessions: EnglishTrainingSession[] }>(
-    "/api/speaking-skills/history/",
+export async function englishTrainingList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<EnglishTrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<EnglishTrainingSession, PracticeRollupRow>>(
+    `/api/speaking-skills/history/${search}`,
   );
-  return payload.sessions ?? [];
 }
 
 export async function englishTrainingSessionDetail(
@@ -727,9 +766,16 @@ export function aplrSkipKeepalive(sessionId: string): void {
   }
 }
 
-export async function aplrList(): Promise<APLRTrainingSession[]> {
-  const data = await apiFetch<{ sessions: APLRTrainingSession[] }>("/api/aplr/history/");
-  return data.sessions ?? [];
+export async function aplrList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<APLRTrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<APLRTrainingSession, PracticeRollupRow>>(
+    `/api/aplr/history/${search}`,
+  );
 }
 
 export async function aplrDetail(sessionId: string): Promise<APLRTrainingSession> {
@@ -833,9 +879,16 @@ export function technicalSkipKeepalive(sessionId: string): void {
   }
 }
 
-export async function technicalList(): Promise<TechnicalTrainingSession[]> {
-  const data = await apiFetch<{ sessions: TechnicalTrainingSession[] }>("/api/technical/history/");
-  return data.sessions ?? [];
+export async function technicalList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<TechnicalTrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<TechnicalTrainingSession, PracticeRollupRow>>(
+    `/api/technical/history/${search}`,
+  );
 }
 
 export async function technicalDetail(sessionId: string): Promise<TechnicalTrainingSession> {
@@ -943,9 +996,14 @@ export function dsaSkipKeepalive(sessionId: string): void {
   }
 }
 
-export async function dsaList(): Promise<DSATrainingSession[]> {
-  const data = await apiFetch<{ sessions: DSATrainingSession[] }>("/api/dsa/history/");
-  return data.sessions ?? [];
+export async function dsaList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<DSATrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<DSATrainingSession, PracticeRollupRow>>(`/api/dsa/history/${search}`);
 }
 
 export async function dsaDetail(sessionId: string): Promise<DSATrainingSession> {
@@ -1054,9 +1112,16 @@ export function basicMathSkipKeepalive(sessionId: string): void {
   }
 }
 
-export async function basicMathList(): Promise<BasicMathTrainingSession[]> {
-  const data = await apiFetch<{ sessions: BasicMathTrainingSession[] }>("/api/basic-math/history/");
-  return data.sessions ?? [];
+export async function basicMathList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<BasicMathTrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<BasicMathTrainingSession, PracticeRollupRow>>(
+    `/api/basic-math/history/${search}`,
+  );
 }
 
 export async function basicMathDetail(sessionId: string): Promise<BasicMathTrainingSession> {
@@ -1169,11 +1234,16 @@ export function situationalSkipKeepalive(sessionId: string): void {
   }
 }
 
-export async function situationalList(): Promise<SituationalTrainingSession[]> {
-  const data = await apiFetch<{ sessions: SituationalTrainingSession[] }>(
-    "/api/situational/history/",
+export async function situationalList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<SituationalTrainingSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<SituationalTrainingSession, PracticeRollupRow>>(
+    `/api/situational/history/${search}`,
   );
-  return data.sessions ?? [];
 }
 
 export async function situationalDetail(sessionId: string): Promise<SituationalTrainingSession> {
@@ -1304,9 +1374,27 @@ export async function ttsGenerateWithTimings(
   return { url, wordTimes };
 }
 
-export async function chatSessions(): Promise<ChatSessionSummary[]> {
-  const data = await apiFetch<{ sessions: ChatSessionSummary[] }>("/api/chat/sessions/");
-  return data.sessions;
+/**
+ * One page of chat sessions, newest first. `has_more` is the server telling us
+ * whether another page exists, so the client never has to guess from the page
+ * size (a final page can be short and still have more behind it).
+ */
+export type ChatSessionPage = {
+  sessions: ChatSessionSummary[];
+  has_more: boolean;
+  offset: number;
+  limit: number;
+};
+
+export async function chatSessions(
+  params: { limit?: number; offset?: number } = {},
+): Promise<ChatSessionPage> {
+  const { limit, offset } = params;
+  const search = new URLSearchParams();
+  if (typeof limit === "number") search.set("limit", String(limit));
+  if (typeof offset === "number") search.set("offset", String(offset));
+  const query = search.toString();
+  return apiFetch<ChatSessionPage>(`/api/chat/sessions/${query ? `?${query}` : ""}`);
 }
 
 export async function chatSessionDetail(id: string, before?: number | null): Promise<ChatSession> {
@@ -1457,6 +1545,8 @@ export type CandidateProfile = {
   certifications: string[];
   projects: unknown[];
   internships: unknown[];
+  /** Clubs, events and volunteering, edited as tags on the candidate's profile. */
+  extracurricular_activities: string[];
   preferred_roles: string[];
   preferred_locations: string[];
   preferred_language: string;
@@ -1549,6 +1639,30 @@ export async function updateProfile(
     // long timeout reserved for LLM-backed endpoints.
     timeoutMs: LONG_TIMEOUT_MS,
     body: JSON.stringify(body),
+  });
+}
+
+export type BuildResumeResult = {
+  ok: boolean;
+  linkedin_url: string;
+  /** The resume sections the server found in the scrape, by name. */
+  sections: string[];
+  logged: boolean;
+  /** Backend path of the generated PDF, to hand to the browser as a download. */
+  pdf_url: string;
+};
+
+// Ask the backend to scrape the candidate's LinkedIn profile, merge it with their
+// TalentBro profile, and render the result to a PDF. The LinkedIn URL is optional:
+// the backend falls back to the one already saved on the candidate's profile.
+export async function buildResume(linkedinUrl?: string): Promise<BuildResumeResult> {
+  await ensureCsrfCookie();
+  return apiFetch<BuildResumeResult>("/api/resume/build/", {
+    method: "POST",
+    // The server runs a full Apify scrape and renders a PDF, so allow well past
+    // the default timeout.
+    timeoutMs: LONG_TIMEOUT_MS,
+    body: JSON.stringify(linkedinUrl ? { linkedin_url: linkedinUrl } : {}),
   });
 }
 
@@ -1654,6 +1768,15 @@ export type MockInterviewSwot = {
   threats: string;
 };
 
+// One improvement area written by a single reviewing panelist (never Atlas,
+// who only hosts the session). Only panelists who sat on that interview and
+// actually produced a remark are sent.
+export type MockInterviewPanelistRemark = {
+  panelist: string;
+  name: string;
+  remark: string;
+};
+
 export type MockInterviewAnalysis = {
   id: string;
   company_name: string;
@@ -1665,6 +1788,7 @@ export type MockInterviewAnalysis = {
   scored_dimensions: number;
   total_dimensions: number;
   metrics: MockInterviewAnalysisMetric[];
+  improvements: MockInterviewPanelistRemark[];
   swot: MockInterviewSwot;
 };
 
@@ -1694,6 +1818,18 @@ export type MockInterviewStatsEntry = MockInterview & {
   } | null;
 };
 
+/**
+ * One scored interview, reduced to what the history charts need. Sent whole
+ * (never paged) because both the trend line and the skills radar describe the
+ * candidate's entire record and would otherwise change as they scroll.
+ */
+export type MockInterviewScoredPoint = {
+  company_name: string;
+  created_at: string;
+  score: number;
+  dimensions: Record<string, number>;
+};
+
 // The whole mock-interview record reduced to counts and means on the server.
 // Nothing in here is generated: opening the history never calls the model, and
 // every score it reports was written when the interview was finalised.
@@ -1710,10 +1846,21 @@ export type MockInterviewStats = {
     user_words: number;
     companies: number;
     roles: number;
+    /** Mean answer depth over finished interviews, or null when there are none. */
+    avg_depth: number | null;
   };
   tones: { positive: number; neutral: number; negative: number };
-  // Newest first.
+  /**
+   * One page of the "All interviews" list, newest first. The rollups beside it
+   * always describe the *whole* record; only this array is paged.
+   */
   interviews: MockInterviewStatsEntry[];
+  has_more: boolean;
+  total: number;
+  offset: number;
+  limit: number;
+  /** Whole record, oldest first. Feeds the trend chart and the skills radar. */
+  scored: MockInterviewScoredPoint[];
   by_company: {
     name: string;
     interviews: number;
@@ -1867,21 +2014,18 @@ export async function recordViolation(id: string): Promise<MockInterview> {
  * one is missing, which would spend model time and invent numbers the
  * candidate never earned. This one only ever reads what is already stored.
  */
-export async function mockInterviewStats(): Promise<MockInterviewStats> {
-  const data = await apiFetch<{
-    totals: MockInterviewStats["totals"];
-    tones: MockInterviewStats["tones"];
-    interviews: MockInterviewStatsEntry[];
-    by_company: MockInterviewStats["by_company"];
-    by_role: MockInterviewStats["by_role"];
-  }>("/api/interview/stats/");
-  return {
-    totals: data.totals,
-    tones: data.tones,
-    interviews: data.interviews,
-    by_company: data.by_company,
-    by_role: data.by_role,
-  };
+export async function mockInterviewStats(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<MockInterviewStats> {
+  const { limit, offset } = params;
+  const search = new URLSearchParams();
+  if (typeof limit === "number") search.set("limit", String(limit));
+  if (typeof offset === "number") search.set("offset", String(offset));
+  const query = search.toString();
+  return apiFetch<MockInterviewStats>(`/api/interview/stats/${query ? `?${query}` : ""}`);
 }
 
 export type NotificationSender = "Placement Cell" | "TalentBro Platform";
@@ -1899,11 +2043,41 @@ export type NotificationItem = {
   redirect_path: string;
 };
 
-export async function getNotifications(): Promise<{
+export type NotificationPage = {
   notifications: NotificationItem[];
   unread: number;
-}> {
-  return apiFetch<{ notifications: NotificationItem[]; unread: number }>("/api/notifications/");
+  total: number;
+  has_more: boolean;
+  offset: number;
+  limit: number;
+};
+
+export type NotificationFeedFilters = {
+  sender?: NotificationSender;
+  unreadOnly?: boolean;
+  limit?: number;
+  offset?: number;
+};
+
+export async function getNotificationPage(
+  filters: NotificationFeedFilters = {},
+): Promise<NotificationPage> {
+  const params = new URLSearchParams();
+  if (filters.sender) params.set("sender", filters.sender);
+  if (filters.unreadOnly) params.set("unread", "true");
+  if (filters.limit != null) params.set("limit", String(filters.limit));
+  if (filters.offset != null) params.set("offset", String(filters.offset));
+  const qs = params.toString();
+  return apiFetch<NotificationPage>(qs ? `/api/notifications/?${qs}` : "/api/notifications/");
+}
+
+/**
+ * The bare feed, used as a react-query `queryFn` by the dash `Shell` and the
+ * unread badge in `app-nav`, both of which only read `unread` (react-query
+ * passes the query context object as the argument, which this ignores).
+ */
+export function getNotifications(): Promise<{ notifications: NotificationItem[]; unread: number }> {
+  return getNotificationPage();
 }
 
 export async function markNotificationsRead(notificationId?: string, all = false): Promise<void> {
@@ -1938,34 +2112,40 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 
 export type DriveCompanyTier = "super_dream" | "dream" | "core" | "mass";
 
+// A registered recruiter. This is the standing relationship only - roles,
+// skills, dates, rounds, status and offer state belong to a PlacementDrive,
+// created when the company actually goes to hire.
+
+// One Gemini-written profile block. The shape is fixed by the backend
+// (Company.AI_INFO_KEYS) and every block carries all four keys.
+export type CompanyAiInfoBlock = {
+  name: string;
+  short_desc: string;
+  known_for: string;
+  big_desc: string;
+};
+
 export type PlacementCompany = {
   id: number;
   company_id: string;
   company_name: string;
   industry: string;
   company_description: string;
-  job_roles: string[];
+  // Generated right after the company is registered, so this is usually empty
+  // on the create response and filled in on a later read.
+  company_ai_info: CompanyAiInfoBlock[];
   eligible_courses: string[];
   eligible_branches: string[];
   minimum_cgpa: number | null;
   maximum_backlogs: number | null;
   graduation_year: number | null;
-  required_skills: string[];
-  preferred_skills: string[];
   salary_min: number | null;
   salary_max: number | null;
   work_location: string;
-  work_mode: string;
   // Sum of the vacancies across the company's Drive rows. Zero when the
   // company has no drives yet.
   openings: number | null;
   drive_count: number | null;
-  selection_rounds: string[];
-  application_deadline: string | null;
-  campus_visit_date: string | null;
-  recruitment_status: string;
-  placement_mode: string;
-  offer_status: string;
   tier: DriveCompanyTier;
   institution: string | null;
   created_at: string;
@@ -1978,29 +2158,22 @@ export async function getCompanies(): Promise<{ companies: PlacementCompany[]; c
 
 // Every field the placement cell can record for a campus partner. The backend
 // stores blanks as null, so an omitted key and an explicit null are equivalent —
-// never send an empty string for a numeric/date field.
+// never send an empty string for a numeric/date field. Registering a company
+// only records the relationship; the hiring detail is set on a Drive.
 export type CompanyCreatePayload = {
   company_name: string;
   company_id?: string;
   industry?: string;
   company_description?: string;
   work_location?: string;
-  work_mode?: string;
-  placement_mode?: string;
   tier?: DriveCompanyTier;
   salary_min?: number | null;
   salary_max?: number | null;
-  job_roles?: string[];
   eligible_courses?: string[];
   eligible_branches?: string[];
-  required_skills?: string[];
-  preferred_skills?: string[];
-  selection_rounds?: string[];
   minimum_cgpa?: number | null;
   maximum_backlogs?: number | null;
   graduation_year?: number | null;
-  recruitment_status?: string;
-  offer_status?: string;
 };
 
 export async function createCompany(payload: CompanyCreatePayload): Promise<PlacementCompany> {
@@ -2008,6 +2181,21 @@ export async function createCompany(payload: CompanyCreatePayload): Promise<Plac
     method: "POST",
     body: JSON.stringify(payload),
   });
+  return data.company;
+}
+
+// An edit re-sends the same field set. The identity fields (company_id, the
+// owning client and institution) are fixed at registration and ignored here.
+export type CompanyUpdatePayload = CompanyCreatePayload;
+
+export async function updateCompany(
+  id: number,
+  payload: CompanyUpdatePayload,
+): Promise<PlacementCompany> {
+  const data = await apiFetch<{ company: PlacementCompany }>(
+    `/api/companies/${encodeURIComponent(String(id))}/update/`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
   return data.company;
 }
 
@@ -2086,6 +2274,62 @@ export async function getInstitutionOverview(): Promise<InstitutionOverview> {
   return apiFetch<InstitutionOverview>("/api/institution/overview/");
 }
 
+// One member of the placement department. Members are ordinary ClientProfile
+// rows sharing the institution, so adding someone puts them straight into the
+// same dashboards.
+export type PlacementCellMember = {
+  id: number;
+  user_id: number;
+  full_name: string;
+  official_email: string;
+  mobile_number: string;
+  designation: string;
+  employee_staff_id: string;
+  avatar: string;
+  access: "beta" | "master";
+  is_master: boolean;
+  created_at: string | null;
+};
+
+export type PlacementCellMembers = {
+  members: PlacementCellMember[];
+  count: number;
+  // Whether this account is a Master owner, i.e. may add more members. The UI
+  // gates the "Add member" button on exactly this.
+  can_add_members: boolean;
+};
+
+export async function getPlacementCellMembers(): Promise<PlacementCellMembers> {
+  return apiFetch<PlacementCellMembers>("/api/placement-cell/members/");
+}
+
+export type PlacementCellMemberPayload = {
+  full_name: string;
+  official_email: string;
+  designation: string;
+  mobile_number: string;
+  employee_staff_id?: string;
+  // Master only; anything else falls back to "beta" server-side.
+  access?: "beta" | "master";
+};
+
+export type PlacementCellMemberCreated = {
+  member: PlacementCellMember;
+  // Returned once, immediately after the member is created, because the app has
+  // no password-reset flow. Show it and let the owner pass it along.
+  temporary_password: string;
+};
+
+export async function addPlacementCellMember(
+  payload: PlacementCellMemberPayload,
+): Promise<PlacementCellMemberCreated> {
+  const data = await apiFetch<PlacementCellMemberCreated>("/api/placement-cell/members/create/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
 export type PlacementStatus = "not_started" | "applying" | "shortlisted" | "placed";
 
 export type StudentRecord = {
@@ -2094,6 +2338,12 @@ export type StudentRecord = {
   middle_name: string;
   last_name: string;
   full_name: string;
+  /**
+   * The professional headline, visible to every user who can see this student
+   * (leaderboard, student detail, staff directory). Candidate-editable, so it
+   * can be blank until they fill it in.
+   */
+  bio: string;
   department: string | null;
   program: string | null;
   start_year: number | null;
@@ -2102,17 +2352,20 @@ export type StudentRecord = {
   gender: string;
   cgpa: number | null;
   placement_status: PlacementStatus;
-  // Already resolved server-side: the staff override when set, otherwise the
-  // readiness rule (score >= 40). Never the raw column.
+  // Resolved server-side from the readiness score (score >= 40, and a score must
+  // exist). There is no stored boolean and no override, so this flag is the rule.
   placement_eligible: boolean;
-  // The untouched override, so the UI can show whether a human pinned it.
-  // null means "follows the readiness score".
-  placement_eligible_override: boolean | null;
   skills: string[];
   preferred_roles: string[];
   preferred_locations: string[];
   preferred_language: string;
+  /** Clubs, competitions, events and volunteering the student took part in. */
+  extracurricular_activities: string[];
   expected_ctc: number | null;
+  /** Lifetime minutes spent on the platform, cumulative across sessions. */
+  time_spent: number;
+  /** Total Gemini spend burnt by this student in INR, including the 40% margin. */
+  cost_incurred: number;
   id_verified: boolean;
   account_status: string;
   created_at: string;
@@ -2157,6 +2410,44 @@ export async function getStudents(query: StudentsQuery = {}): Promise<StudentsRe
   if (query.sort) params.set("sort", query.sort);
   const qs = params.toString();
   return apiFetch<StudentsResponse>(`/api/students/${qs ? `?${qs}` : ""}`);
+}
+
+export type AddStudentsResult = {
+  created: number;
+  skipped: number;
+  invalid: string[];
+  total: number;
+};
+
+// Add students to the signed-in staff member's own institution. The addresses
+// are the only thing collected, so each one becomes a bare profile row that the
+// student completes themselves.
+export async function addStudents(emails: string[]): Promise<AddStudentsResult> {
+  return apiFetch<AddStudentsResult>("/api/students/add/", {
+    method: "POST",
+    body: JSON.stringify({ emails }),
+  });
+}
+
+export type ExistingStudent = {
+  email: string;
+  college: string;
+  website: string;
+  same_college: boolean;
+};
+
+export type CheckStudentsResult = {
+  existing: ExistingStudent[];
+  available: number;
+};
+
+// Ask which of these addresses already sit on a candidate profile, so the
+// directory can say so before anything is written rather than skipping on save.
+export async function checkStudentsExist(emails: string[]): Promise<CheckStudentsResult> {
+  return apiFetch<CheckStudentsResult>("/api/students/check/", {
+    method: "POST",
+    body: JSON.stringify({ emails }),
+  });
 }
 
 export type LeaderboardStudent = StudentRecord & { is_self: boolean };
@@ -2218,11 +2509,16 @@ export async function sendStudentMessage(
 
 export type DriveStatus = "Live" | "Upcoming" | "Completed" | "Cancelled";
 
+// One hiring event. Everything here is per-drive: a company that runs two
+// drives has its own dates, rounds, role and status on each.
 export type PlacementDrive = {
+  drive_id: number;
   company_id: string;
   company_name: string;
+  title: string;
   industry: string;
-  roles: string[];
+  // One role per drive. Empty string when the drive has not named one yet.
+  role: string;
   ctc_min: number | null;
   ctc_max: number | null;
   tier: DriveCompanyTier;
@@ -2237,22 +2533,117 @@ export type PlacementDrive = {
   minimum_cgpa: number | null;
   maximum_backlogs: number | null;
   required_skills: string[];
+  preferred_skills: string[];
   selection_rounds: string[];
   placement_mode: string;
   offer_status: string;
   eligible_count: number;
+  /** Drive type (campus / virtual / off_campus); only the edit form reads it. */
+  drive_mode: string;
+  /** Batch year eligible for this drive, as stored on the row. */
+  graduation_year: number | null;
+  /** Stored vacancy count, before the `openings` fallback to zero. */
+  total_vacancies: number | null;
 };
 
 export type DrivesData = {
   drives: PlacementDrive[];
-  // How many company rows back the listing.
+  // How many drive records back the listing.
   count: number;
-  // How many Drive records the signed-in staff's college has on file.
   drive_count: number;
 };
 
 export async function getDrives(): Promise<DrivesData> {
   return apiFetch<DrivesData>("/api/drives/");
+}
+
+// What a student sees on the Company/Drives screen. A drive is the same hiring
+// detail the placement cell sees, minus `eligible_count` - that count describes
+// the cell's queue rather than the student's own standing, so it never leaves
+// the staff endpoints.
+export type StudentDrive = Omit<PlacementDrive, "eligible_count">;
+
+export type StudentCompanyDrives = {
+  companies: PlacementCompany[];
+  drives: StudentDrive[];
+  count: number;
+  drive_count: number;
+};
+
+// Everything the candidate's college is registered with, plus its scheduled
+// drives. Scoped to the candidate's institution server-side; a candidate with no
+// college gets empty lists rather than an error.
+export async function getCandidateCompanyDrives(): Promise<StudentCompanyDrives> {
+  return apiFetch<StudentCompanyDrives>("/api/candidate/company-drives/");
+}
+
+export type CandidateCompanyDetail = {
+  company: PlacementCompany;
+  drives: StudentDrive[];
+};
+
+// One recruiter plus the drives it has run. The backend starts writing a
+// Gemini profile for the company if it does not have one yet, so the first
+// response can come back with an empty company_ai_info; reloading a few seconds
+// later shows the block.
+export async function getCandidateCompany(id: number): Promise<CandidateCompanyDetail> {
+  return apiFetch<CandidateCompanyDetail>(`/api/candidate/company-drives/${id}/`);
+}
+
+// A drive is one hiring event. `company` is the pk of an already-registered
+// company; every other key is the per-visit detail that used to sit on Company.
+// Blank numeric/date fields must be null or omitted, never "". Leaving a
+// numeric blank falls back to the company's standing value server-side.
+export type DriveCreatePayload = {
+  company: number;
+  title: string;
+  role?: string;
+  total_vacancies?: number | null;
+  drive_mode?: "campus" | "virtual" | "off_campus";
+  status?: "upcoming" | "ongoing" | "completed" | "cancelled";
+  visit_date?: string | null;
+  application_deadline?: string | null;
+  work_mode?: "remote" | "hybrid" | "onsite" | "field";
+  work_location?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  eligible_branches?: string[];
+  eligible_courses?: string[];
+  minimum_cgpa?: number | null;
+  maximum_backlogs?: number | null;
+  graduation_year?: number | null;
+  required_skills?: string[];
+  preferred_skills?: string[];
+  selection_rounds?: string[];
+  placement_mode?: "full_time" | "internship_ppo" | "contract";
+  offer_status?: "pending" | "offered" | "on_hold" | "revoked";
+};
+
+export async function createDrive(payload: DriveCreatePayload): Promise<PlacementDrive> {
+  const data = await apiFetch<{ drive: PlacementDrive }>("/api/drives/create/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.drive;
+}
+
+// The body of an edit. Same fields as the create payload minus `company`: a
+// drive's company is its identity, so amending the terms of a visit never moves
+// it to a different recruiter. Every key is optional and only the ones sent are
+// written, so a partial edit leaves the rest of the drive alone.
+export type DriveEditPayload = Omit<Partial<DriveCreatePayload>, "company">;
+
+// Amend a drive already on record: deadline slips, openings revised, status
+// advancing, offers made or revoked. The company is not editable here.
+export async function updateDrive(
+  driveId: number,
+  payload: DriveEditPayload,
+): Promise<PlacementDrive> {
+  const data = await apiFetch<{ drive: PlacementDrive }>(`/api/drives/${driveId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return data.drive;
 }
 
 export type TotalVacancies = {

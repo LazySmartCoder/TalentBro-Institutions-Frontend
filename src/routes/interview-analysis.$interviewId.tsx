@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -10,12 +10,9 @@ import {
   MessageCircle,
   Radar as RadarIcon,
   Sparkles,
+  Users as UsersIcon,
 } from "lucide-react";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis,
@@ -23,8 +20,6 @@ import {
   RadarChart as RechartsRadarChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +29,7 @@ import { INTERVIEW_CATEGORIES } from "@/lib/interview-rubric";
 
 const title = "TalentBro | Interview Analysis";
 const description =
-  "Detailed AI assessment of your mock interview: 34 scored dimensions with evidence, plus a SWOT breakdown.";
+  "Your mock interview report: a panel improvement area from every panelist who sat with you, plus your dimension scores and a SWOT breakdown.";
 
 export const Route = createFileRoute("/interview-analysis/$interviewId")({
   head: () => ({
@@ -75,9 +70,9 @@ function ChartTip({
   const name = (raw["dimension"] as string) ?? (raw["category"] as string) ?? entry.name ?? label;
   const value = (raw["percentage"] as number) ?? (raw["score"] as number) ?? entry.value;
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-xl">
-      <div className="font-medium text-foreground">{name}</div>
-      <div className="mt-0.5 font-mono font-medium tabular-nums text-foreground">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-card-foreground shadow-xl">
+      <div className="text-muted-foreground">{name}</div>
+      <div className="mt-0.5 font-medium tabular-nums">
         {value} <span className="text-muted-foreground">/ 100</span>
       </div>
     </div>
@@ -99,6 +94,32 @@ function categoryRadar(metrics: MockInterviewAnalysis["metrics"]) {
 const rating = (p: number) =>
   p >= 80 ? "text-emerald-600" : p >= 60 ? "text-amber-600" : "text-red-500";
 
+// The reviewing panel, in the order their remarks come back. Atlas is the
+// session host and never reviews, so he is not here.
+const PANELIST_REVIEWERS = [
+  { id: "maya", name: "Maya", role: "Communication & HR", img: "/Panelists/Maya.png" },
+  { id: "albert", name: "Albert", role: "Technical Architect", img: "/Panelists/Albert.png" },
+  { id: "peter", name: "Peter", role: "Management & Leadership", img: "/Panelists/Peter.png" },
+  {
+    id: "daniel",
+    name: "Daniel",
+    role: "Decision Science & Analytics",
+    img: "/Panelists/Daniel.png",
+  },
+  {
+    id: "ada",
+    name: "Ada",
+    role: "Analytical & Logical Thinking",
+    img: "/Panelists/Ada.png",
+  },
+  {
+    id: "carl",
+    name: "Carl",
+    role: "Behavioral Intelligence",
+    img: "/Panelists/Carl.png",
+  },
+] as const;
+
 function ScoreBar({ percentage, color }: { percentage: number; color: string }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -113,7 +134,7 @@ function ScoreBar({ percentage, color }: { percentage: number; color: string }) 
 function AnalysisPage() {
   const navigate = useNavigate();
   const { interviewId } = Route.useParams();
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["mock-interview-analysis", interviewId],
     queryFn: () => mockInterviewAnalysis(interviewId),
     staleTime: 30_000,
@@ -194,15 +215,10 @@ function AnalysisPage() {
 
         {isLoading && <AnalysisSkeleton />}
 
-        {isError && !analysis && (
-          <EmptyState onRetry={() => void refetch()} message="We couldn't load this analysis." />
-        )}
+        {isError && !analysis && <EmptyState message="We couldn't load this analysis." />}
 
         {!isLoading && !isError && !analysis && (
-          <EmptyState
-            onRetry={() => void refetch()}
-            message="No analysis found for this interview."
-          />
+          <EmptyState message="No analysis found for this interview." />
         )}
 
         {analysis && <AnalysisView analysis={analysis} />}
@@ -220,7 +236,7 @@ function GridBackdrop() {
   );
 }
 
-function EmptyState({ onRetry, message }: { onRetry: () => void; message: string }) {
+function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card/40 px-6 py-20 text-center">
       <BarChart3 className="size-10 text-muted-foreground" />
@@ -228,12 +244,6 @@ function EmptyState({ onRetry, message }: { onRetry: () => void; message: string
       <p className="mt-1 max-w-md text-sm text-muted-foreground">
         The analysis is generated automatically once a mock interview is completed.
       </p>
-      <button
-        onClick={onRetry}
-        className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-      >
-        <Loader2 className="size-4" /> Load Analysis
-      </button>
     </div>
   );
 }
@@ -253,9 +263,6 @@ function AnalysisSkeleton() {
 
 function AnalysisView({ analysis }: { analysis: MockInterviewAnalysis }) {
   const radarData = categoryRadar(analysis.metrics);
-  const barData = [...analysis.metrics]
-    .sort((a, b) => b.percentage - a.percentage)
-    .map((m) => ({ ...m }));
 
   const strengths = analysis.metrics.filter((m) => m.percentage >= 80);
   const weak = analysis.metrics.filter((m) => m.percentage < 80);
@@ -301,10 +308,9 @@ function AnalysisView({ analysis }: { analysis: MockInterviewAnalysis }) {
         <SWOTCard swot={analysis.swot} />
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <RadarCard data={radarData} />
-        <BarCard data={barData} />
-      </div>
+      <PanelistRemarks improvements={analysis.improvements ?? []} />
+
+      <RadarCard data={radarData} />
 
       <DimensionList metrics={analysis.metrics} />
 
@@ -383,6 +389,59 @@ function SWOTCard({ swot }: { swot: MockInterviewAnalysis["swot"] }) {
   );
 }
 
+function PanelistRemarks({
+  improvements,
+}: {
+  improvements: MockInterviewAnalysis["improvements"];
+}) {
+  const remarks = PANELIST_REVIEWERS.map((reviewer) => ({
+    reviewer,
+    remark: improvements.find((r) => r.panelist === reviewer.id)?.remark ?? "",
+  })).filter((row) => row.remark.trim().length > 0);
+
+  return (
+    <Card className="rounded-2xl border-border">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <UsersIcon className="size-4 text-primary" /> Panel Improvement Areas
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Every panelist who sat with you names the one thing they most want you to work on next
+          time, from their own side of the table.
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-2">
+        {remarks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No panelist left an improvement area for this interview.
+          </p>
+        ) : (
+          remarks.map(({ reviewer, remark }) => (
+            <div
+              key={reviewer.id}
+              className="grid gap-3 rounded-xl border border-border bg-card/40 p-3.5 sm:grid-cols-[240px_1fr] sm:items-center"
+            >
+              <div className="flex items-center gap-3">
+                <img
+                  src={reviewer.img}
+                  alt={reviewer.name}
+                  className="size-11 shrink-0 rounded-full object-cover ring-1 ring-border"
+                  loading="lazy"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{reviewer.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">{reviewer.role}</div>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-foreground/90 sm:pr-4">{remark.trim()}</p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function RadarCard({ data }: { data: { category: string; score: number }[] }) {
   return (
     <Card className="rounded-2xl border-border">
@@ -392,11 +451,11 @@ function RadarCard({ data }: { data: { category: string; score: number }[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80 w-full">
+        <div className="h-96 w-full sm:h-[30rem]">
           <ResponsiveContainer width="100%" height="100%">
-            <RechartsRadarChart data={data} outerRadius="70%">
+            <RechartsRadarChart data={data} outerRadius="78%">
               <PolarGrid stroke="currentColor" strokeOpacity={0.15} />
-              <PolarAngleAxis dataKey="category" tick={{ fontSize: 11, fill: "currentColor" }} />
+              <PolarAngleAxis dataKey="category" tick={{ fontSize: 12, fill: "currentColor" }} />
               <PolarRadiusAxis
                 domain={[0, 100]}
                 tickCount={5}
@@ -404,7 +463,7 @@ function RadarCard({ data }: { data: { category: string; score: number }[] }) {
               />
               <Tooltip
                 content={<ChartTip />}
-                cursor={{ stroke: "currentColor", strokeOpacity: 0.25 }}
+                cursor={{ stroke: "var(--border)", strokeOpacity: 0.5 }}
               />
               <Radar dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.35} />
             </RechartsRadarChart>
@@ -413,49 +472,6 @@ function RadarCard({ data }: { data: { category: string; score: number }[] }) {
         <p className="mt-2 text-center text-xs text-muted-foreground">
           Average score across the dimensions in each group.
         </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function BarCard({ data }: { data: MockInterviewAnalysis["metrics"] }) {
-  return (
-    <Card className="rounded-2xl border-border">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BarChart3 className="size-4 text-primary" /> Dimension Scores
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
-              <CartesianGrid stroke="currentColor" strokeOpacity={0.1} horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} stroke="currentColor" tick={false} />
-              <YAxis
-                type="category"
-                dataKey="dimension"
-                width={190}
-                stroke="currentColor"
-                tick={{ fontSize: 11, fill: "currentColor" }}
-              />
-              <Tooltip
-                content={<ChartTip />}
-                cursor={{ fill: "currentColor", fillOpacity: 0.06 }}
-              />
-              <Bar
-                dataKey="percentage"
-                name="Score"
-                radius={[0, 4, 4, 0]}
-                label={{ position: "right", fontSize: 11, fill: "currentColor" }}
-              >
-                {data.map((m, i) => (
-                  <Cell key={m.dimension} fill={metricColor(i)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </CardContent>
     </Card>
   );

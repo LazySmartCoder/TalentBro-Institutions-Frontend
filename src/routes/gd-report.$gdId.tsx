@@ -139,9 +139,11 @@ function GdReportPage() {
     staleTime: 30_000,
   });
 
-  const { data: allRounds = [] } = useQuery({
+  // The report's progress line covers every round the student has ever saved, so
+  // it reads the whole-record rollup rather than the paged history list.
+  const { data: allRounds } = useQuery({
     queryKey: ["gd-history"],
-    queryFn: gdList,
+    queryFn: () => gdList(),
     staleTime: 30_000,
   });
 
@@ -166,7 +168,9 @@ function GdReportPage() {
   const criteria = round?.criteria ?? [];
   const weakCriteria = criteria.filter((c) => c.score < 70);
 
-  const chronological = [...allRounds].reverse();
+  // Newest-first from the API, so reversing puts the rounds back in the order
+  // they were actually practised.
+  const chronological = [...(allRounds?.rollup ?? [])].reverse();
   const progress = chronological.map((r, i) => ({
     name: `Round ${i + 1}`,
     score: r.overall_score ?? 0,

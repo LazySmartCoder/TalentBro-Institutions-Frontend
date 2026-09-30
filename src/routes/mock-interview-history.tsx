@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Clock,
   Gauge,
+  Loader2,
   Mic,
   MessagesSquare,
   ShieldAlert,
@@ -31,15 +32,40 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
   mockInterviewStats,
+  type MockInterviewScoredPoint,
   type MockInterviewStats,
-  type MockInterviewStatsEntry,
 } from "@/lib/api";
 import { categoryBreakdown, INTERVIEW_CATEGORIES } from "@/lib/interview-rubric";
+import { usePagedScroll } from "@/lib/use-paged-scroll";
 import { cn } from "@/lib/utils";
 
 const title = "TalentBro | Interview History";
 const description =
   "Every mock interview you have run, and an overall performance score built from your own record.";
+
+/**
+ * How many interviews the "All interviews" list holds per page. The record grows
+ * without bound — a student who practises weekly reaches hundreds of rows — so
+ * the list is pulled a page at a time as the reader reaches the end of it. The
+ * rollups above are never paged.
+ */
+const INTERVIEW_PAGE_SIZE = 50;
+
+/**
+ * Recharts paints its hover card white on the default theme, which is unreadable
+ * once the app goes dark. These point it at the theme's own tokens instead, so
+ * the radar and the score trend read the same in light and dark.
+ */
+const CHART_TIP = {
+  backgroundColor: "var(--card)",
+  border: "1px solid var(--border)",
+  borderRadius: "0.5rem",
+  fontSize: "0.75rem",
+  color: "var(--card-foreground)",
+  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.15)",
+};
+const CHART_TIP_LABEL = { color: "var(--muted-foreground)" };
+const CHART_TIP_ITEM = { color: "var(--card-foreground)", paddingBlock: 0 };
 
 /**
  * The weights behind the overall performance index.
@@ -99,27 +125,24 @@ const fmtDate = (iso: string) =>
  * zero. Someone on their very first interview has no panel history yet; making
  * them start at 30 because of data that does not exist yet would punish them
  * for a blank slate.
+ *
+ * Every input here is a whole-record figure, never a page of the interview list,
+ * so the index does not move as the reader scrolls.
  */
 function buildComponents(data: MockInterviewStats): Component[] {
-  const { totals, tones, interviews } = data;
-  const finished = interviews.filter((i) => i.status !== "active");
+  const { totals, tones, scored } = data;
 
-  const scoredInterviews = interviews.filter((i) => i.analysis);
-  const avgScore = scoredInterviews.length
-    ? scoredInterviews.reduce((sum, i) => sum + (i.analysis?.overall_score ?? 0), 0) /
-      scoredInterviews.length
+  const avgScore = scored.length
+    ? scored.reduce((sum, point) => sum + point.score, 0) / scored.length
     : null;
 
   // Completion is "of the interviews that finished, how many earned a score".
-  const scored = totals.completed + totals.not_scored;
-  const completion = scored ? (totals.completed / scored) * 100 : null;
+  const finished = totals.completed + totals.not_scored;
+  const completion = finished ? (totals.completed / finished) * 100 : null;
 
   // Depth is answers given against the target for that session's own length, so
   // a short session is not measured against a long session's target.
-  const depths = finished
-    .filter((i) => i.target_exchanges > 0)
-    .map((i) => Math.min(100, (i.user_turns / i.target_exchanges) * 100));
-  const depth = depths.length ? depths.reduce((a, b) => a + b, 0) / depths.length : null;
+  const depth = totals.avg_depth;
 
   // Panel sentiment excludes neutral: a flat turn tells you nothing about how
   // the answer landed, and folding it in would dilute a clear signal.
@@ -132,8 +155,8 @@ function buildComponents(data: MockInterviewStats): Component[] {
       label: "Answer quality",
       value: avgScore,
       weight: INDEX_WEIGHTS.score,
-      hint: `Average of the ${scoredInterviews.length} scored ${
-        scoredInterviews.length === 1 ? "interview" : "interviews"
+      hint: `Average of the ${scored.length} scored ${
+        scored.length === 1 ? "interview" : "interviews"
       } on the panel's own 34-dimension rubric.`,
     },
     {
@@ -141,8 +164,8 @@ function buildComponents(data: MockInterviewStats): Component[] {
       label: "Completion rate",
       value: completion,
       weight: INDEX_WEIGHTS.completion,
-      hint: `Share of your ${scored} finished ${
-        scored === 1 ? "interview" : "interviews"
+      hint: `Share of your ${finished} finished ${
+        finished === 1 ? "interview" : "interviews"
       } that reached a scoreable finish.`,
     },
     {
@@ -170,12 +193,11 @@ function overallIndex(components: Component[]) {
 }
 
 /** Per-category averages across every scored interview, with a coverage count. */
-function skillAverages(interviews: MockInterviewStatsEntry[]) {
+function skillAverages(scored: MockInterviewScoredPoint[]) {
   const sums: Record<string, number> = {};
   const counts: Record<string, number> = {};
-  for (const interview of interviews) {
-    if (!interview.analysis) continue;
-    for (const row of categoryBreakdown(interview.analysis.dimensions)) {
+  for (const point of scored) {
+    for (const row of categoryBreakdown(point.dimensions)) {
       if (!row.dimensions) continue;
       sums[row.category] = (sums[row.category] ?? 0) + row.score;
       counts[row.category] = (counts[row.category] ?? 0) + 1;
@@ -225,16 +247,33 @@ export const Route = createFileRoute("/mock-interview-history")({
 });
 
 function MockInterviewHistoryPage() {
-  const query = useQuery({
+  // The interview list is paged; the rollups come back whole on every page, so
+  // the performance index and both charts describe the entire record no matter
+  // how far down the reader has scrolled.
+  const query = useInfiniteQuery({
     queryKey: ["mock-interview-stats"],
-    queryFn: mockInterviewStats,
+    queryFn: ({ pageParam }) =>
+      mockInterviewStats({ limit: INTERVIEW_PAGE_SIZE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (last, all) => (last.has_more ? all.length * INTERVIEW_PAGE_SIZE : undefined),
   });
-  const components = useMemo(() => (query.data ? buildComponents(query.data) : []), [query.data]);
-  const index = useMemo(() => overallIndex(components), [components]);
-  const skills = useMemo(
-    () => (query.data ? skillAverages(query.data.interviews) : []),
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const listEnd = usePagedScroll(loadMore, hasNextPage !== false);
+
+  // Every page carries the same whole-record rollups, so the newest page is
+  // enough to drive them and they cannot drift between pages.
+  const stats = query.data?.pages.at(-1);
+  const interviews = useMemo(
+    () => query.data?.pages.flatMap((page) => page.interviews) ?? [],
     [query.data],
   );
+
+  const components = useMemo(() => (stats ? buildComponents(stats) : []), [stats]);
+  const index = useMemo(() => overallIndex(components), [components]);
+  const skills = useMemo(() => (stats ? skillAverages(stats.scored) : []), [stats]);
 
   // The same transcript the starter screen opens for a past interview, so a
   // candidate reading their record and a candidate reading the setup screen are
@@ -244,7 +283,7 @@ function MockInterviewHistoryPage() {
     void navigate({ to: "/mock-interview-transcript/$interviewId", params: { interviewId } });
   }
 
-  if (query.isLoading) return <Loading />;
+  if (query.isPending) return <Loading />;
 
   if (query.isError) {
     return (
@@ -264,25 +303,22 @@ function MockInterviewHistoryPage() {
     );
   }
 
-  const data = query.data;
+  const data = stats;
   if (!data) return <Loading />;
 
-  const { totals, tones, interviews, by_role } = data;
+  const { totals, tones, by_role } = data;
   const level = index !== null ? perfLevel(index) : null;
   const ranked = skills.filter((s) => s.interviews > 0);
   const strongest = [...ranked].sort((a, b) => b.score - a.score)[0];
   const weakest = [...ranked].sort((a, b) => a.score - b.score)[0];
 
-  // Scored interviews oldest-first, so the trend reads left to right.
-  const trend = interviews
-    .filter((i) => i.analysis)
-    .slice()
-    .reverse()
-    .map((i) => ({
-      label: i.company_name || "Session",
-      date: fmtDate(i.created_at),
-      score: i.analysis?.overall_score ?? 0,
-    }));
+  // Scored interviews oldest-first, so the trend reads left to right. This comes
+  // from the whole record, so the line never redraws itself mid-scroll.
+  const trend = data.scored.map((point) => ({
+    label: point.company_name || "Session",
+    date: fmtDate(point.created_at),
+    score: point.score,
+  }));
 
   // Moved over the whole record, so the badge is honest even across a gap.
   const firstScore = trend.at(0)?.score ?? null;
@@ -455,8 +491,12 @@ function MockInterviewHistoryPage() {
                         fillOpacity={0.18}
                       />
                       <Tooltip
+                        cursor={{ stroke: "var(--border)", strokeOpacity: 0.5 }}
+                        contentStyle={CHART_TIP}
+                        labelStyle={CHART_TIP_LABEL}
+                        itemStyle={CHART_TIP_ITEM}
                         formatter={(value: number, _name, item) => [
-                          `${value}`,
+                          `${value}/100`,
                           `${(item?.payload as { interviews?: number } | undefined)?.interviews ?? 0} interviews`,
                         ]}
                       />
@@ -533,6 +573,10 @@ function MockInterviewHistoryPage() {
                       tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                     />
                     <Tooltip
+                      cursor={{ stroke: "var(--border)", strokeOpacity: 0.5 }}
+                      contentStyle={CHART_TIP}
+                      labelStyle={CHART_TIP_LABEL}
+                      itemStyle={CHART_TIP_ITEM}
                       formatter={(value: number, _name, item) => [
                         `${value}/100`,
                         (item?.payload as { label?: string } | undefined)?.label ?? "",
@@ -608,7 +652,7 @@ function MockInterviewHistoryPage() {
                 <p className="text-sm font-medium">
                   {totals.violations === 0
                     ? "Clean record"
-                    : `${totals.violations} tab switch${totals.violations === 1 ? "" : "es"} recorded`}
+                    : `${totals.violations} Suspicion detected`}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {totals.violations === 0
@@ -681,14 +725,13 @@ function MockInterviewHistoryPage() {
         </Card>
       </div>
 
-      {/* Every interview, not a top-N. */}
+      {/* Every interview, not a top-N. Paged, so only the next handful arrive
+          when the reader reaches the end of the list. */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
             All interviews
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              {interviews.length}
-            </span>
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{data.total}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -766,6 +809,14 @@ function MockInterviewHistoryPage() {
               );
             })}
           </ul>
+          {/* Reaching this row means the reader has seen every interview loaded
+              so far, so the next page goes out and the spinner sits here until
+              it lands. */}
+          <div ref={listEnd} aria-hidden className="flex justify-center py-4">
+            {isFetchingNextPage ? (
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </div>

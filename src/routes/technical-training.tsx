@@ -23,6 +23,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePagedHistoryState, type PracticeRollupRow } from "@/lib/paged-history";
 import { AppNavHeader } from "@/components/tb/app-nav";
 import { GateError, GateLoading, useQuoteSplash } from "@/components/load-state";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,7 @@ type ResultBanner = {
   solution: string;
 } | null;
 
-function deriveStats(sessions: TechnicalTrainingSession[]) {
+function deriveStats(sessions: PracticeRollupRow[]) {
   const solved = sessions.filter((s) => s.status === "solved");
   const gaveUp = sessions.filter((s) => s.status === "gave_up");
   const xp = sessions.reduce((acc, s) => acc + s.points_awarded, 0);
@@ -151,12 +152,12 @@ type CategoryInsight = {
   improvement: number | null;
 };
 
-function accOf(list: TechnicalTrainingSession[]): number {
+function accOf(list: PracticeRollupRow[]): number {
   if (list.length === 0) return 0;
   return Math.round((list.filter((s) => s.status === "solved").length / list.length) * 100);
 }
 
-function deriveCategoryInsights(sessions: TechnicalTrainingSession[]): CategoryInsight[] {
+function deriveCategoryInsights(sessions: PracticeRollupRow[]): CategoryInsight[] {
   const resolved = sessions.filter((s) => s.status !== "active");
   return CATEGORY_META.filter(
     (c) => c.slug !== "" && resolved.some((s) => s.category === c.slug),
@@ -210,7 +211,18 @@ function TechnicalPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { splash, splashDone } = useQuoteSplash();
 
-  const [sessions, setSessions] = useState<TechnicalTrainingSession[]>([]);
+  // The recent-rounds list is paged: one page of sessions at a time, with the
+  // next fetched as the reader scrolls. Stats and category insights come from
+  // `rollup`, which covers the whole record, so they do not shift as pages load.
+  const {
+    sessions,
+    rollup,
+    isLoadingMore,
+    refresh: refreshSessions,
+    listEnd,
+  } = usePagedHistoryState<TechnicalTrainingSession, PracticeRollupRow>({
+    queryFn: technicalList,
+  });
   const [session, setSession] = useState<TechnicalTrainingSession | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -229,10 +241,11 @@ function TechnicalPage() {
   const activeSessionRef = useRef<string | null>(null);
   activeSessionRef.current = session?.status === "active" ? session.id : null;
 
-  const stats = deriveStats(sessions);
-  const insights = deriveCategoryInsights(sessions);
+  const stats = deriveStats(rollup);
+  const insights = deriveCategoryInsights(rollup);
   const overallImprovement = (() => {
-    const resolved = sessions
+    // Split oldest-to-newest across the whole record, not the loaded pages.
+    const resolved = rollup
       .filter((s) => s.status !== "active")
       .sort((a, b) => a.created_at.localeCompare(b.created_at));
     if (resolved.length < 4) return null;
@@ -293,11 +306,10 @@ function TechnicalPage() {
   async function initialize() {
     let list: TechnicalTrainingSession[] = [];
     try {
-      list = await technicalList();
+      list = await refreshSessions();
     } catch {
       list = [];
     }
-    setSessions(list);
     const active = list.find((s) => s.status === "active");
     if (active) {
       // A question left unanswered on a previous visit is skipped, never resumed.
@@ -307,7 +319,7 @@ function TechnicalPage() {
         /* best-effort */
       }
       try {
-        setSessions(await technicalList());
+        await refreshSessions();
       } catch {
         /* best-effort refresh */
       }
@@ -347,7 +359,7 @@ function TechnicalPage() {
       setInput("");
       setFlow("idle");
       try {
-        setSessions(await technicalList());
+        await refreshSessions();
       } catch {
         /* best-effort refresh */
       }
@@ -391,7 +403,7 @@ function TechnicalPage() {
         });
         setCountdown(NEXT_DELAY_SECONDS);
         try {
-          setSessions(await technicalList());
+          await refreshSessions();
         } catch {
           /* best-effort refresh */
         }
@@ -919,6 +931,14 @@ function TechnicalPage() {
                     </div>
                   );
                 })}
+
+                {/* Sentinel: pull the next page of rounds once the reader scrolls
+                    to the end of the ones already loaded. */}
+                <div ref={listEnd} aria-hidden className="flex justify-center py-3">
+                  {isLoadingMore ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : null}
+                </div>
               </div>
             </div>
 
