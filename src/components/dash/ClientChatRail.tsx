@@ -1,8 +1,8 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Loader2, MessageSquare, Plus, Trash2 } from "lucide-react";
-import { deleteChatSession } from "@/lib/api";
-import { CHAT_SESSIONS_KEY, chatSessionsInfiniteQuery } from "@/lib/chat-sessions";
+import { deleteClientChatSession } from "@/lib/api";
+import { CLIENT_CHAT_SESSIONS_KEY, clientChatSessionsInfiniteQuery } from "@/lib/chat-sessions";
 import { usePagedScroll } from "@/lib/use-paged-scroll";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ const isDraft = (title: string, messageCount: number) => title === "New chat" &&
 export function ClientChatRail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const pages = useInfiniteQuery(chatSessionsInfiniteQuery());
+  const pages = useInfiniteQuery(clientChatSessionsInfiniteQuery());
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSession = useRouterState({
     select: (s) => (s.location.search as { session?: string }).session,
@@ -39,8 +39,8 @@ export function ClientChatRail() {
 
   async function handleDelete(id: string) {
     try {
-      await deleteChatSession(id);
-      await queryClient.invalidateQueries({ queryKey: CHAT_SESSIONS_KEY });
+      await deleteClientChatSession(id);
+      await queryClient.invalidateQueries({ queryKey: CLIENT_CHAT_SESSIONS_KEY });
       if (onChatPage && activeSession === id) {
         void navigate({ to: "/client-chat", search: {}, replace: true });
       }

@@ -1,9 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Bell, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getNotifications } from "@/lib/api";
 import { useTheme } from "@/lib/theme";
+import { useUnreadBadge } from "@/lib/use-unread-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type NavPage =
@@ -70,26 +70,16 @@ export function AppNavHeader({
 }) {
   const navigate = useNavigate();
   const { theme, toggle } = useTheme();
-  const [unread, setUnread] = useState<number | null>(null);
 
-  // Fetch the live unread notification count so the bell badge shows on every
-  // page that renders the header. Pages that already track the count (chat,
-  // notifications) can override it via the ``unread`` prop.
-  useEffect(() => {
-    let cancelled = false;
-    getNotifications()
-      .then((data) => {
-        if (!cancelled) setUnread(data.unread);
-      })
-      .catch(() => {
-        // Backend unavailable — keep the badge hidden.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // The live unread count for this bell. It is the same shared entry the client
+  // dashboard reads, so marking a notice read anywhere moves every badge at once
+  // and a message that arrives while a student is reading does not wait for
+  // their next navigation.
+  const { unread: liveUnread } = useUnreadBadge();
 
-  const badge = unreadOverride ?? unread ?? 0;
+  // Pages that already track the count themselves (chat, the notifications
+  // inbox) can override it via the ``unread`` prop.
+  const badge = unreadOverride ?? liveUnread;
 
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={300}>

@@ -4,16 +4,19 @@ import { ArrowUp, Loader2 } from "lucide-react";
 import { Shell } from "@/components/dash/Shell";
 import { Typewriter } from "@/components/chat/rich-text";
 import { GateLoading } from "@/components/load-state";
-import { chat, chatSessionDetail, type ChatMessage } from "@/lib/api";
-import { useInvalidateChatSessions } from "@/lib/chat-sessions";
+import { clientChat, clientChatSessionDetail, type ChatMessage } from "@/lib/api";
+import { useInvalidateClientChatSessions } from "@/lib/chat-sessions";
 import { cn } from "@/lib/utils";
 
-// The placement officer's landing page: the same AI chat the students get, on the
-// same endpoints (/api/chat/ and /api/chat/sessions/, which are scoped to
-// request.user, so a staff account gets its own thread list). The thread list
-// itself lives in the dashboard sidebar, so the page is just the conversation and
-// the composer. The open thread is carried in the URL, which is what lets the
-// sidebar hand a session over from any dashboard page.
+// The placement officer's landing page: a Gemini chat that reads THIS
+// institution's own placement data — student profiles, readiness and eligibility,
+// mock interviews, self-training, drives and companies. It runs on the dedicated
+// /api/client-chat/ endpoints, which persist into their own session store and
+// answer every question from a server-side institute scope, so an officer can
+// never be shown another institute's roster. The thread list lives in the
+// dashboard sidebar, so this page is just the conversation and the composer. The
+// open thread is carried in the URL, which is what lets the sidebar hand a session
+// over from any dashboard page.
 export const Route = createFileRoute("/client-chat")({
   validateSearch: (search: Record<string, unknown>): { session?: string } => {
     const session = typeof search["session"] === "string" ? search["session"] : undefined;
@@ -39,7 +42,7 @@ export const Route = createFileRoute("/client-chat")({
 
 const NEW_CHAT_HEADING = "How can I help with your placements today?";
 const NEW_CHAT_DESC =
-  "Ask about student readiness, drives, companies or your next report. I read your own college's data.";
+  "Ask about your students, their readiness, mock interviews, self-training or your drives. I only see this institute's data, and I compute every number I quote.";
 
 const SUGGESTIONS = [
   "Which students are eligible but not placed yet?",
@@ -61,7 +64,7 @@ function isTypingIndicator(message: ChatMessage): boolean {
 function ClientChatPage() {
   const { session } = Route.useSearch();
   const navigate = useNavigate();
-  const invalidateChatSessions = useInvalidateChatSessions();
+  const invalidateChatSessions = useInvalidateClientChatSessions();
   const [booted, setBooted] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
   const [input, setInput] = useState("");
@@ -70,6 +73,10 @@ function ClientChatPage() {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // The id of the thread currently rendered. Tracked in a ref (not state) so the
+  // [session] effect below can tell a genuine thread switch apart from the URL
+  // simply catching up with the thread we already hold.
+  const threadIdRef = useRef<string | null>(null);
 
   // The sidebar drives which thread is open by writing ?session=… into the URL,
   // including the "New chat" button, which drops the param. Reacting to the param
@@ -80,15 +87,26 @@ function ClientChatPage() {
     (async () => {
       if (!session) {
         setThread(null);
+        threadIdRef.current = null;
         setError(null);
         setAnimating(false);
         setBooted(true);
         return;
       }
+      // Sending the first message of a new chat navigates to the session the
+      // server just created. That is our own optimistic thread coming back
+      // around, not a thread switch — refetching here would swap the freshly
+      // rendered reply for server data and cancel the typewriter mid-flight,
+      // leaving the bubble stuck part-printed.
+      if (threadIdRef.current === session) {
+        setBooted(true);
+        return;
+      }
       setError(null);
       try {
-        const data = await chatSessionDetail(session);
+        const data = await clientChatSessionDetail(session);
         if (cancelled) return;
+        threadIdRef.current = data.id;
         setThread({
           id: data.id,
           messages: data.messages.map((m) => ({ role: m.role, content: m.content })),
@@ -97,6 +115,7 @@ function ClientChatPage() {
         setAnimating(false);
       } catch (err) {
         if (cancelled) return;
+        threadIdRef.current = null;
         setThread(null);
         setError(err instanceof Error ? err.message : "Could not open that chat.");
       } finally {
@@ -132,9 +151,13 @@ function ClientChatPage() {
     }));
     setInput("");
     try {
-      const res = await chat(content, from);
+      const res = await clientChat(content, from);
+      // Claim the new id before the navigate below, so the [session] effect sees
+      // this as the thread it already holds rather than a switch to fetch.
+      threadIdRef.current = res.session_id;
       setThread((prev) => ({
         id: res.session_id,
+        olderAvailable: prev?.olderAvailable,
         messages: [
           ...(prev?.messages ?? []).slice(0, -1),
           { role: "assistant", content: res.reply },
@@ -148,6 +171,7 @@ function ClientChatPage() {
       }
       invalidateChatSessions();
     } catch (err) {
+      threadIdRef.current = from;
       setThread((prev) => (prev ? { ...prev, messages: prev.messages.slice(0, -1) } : null));
       setError(err instanceof Error ? err.message : "Something went wrong reaching the assistant.");
     } finally {
@@ -175,17 +199,13 @@ function ClientChatPage() {
                 {NEW_CHAT_DESC}
               </p>
               <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
-                {SUGGESTIONS.map((suggestion, index) => (
+                {SUGGESTIONS.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
                     onClick={() => void sendMessage(suggestion)}
                     disabled={sending}
-                    className={cn(
-                      "cursor-pointer rounded-lg border border-border bg-card px-4 py-3 text-left text-[13px] transition-colors hover:bg-muted disabled:opacity-50",
-                      index >= 2 &&
-                        "border-primary/40 bg-primary/5 ring-1 ring-primary/10 hover:bg-primary/10",
-                    )}
+                    className="cursor-pointer rounded-lg border border-border bg-card px-4 py-3 text-left text-[13px] transition-colors hover:bg-muted disabled:opacity-50"
                   >
                     {suggestion}
                   </button>

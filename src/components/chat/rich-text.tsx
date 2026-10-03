@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { renderMarkdown } from "@/components/chat/markdown";
 
+// A reply is revealed over a bounded number of ~60fps frames rather than one
+// character every 12ms. A 4,000-character answer used to need 48 seconds of
+// animation, re-parsing the whole markdown and re-reading scrollHeight 83 times
+// a second, which saturated the main thread: the page froze and the typing
+// appeared to stall. Now short and long replies both finish in about a second.
+const FRAME_MS = 16;
+const MIN_FRAMES = 24;
+const MAX_FRAMES = 90;
+// Reading scrollHeight right after a write forces a synchronous layout, so the
+// follow-scroll runs a few times a second rather than on every frame.
+const SCROLL_EVERY_FRAMES = 4;
+
 export function Typewriter({
   text,
   active,
@@ -14,23 +26,35 @@ export function Typewriter({
   onDone?: () => void;
   className?: string;
 }) {
-  const [shown, setShown] = useState(active ? 0 : text.length);
+  const total = text.length;
+  const [shown, setShown] = useState(active ? 0 : total);
   const finished = useRef(!active);
+
+  // Switching the animation off mid-flight must never leave a half-printed
+  // bubble on screen, so snap to the whole text whenever `active` goes false.
+  useEffect(() => {
+    if (!active) setShown(total);
+  }, [active, total]);
 
   useEffect(() => {
     if (!active || finished.current) return;
-    let i = 0;
+    const totalFrames = Math.min(Math.max(Math.ceil(total / 3), MIN_FRAMES), MAX_FRAMES);
+    const perFrame = Math.max(1, Math.ceil(total / totalFrames));
+    let count = 0;
+    let frame = 0;
     setShown(0);
     const id = setInterval(() => {
-      i += 1;
-      setShown(i);
-      onTick?.();
-      if (i >= text.length) {
+      count = Math.min(total, count + perFrame);
+      frame += 1;
+      setShown(count);
+      if (frame % SCROLL_EVERY_FRAMES === 0) onTick?.();
+      if (count >= total) {
         clearInterval(id);
         finished.current = true;
+        onTick?.();
         onDone?.();
       }
-    }, 12);
+    }, FRAME_MS);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, text]);

@@ -6,33 +6,29 @@ import {
   Bell,
   BellOff,
   Building2,
-  CalendarClock,
   CheckCheck,
   Loader2,
   Megaphone,
   Pin,
   Send,
   Sparkles,
-  Trash2,
 } from "lucide-react";
 import { AppNavHeader } from "@/components/tb/app-nav";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
-import { Kpi, Panel, Pill } from "@/components/dash/bits";
+import { Panel, Pill } from "@/components/dash/bits";
 import {
   createNotification,
-  deleteNotification,
-  getDrives,
   getNotificationPage,
   markNotificationsRead,
   me,
   type NotificationItem,
   type NotificationPage,
   type NotificationSender,
-  type PlacementDrive,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { usePagedScroll } from "@/lib/use-paged-scroll";
+import { useUnreadBadge } from "@/lib/use-unread-badge";
 import { GateLoading, GateError } from "@/components/load-state";
 
 const title = "TalentBro | Notifications";
@@ -174,6 +170,9 @@ function StudentNotifications() {
   const { items, unread, isLoadingMore, loadError, setItems, setUnread, refresh, listEnd } =
     usePagedNotifications({ sender, onlyUnread: unreadOnly });
 
+  // The shared bell count, so reading here moves the badge on every screen.
+  const { publish } = useUnreadBadge();
+
   useEffect(() => {
     void refresh();
   }, [sender, unreadOnly, refresh]);
@@ -195,6 +194,7 @@ function StudentNotifications() {
   function markAllRead() {
     setItems((p) => (p ?? []).map((n) => ({ ...n, read: true })));
     setUnread(0);
+    publish(0);
     void markNotificationsRead(undefined, true).catch(() => {});
   }
 
@@ -202,7 +202,9 @@ function StudentNotifications() {
     const target = (items ?? []).find((n) => n.id === id);
     if (!target || target.read) return;
     setItems((p) => (p ?? []).map((n) => (n.id === id ? { ...n, read: true } : n)));
-    setUnread((u) => Math.max(0, u - 1));
+    const next = Math.max(0, unread - 1);
+    setUnread(next);
+    publish(next);
     void markNotificationsRead(id).catch(() => {});
   }
 
@@ -390,74 +392,25 @@ function StudentNotifications() {
 
 const SENDERS: ("All" | NotificationSender)[] = ["All", "Placement Cell", "TalentBro Platform"];
 
-type Reminder = {
-  key: string;
-  at: number;
-  day: string;
-  month: string;
-  title: string;
-  meta: string;
-};
-
-// Campus visits and application deadlines straight off the recorded drives —
-// the calendar the placement cell actually maintains.
-function buildReminders(drives: PlacementDrive[]): Reminder[] {
-  const rows: Reminder[] = [];
-  // Only forward-looking dates belong in an "upcoming" list, so anything that
-  // has already passed is dropped rather than sorted to the top.
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  for (const drive of drives) {
-    const add = (iso: string | null, kind: string) => {
-      if (!iso) return;
-      const date = new Date(iso);
-      if (Number.isNaN(date.getTime()) || date.getTime() < startOfToday.getTime()) return;
-      rows.push({
-        key: `${drive.company_id}-${kind}-${iso}`,
-        at: date.getTime(),
-        day: String(date.getDate()),
-        month: date.toLocaleDateString("en-IN", { month: "short" }),
-        title: `${drive.company_name} — ${kind}`,
-        meta: `${drive.status} · ${drive.role || drive.industry}`,
-      });
-    };
-    add(drive.campus_visit_date, "Campus visit");
-    add(drive.application_deadline, "Applications close");
-  }
-  return rows.sort((a, b) => a.at - b.at).slice(0, 8);
-}
-
 function AdminNotifications() {
-  const [drives, setDrives] = useState<PlacementDrive[]>([]);
   const [sender, setSender] = useState<"All" | NotificationSender>("All");
   const [q, setQ] = useState("");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [composing, setComposing] = useState(false);
   const [sending, setSending] = useState(false);
-  const [draft, setDraft] = useState({ title: "", body: "", important: false, pinned: false });
+  const [draft, setDraft] = useState({ title: "", body: "", important: false });
 
   const { items, unread, isLoadingMore, loadError, setItems, setUnread, refresh, listEnd } =
     usePagedNotifications({ sender, onlyUnread: unreadOnly });
 
+  // Reading a notice here is the one moment this tab knows the true count
+  // before the server does, so the shared badge moves now rather than on its
+  // next poll — on this screen and on every other one open.
+  const { publish, refresh: refreshBadge } = useUnreadBadge();
+
   useEffect(() => {
     void refresh();
   }, [sender, unreadOnly, refresh]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getDrives()
-      .then((data) => {
-        if (cancelled) return;
-        setDrives(data.drives);
-      })
-      .catch(() => {
-        // The reminder rail is a nice-to-have; the feed above still works.
-        if (!cancelled) setDrives([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const list = useMemo(
     () =>
@@ -470,19 +423,10 @@ function AdminNotifications() {
     [items, q, sender, unreadOnly],
   );
 
-  const reminders = useMemo(() => buildReminders(drives), [drives]);
-  const driveAlerts = useMemo(() => {
-    const now = Date.now();
-    const week = now + 7 * 24 * 60 * 60 * 1000;
-    return drives.filter((d) => {
-      const deadline = d.application_deadline ? new Date(d.application_deadline).getTime() : NaN;
-      return !Number.isNaN(deadline) && deadline >= now && deadline <= week;
-    }).length;
-  }, [drives]);
-
   function markAllRead() {
     setItems((p) => (p ?? []).map((n) => ({ ...n, read: true })));
     setUnread(0);
+    publish(0);
     markNotificationsRead(undefined, true)
       .then(() => toast.success("All notifications marked as read"))
       .catch((err: unknown) =>
@@ -492,21 +436,12 @@ function AdminNotifications() {
 
   function markRead(id: string) {
     setItems((p) => (p ?? []).map((n) => (n.id === id ? { ...n, read: true } : n)));
-    setUnread((u) => Math.max(0, u - 1));
+    const next = Math.max(0, unread - 1);
+    setUnread(next);
+    publish(next);
     void markNotificationsRead(id).catch(() => {
       refresh();
     });
-  }
-
-  function removeNotification(id: string) {
-    const snapshot = items;
-    setItems((p) => (p ?? []).filter((n) => n.id !== id));
-    deleteNotification(id)
-      .then(() => toast.success("Notification deleted"))
-      .catch((err: unknown) => {
-        setItems(snapshot);
-        toast.error(err instanceof Error ? err.message : "Could not delete the notification.");
-      });
   }
 
   async function sendBroadcast() {
@@ -517,12 +452,14 @@ function AdminNotifications() {
         title: draft.title.trim(),
         body: draft.body.trim(),
         important: draft.important,
-        pinned: draft.pinned,
       });
       setItems((p) => [created, ...(p ?? [])]);
-      toast.success("Broadcast sent to your students");
-      setDraft({ title: "", body: "", important: false, pinned: false });
+      toast.success("Broadcast sent to everyone in your institution");
+      setDraft({ title: "", body: "", important: false });
       setComposing(false);
+      // The new notice lands in the sender's own inbox unread, but only the
+      // server knows by how much, so this asks rather than guesses.
+      refreshBadge();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send the broadcast.");
     } finally {
@@ -562,8 +499,8 @@ function AdminNotifications() {
       {composing && (
         <Panel
           className="mb-4"
-          title="Broadcast to students"
-          description="Every student of your institution sees this in their announcements"
+          title="Broadcast to your institution"
+          description="Every student and every member of your placement cell sees this in their notifications"
         >
           <div className="grid gap-3">
             <div>
@@ -602,15 +539,6 @@ function AdminNotifications() {
                 />
                 Mark as important
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium">
-                <input
-                  type="checkbox"
-                  checked={draft.pinned}
-                  onChange={(e) => setDraft({ ...draft, pinned: e.target.checked })}
-                  className="accent-foreground"
-                />
-                Pin to the top
-              </label>
               <button
                 onClick={() => void sendBroadcast()}
                 disabled={sending || !draft.title.trim() || !draft.body.trim()}
@@ -628,165 +556,113 @@ function AdminNotifications() {
         </Panel>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label="Unread" value={unread} hint="requires attention" />
-        <Kpi
-          label="Important"
-          value={(items ?? []).filter((n) => n.important).length}
-          hint="flagged broadcasts"
-        />
-        <Kpi label="Drive Alerts" value={driveAlerts} hint="deadlines within 7 days" />
-        <Kpi label="Upcoming Events" value={reminders.length} hint="from your drive calendar" />
-      </div>
-
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <Panel bodyClassName="p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative min-w-[200px] flex-1">
-                <Bell className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search notifications…"
-                  aria-label="Search notifications"
-                  className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
-                />
-              </div>
-              <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-card px-3 text-xs font-medium">
-                <input
-                  type="checkbox"
-                  checked={unreadOnly}
-                  onChange={(e) => setUnreadOnly(e.target.checked)}
-                  className="accent-foreground"
-                />
-                Unread only
-              </label>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {SENDERS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSender(s)}
-                  className={`rounded-full border px-3 py-1.5 text-[11px] font-medium ${
-                    sender === s
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:bg-accent"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel className="mt-4" bodyClassName="p-0">
-            {loadError && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-destructive/5 px-5 py-3">
-                <p className="text-xs text-destructive">{loadError}</p>
-                <button
-                  onClick={() => void refresh()}
-                  className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-            <ul className="divide-y divide-border">
-              {list.map((n) => (
-                <li
-                  key={n.id}
-                  className={`px-5 py-4 transition-colors ${n.read ? "" : "bg-muted/50"}`}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    {!n.read && <span className="size-1.5 rounded-full bg-primary" />}
-                    <p className="text-sm font-semibold">{n.title}</p>
-                    <Pill tone={n.important ? "solid" : "muted"}>
-                      {n.important ? "Important" : n.sender}
-                    </Pill>
-                    {n.pinned && <Pin className="size-3.5 text-muted-foreground" />}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                      {n.time}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">{n.body}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {!n.read && (
-                      <button
-                        onClick={() => markRead(n.id)}
-                        className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
-                      >
-                        Mark as read
-                      </button>
-                    )}
-                    <button
-                      onClick={() => removeNotification(n.id)}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
-                    >
-                      <Trash2 className="size-3" /> Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {list.length > 0 && (
-                <li aria-hidden className="flex justify-center px-5 py-4">
-                  <div ref={listEnd}>
-                    {isLoadingMore ? (
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                    ) : null}
-                  </div>
-                </li>
-              )}
-              {list.length === 0 && (
-                <li className="flex flex-col items-center gap-2 px-5 py-16 text-center">
-                  <BellOff className="size-5 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {items === null
-                      ? "Loading your inbox…"
-                      : loadError
-                        ? "Nothing to show until the inbox loads."
-                        : "You are all caught up."}
-                  </p>
-                </li>
-              )}
-            </ul>
-          </Panel>
+      <Panel bodyClassName="p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[200px] flex-1">
+            <Bell className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search notifications…"
+              aria-label="Search notifications"
+              className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+            />
+          </div>
+          <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-card px-3 text-xs font-medium">
+            <input
+              type="checkbox"
+              checked={unreadOnly}
+              onChange={(e) => setUnreadOnly(e.target.checked)}
+              className="accent-foreground"
+            />
+            Unread only
+          </label>
         </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {SENDERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setSender(s)}
+              className={`rounded-full border px-3 py-1.5 text-[11px] font-medium ${
+                sender === s
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border hover:bg-accent"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </Panel>
 
-        <Panel
-          title="Event Reminders"
-          description="Deadlines and campus visits from your recorded drives"
-          bodyClassName="p-0"
-        >
-          {reminders.length > 0 ? (
-            <ul className="divide-y divide-border">
-              {reminders.map((r) => (
-                <li key={r.key} className="flex gap-3 px-5 py-3.5">
-                  <div className="w-12 shrink-0 rounded-md border border-border py-1 text-center">
-                    <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {r.month}
-                    </p>
-                    <p className="stat-num text-sm">{r.day}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium">{r.title}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{r.meta}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="flex flex-col items-center gap-2 px-5 py-12 text-center">
-              <CalendarClock className="size-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {drives.length === 0
-                  ? "No drives recorded yet — add a company to build the calendar."
-                  : "No deadlines or campus visits on the recorded drives."}
-              </p>
-            </div>
+      <Panel className="mt-4" bodyClassName="p-0">
+        {loadError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-destructive/5 px-5 py-3">
+            <p className="text-xs text-destructive">{loadError}</p>
+            <button
+              onClick={() => void refresh()}
+              className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+        <ul className="divide-y divide-border">
+          {list.map((n) => (
+            <li
+              key={n.id}
+              className={`px-5 py-4 transition-colors ${n.read ? "" : "bg-muted/50"}`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                {!n.read && <span className="size-1.5 rounded-full bg-primary" />}
+                <p className="text-sm font-semibold">{n.title}</p>
+                <Pill tone={n.important ? "solid" : "muted"}>
+                  {n.important ? "Important" : n.sender}
+                </Pill>
+                {n.pinned && <Pin className="size-3.5 text-muted-foreground" />}
+                <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                  {n.time}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">{n.body}</p>
+              {/* Nothing here can delete a notice: a broadcast is the record of
+                  what a college told its batch, so it is retired by the
+                  platform, not from one officer's screen. */}
+              {!n.read && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => markRead(n.id)}
+                    className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
+                  >
+                    Mark as read
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+          {list.length > 0 && (
+            <li aria-hidden className="flex justify-center px-5 py-4">
+              <div ref={listEnd}>
+                {isLoadingMore ? (
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                ) : null}
+              </div>
+            </li>
           )}
-        </Panel>
-      </div>
+          {list.length === 0 && (
+            <li className="flex flex-col items-center gap-2 px-5 py-16 text-center">
+              <BellOff className="size-5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {items === null
+                  ? "Loading your inbox…"
+                  : loadError
+                    ? "Nothing to show until the inbox loads."
+                    : "You are all caught up."}
+              </p>
+            </li>
+          )}
+        </ul>
+      </Panel>
     </Shell>
   );
 }

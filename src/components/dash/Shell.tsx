@@ -1,5 +1,4 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import {
   GraduationCap,
   Building2,
@@ -16,7 +15,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { getNotifications, me, type AuthUser } from "@/lib/api";
+import { me, type AuthUser } from "@/lib/api";
+import { useUnreadBadge } from "@/lib/use-unread-badge";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -55,13 +55,9 @@ export function Shell({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  // The badge is the real inbox count for this account, not a local tally.
-  const { data: inbox } = useQuery({
-    queryKey: ["client-notifications"],
-    queryFn: getNotifications,
-    refetchInterval: 60_000,
-  });
-  const unread = inbox?.unread ?? 0;
+  // The badge is the real inbox count for this account, shared with every other
+  // screen in the app, so it stays right without every page fetching it.
+  const { unread } = useUnreadBadge();
 
   useEffect(() => {
     let cancelled = false;
@@ -196,8 +192,13 @@ export function Shell({
                 <p className="truncate text-sm font-medium text-sidebar-primary">
                   {user.name || user.email}
                 </p>
+                {/* The designation rather than the college: everyone signed in here
+                    works at the same institution and already knows which one, while
+                    the title is the thing that differs between the officers on the
+                    roster. Staff with no designation on record still get a label. */}
                 <p className="truncate text-xs text-sidebar-foreground/60">
-                  {user.institution ? `TPO · ${user.institution}` : user.email}
+                  {user.designation ||
+                    (user.institution ? `TPO · ${user.institution}` : user.email)}
                 </p>
               </div>
             </Link>
