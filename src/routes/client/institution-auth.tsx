@@ -98,7 +98,7 @@ function AuthPage() {
     if (next === mode) return;
     setMode(next);
     resetForm();
-    updateSearch({ search: (prev) => ({ ...prev, mode: next }), replace: true });
+    updateSearch({ search: (prev: { mode?: AuthMode }) => ({ ...prev, mode: next }), replace: true });
   };
 
   const handleSubmit = async (e: FormEvent) => {

@@ -241,7 +241,7 @@ function StudentsPage() {
 
   useEffect(() => {
     const incoming = qFromUrl ?? "";
-    setQ((current) => (current === incoming ? current : incoming));
+    setQ((current: string) => (current === incoming ? current : incoming));
   }, [qFromUrl]);
 
   // Searching is an explicit submit — the button beside the box, or Enter in it.
