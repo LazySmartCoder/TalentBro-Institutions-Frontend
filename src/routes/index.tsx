@@ -178,7 +178,7 @@ function TalentBroPage() {
             <a href="#students" className="nav-link text-[13px] font-semibold">Students</a>
             <a href="#contact" className="nav-link text-[13px] font-semibold">Pricing</a>
           </div>
-          <Link to="/get-started" className="cta-ink">Contact Sales</Link>
+          <Link to="/get-started" className="cta-ink">Let&apos;s Begin</Link>
         </nav>
 
         <div className="hero-curves" aria-hidden="true">
@@ -349,7 +349,7 @@ function TalentBroPage() {
           <span className="mx-auto grid size-12 place-items-center rounded-full border border-paper/20"><Sparkles className="size-5" /></span>
           <h2 className="mt-8 text-4xl font-semibold leading-tight md:text-6xl lg:text-7xl">Make every student<br />placement-ready.</h2>
           <p className="mx-auto mt-6 max-w-xl text-paper/55">See how TalentBro can turn your campus talent into a clear, confident, recruiter-ready pipeline.</p>
-          <Link to="/sandbox" className="cta-light cta-large group mt-9">Book an institutional walkthrough <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></Link>
+          <a href="mailto:namaste@talentbro.in" className="cta-light cta-large group mt-9">Contact Sales <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></a>
         </Reveal>
       </section>
 
