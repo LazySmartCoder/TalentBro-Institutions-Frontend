@@ -1778,16 +1778,32 @@ export async function getProfile(): Promise<CandidateProfilePayload> {
   return apiFetch<CandidateProfilePayload>("/api/auth/profile/");
 }
 
+/**
+ * Fired on the window after a write that can change the signed-in candidate.
+ *
+ * The candidate gate reads the user record once when it mounts and would
+ * otherwise keep answering with a stale verification status: editing skills or
+ * preferred roles re-opens Skill Mapping server-side, and finishing the test
+ * closes it again. Neither shows up in the SPA without a signal like this one.
+ */
+export const PROFILE_SAVED_EVENT = "talentbro:profile-saved";
+
+function announceProfileChange(): void {
+  window.dispatchEvent(new Event(PROFILE_SAVED_EVENT));
+}
+
 export async function updateProfile(
   body: Record<string, unknown>,
 ): Promise<CandidateProfilePayload> {
-  return apiFetch<CandidateProfilePayload>("/api/auth/profile/", {
+  const payload = await apiFetch<CandidateProfilePayload>("/api/auth/profile/", {
     method: "PATCH",
     // Saving may trigger a slow LinkedIn-photo fetch on the server, so use the
     // long timeout reserved for LLM-backed endpoints.
     timeoutMs: LONG_TIMEOUT_MS,
     body: JSON.stringify(body),
   });
+  announceProfileChange();
+  return payload;
 }
 
 export type BuildResumeResult = {
@@ -2176,7 +2192,7 @@ export async function mockInterviewStats(
   return apiFetch<MockInterviewStats>(`/api/interview/stats/${query ? `?${query}` : ""}`);
 }
 
-export type NotificationSender = "Placement Cell" | "TalentBro Platform";
+export type NotificationSender = "Placement Cell" | "TalentBro Platform" | "Discussion Forum";
 
 export type NotificationItem = {
   id: string;
@@ -3126,6 +3142,65 @@ export async function sendStudentMessage(
   return data.message;
 }
 
+/*
+ * Discussion Forum. One college's wall of text posts, scoped server-side to the
+ * signed-in member's own institution — there is no parameter that can point the
+ * feed at another college. `is_mine` comes from the server so the delete button
+ * is only ever offered on the viewer's own posts.
+ */
+export type ForumPostAuthor = {
+  id: string;
+  full_name: string;
+  department: string;
+  program: string;
+  avatar: string;
+};
+
+export type ForumPost = {
+  id: string;
+  body: string;
+  created_at: string;
+  /** Pre-formatted relative label ("5 min ago"), the same one the bell uses. */
+  time: string;
+  author: ForumPostAuthor;
+  is_mine: boolean;
+};
+
+export type ForumPostsResponse = {
+  /** Null when the account is not attached to a college yet, so there is no board. */
+  institution: { id: string; name: string } | null;
+  viewer_candidate_id: string | null;
+  posts: ForumPost[];
+  total: number;
+  has_more: boolean;
+  offset: number;
+  limit: number;
+};
+
+export async function forumPosts(
+  params: { mine?: boolean; limit?: number; offset?: number } = {},
+): Promise<ForumPostsResponse> {
+  const search = new URLSearchParams();
+  if (params.mine) search.set("mine", "1");
+  if (typeof params.limit === "number") search.set("limit", String(params.limit));
+  if (typeof params.offset === "number") search.set("offset", String(params.offset));
+  const query = search.toString();
+  return apiFetch<ForumPostsResponse>(`/api/forum/posts/${query ? `?${query}` : ""}`);
+}
+
+export async function createForumPost(body: string): Promise<ForumPost> {
+  const data = await apiFetch<{ post: ForumPost }>("/api/forum/posts/", {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  return data.post;
+}
+
+/** There is no edit path — a post is removed, or reposted as a new row. */
+export async function deleteForumPost(id: string): Promise<void> {
+  await apiFetch<{ detail: string }>(`/api/forum/posts/${id}/`, { method: "DELETE" });
+}
+
 export type DriveStatus = "Live" | "Upcoming" | "Completed" | "Cancelled";
 
 // One hiring event. Everything here is per-drive: a company that runs two
@@ -3168,6 +3243,23 @@ export type PlacementDrive = {
   placement_mode: string;
   offer_status: string;
   eligible_count: number;
+  /**
+   * How well the signed-in candidate fits this drive, 0-100, computed server-side
+   * so both ends agree on what "matches". Null when the drive and its company
+   * declare nothing to measure against - that is missing data, not a zero.
+   * Candidate feeds only; the staff listing omits it.
+   *
+   * With `match_basis` of `skills`, required skills weigh three times a preferred
+   * skill. With `eligibility` the drive named no skills, so the number is the
+   * share of the branch / course / CGPA bar the candidate clears.
+   */
+  profile_match?: number | null;
+  /** What `profile_match` was measured against: skills, eligibility, or neither. */
+  match_basis?: "skills" | "eligibility" | "none" | null;
+  /** Required skills from this drive the candidate's profile already lists. */
+  matched_skills?: string[];
+  /** How many required skills the drive asks for in total. */
+  required_skill_count?: number;
   /** Drive type (campus / virtual / off_campus); only the edit form reads it. */
   drive_mode: string;
   /** Batch year eligible for this drive, as stored on the row. */

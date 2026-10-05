@@ -25,12 +25,12 @@ import { GateLoading, GateError } from "@/components/load-state";
 import { ClientChatRail } from "@/components/dash/ClientChatRail";
 
 const NAV = [
-  { to: "/students", label: "Students", icon: GraduationCap },
-  { to: "/companies", label: "Companies", icon: Building2 },
-  { to: "/drives", label: "Drives", icon: CalendarRange },
-  { to: "/placement-cell", label: "Placement Cell", icon: Landmark },
-  { to: "/ld-training", label: "L&D Training", icon: Presentation },
-  { to: "/institute-billing", label: "Institute Billing", icon: ReceiptIndianRupee },
+  { to: "/client/students", label: "Students", icon: GraduationCap },
+  { to: "/client/companies", label: "Companies", icon: Building2 },
+  { to: "/client/drives", label: "Drives", icon: CalendarRange },
+  { to: "/client/placement-cell", label: "Placement Cell", icon: Landmark },
+  { to: "/candidate/ld-training", label: "L&D Training", icon: Presentation },
+  { to: "/client/institute-billing", label: "Institute Billing", icon: ReceiptIndianRupee },
 ] as const;
 
 export function Shell({
@@ -69,7 +69,7 @@ export function Shell({
           setStatus("ready");
         } else {
           void navigate({
-            to: "/institution-auth",
+            to: "/client/auth",
             search: { mode: "login" },
             replace: true,
           });
@@ -87,7 +87,7 @@ export function Shell({
   }, [navigate]);
 
   if (status === "loading") {
-    return <GateLoading />;
+    return <GateLoading audience="staff" />;
   }
 
   if (status === "error" || !user) {
@@ -175,7 +175,7 @@ export function Shell({
         <div className="border-t border-sidebar-border p-3">
           <div className="flex items-center gap-1 rounded-md transition-colors hover:bg-sidebar-accent/50">
             <Link
-              to="/client-profile"
+              to="/client/profile"
               aria-label="Open profile"
               title="Open profile"
               className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-1.5"
@@ -225,7 +225,7 @@ export function Shell({
             <div className="ml-auto flex items-center gap-2">
               <ThemeToggle className="size-9" />
               <Link
-                to="/notifications"
+                to="/client/notifications"
                 className="relative grid size-9 place-items-center rounded-md border border-border bg-card transition-colors hover:bg-accent"
                 aria-label="Notifications"
               >

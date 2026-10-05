@@ -276,7 +276,7 @@ function StudentDataPage() {
       actions={
         <>
           <Link
-            to="/students"
+            to="/client/students"
             className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
           >
             <ArrowLeft className="size-4" /> All students
@@ -286,7 +286,7 @@ function StudentDataPage() {
               <button
                 type="button"
                 onClick={() =>
-                  void navigate({ to: "/student-message", search: { peer: student.id } })
+                  void navigate({ to: "/candidate/student-message", search: { peer: student.id } })
                 }
                 className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
               >

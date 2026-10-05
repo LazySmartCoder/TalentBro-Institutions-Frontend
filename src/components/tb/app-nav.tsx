@@ -12,6 +12,7 @@ export type NavPage =
   | "learning"
   | "self-training"
   | "daily-targets"
+  | "skill-mapping"
   | "notifications"
   | "profile";
 
@@ -60,6 +61,7 @@ export function AppNavHeader({
   actions,
   unread: unreadOverride,
   sticky,
+  showNotifications = true,
 }: {
   current?: NavPage;
   left?: ReactNode;
@@ -67,6 +69,12 @@ export function AppNavHeader({
   actions?: ReactNode;
   unread?: number;
   sticky?: boolean;
+  /**
+   * Off on the pages a candidate cannot leave yet. The bell would offer a route
+   * the gate bounces straight back, which reads as a broken button rather than a
+   * closed door.
+   */
+  showNotifications?: boolean;
 }) {
   const navigate = useNavigate();
   const { theme, toggle } = useTheme();
@@ -93,18 +101,20 @@ export function AppNavHeader({
           <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">{center}</div>
         )}
         <div className="ml-auto flex items-center gap-1.5">
-          <AppNavIconButton
-            label="Notifications"
-            onClick={() => void navigate({ to: "/notifications" })}
-            className="relative"
-          >
-            <Bell className="size-4" />
-            {badge > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-primary font-mono text-[9px] font-bold text-primary-foreground">
-                {badge}
-              </span>
-            )}
-          </AppNavIconButton>
+          {showNotifications && (
+            <AppNavIconButton
+              label="Notifications"
+              onClick={() => void navigate({ to: "/candidate/notifications" })}
+              className="relative"
+            >
+              <Bell className="size-4" />
+              {badge > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-primary font-mono text-[9px] font-bold text-primary-foreground">
+                  {badge}
+                </span>
+              )}
+            </AppNavIconButton>
+          )}
           {actions}
           <AppNavIconButton
             label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

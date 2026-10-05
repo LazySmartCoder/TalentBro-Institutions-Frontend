@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AppNavHeader } from "@/components/tb/app-nav";
 import { CompanyMark } from "@/components/dash/CompanyMark";
+import { RequiredSkillChips, SkillMatchMeter } from "@/components/dash/SkillMatchMeter";
 import { companyWebsiteHref } from "@/lib/company-website";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,7 +92,7 @@ function CompanyDetailPage() {
             <h1 className="mt-4 font-display text-lg font-bold">Company not available</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">{error}</p>
             <Link
-              to="/company-drives"
+              to="/client/company-drives"
               className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <ArrowLeft className="size-4" /> Back to Companies &amp; Drives
@@ -127,7 +128,7 @@ function CompanyDetailPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8">
           <Link
-            to="/company-drives"
+            to="/client/company-drives"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" /> Companies &amp; Drives
@@ -248,7 +249,13 @@ function CompanyDetailPage() {
                               <p className="mt-0.5 text-sm text-muted-foreground">{d.role}</p>
                             )}
                           </div>
-                          <Badge>{d.status}</Badge>
+                          <div className="flex items-start gap-3">
+                            <Badge>{d.status}</Badge>
+                            <SkillMatchMeter
+                              percent={d.profile_match ?? null}
+                              basis={d.match_basis}
+                            />
+                          </div>
                         </div>
                         <div className="mt-3 grid gap-x-6 gap-y-1.5 text-xs text-muted-foreground sm:grid-cols-2">
                           <p className="flex items-center gap-1.5">
@@ -276,16 +283,10 @@ function CompanyDetailPage() {
                           )}
                         </div>
                         {d.required_skills.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {d.required_skills.map((skill) => (
-                              <span
-                                key={skill}
-                                className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
+                          <RequiredSkillChips
+                            skills={d.required_skills}
+                            matched={d.matched_skills}
+                          />
                         )}
                       </CardContent>
                     </Card>

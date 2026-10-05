@@ -294,7 +294,7 @@ function ReportPage() {
               </p>
               <button
                 type="button"
-                onClick={() => void navigate({ to: "/english-training-history" })}
+                onClick={() => void navigate({ to: "/candidate/english-training-history" })}
                 className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 Back to history <ArrowRight className="size-3.5" />
@@ -316,7 +316,7 @@ function BackButton() {
   return (
     <button
       type="button"
-      onClick={() => void navigate({ to: "/english-training-history" })}
+      onClick={() => void navigate({ to: "/candidate/english-training-history" })}
       className="inline-flex cursor-pointer items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="size-4" /> History

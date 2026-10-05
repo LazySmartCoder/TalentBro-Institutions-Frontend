@@ -10,54 +10,61 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AplrTrainingRouteImport } from './routes/aplr-training'
-import { Route as BasicMathTrainingRouteImport } from './routes/basic-math-training'
-import { Route as CandidateAuthRouteImport } from './routes/candidate-auth'
-import { Route as CandidateProfileRouteImport } from './routes/candidate-profile'
-import { Route as ChatRouteImport } from './routes/chat'
-import { Route as ClientChatRouteImport } from './routes/client-chat'
-import { Route as ClientOnboardingRouteImport } from './routes/client-onboarding'
-import { Route as ClientProfileRouteImport } from './routes/client-profile'
-import { Route as CommunicationTrainingRouteImport } from './routes/communication-training'
-import { Route as CommunicationTrainingHistoryRouteImport } from './routes/communication-training-history'
-import { Route as CommunicationTrainingTipsRouteImport } from './routes/communication-training-tips'
-import { Route as CompaniesRouteImport } from './routes/companies'
-import { Route as CompanyDrivesRouteImport } from './routes/company-drives'
-import { Route as CoursesRouteImport } from './routes/courses'
-import { Route as DailyTargetsRouteImport } from './routes/daily-targets'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as DrivesRouteImport } from './routes/drives'
-import { Route as DsaTrainingRouteImport } from './routes/dsa-training'
-import { Route as EnglishTrainingRouteImport } from './routes/english-training'
-import { Route as EnglishTrainingHistoryRouteImport } from './routes/english-training-history'
-import { Route as EnglishTrainingTipsRouteImport } from './routes/english-training-tips'
-import { Route as GdHistoryRouteImport } from './routes/gd-history'
-import { Route as GdRoomRouteImport } from './routes/gd-room'
-import { Route as GdTrainingRouteImport } from './routes/gd-training'
+import { Route as CandidateRouteRouteImport } from './routes/candidate/route'
 import { Route as GetStartedRouteImport } from './routes/get-started'
-import { Route as InstituteBillingRouteImport } from './routes/institute-billing'
-import { Route as InstitutionAuthRouteImport } from './routes/institution-auth'
-import { Route as LdTrainingRouteImport } from './routes/ld-training'
-import { Route as LeaderboardRouteImport } from './routes/leaderboard'
-import { Route as LearningRouteImport } from './routes/learning'
 import { Route as LogoutRouteImport } from './routes/logout'
-import { Route as MockInterviewRouteImport } from './routes/mock-interview'
-import { Route as MockInterviewHistoryRouteImport } from './routes/mock-interview-history'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as PlacementCellRouteImport } from './routes/placement-cell'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as ResumeBuilderRouteImport } from './routes/resume-builder'
-import { Route as RoadmapDrillRouteImport } from './routes/roadmap-drill'
 import { Route as SandboxRouteImport } from './routes/sandbox'
-import { Route as SelfTrainingRouteImport } from './routes/self-training'
-import { Route as SituationalTrainingRouteImport } from './routes/situational-training'
-import { Route as StudentMessageRouteImport } from './routes/student-message'
-import { Route as StudentsRouteImport } from './routes/students'
 import { Route as TacRouteImport } from './routes/tac'
-import { Route as TechnicalTrainingRouteImport } from './routes/technical-training'
-import { Route as TutorialsRouteImport } from './routes/tutorials'
+import { Route as CandidateAplrTrainingRouteImport } from './routes/candidate/aplr-training'
+import { Route as CandidateAuthRouteImport } from './routes/candidate/auth'
+import { Route as CandidateBasicMathTrainingRouteImport } from './routes/candidate/basic-math-training'
+import { Route as CandidateChatRouteImport } from './routes/candidate/chat'
+import { Route as CandidateCommunicationTrainingRouteImport } from './routes/candidate/communication-training'
+import { Route as CandidateCommunicationTrainingHistoryRouteImport } from './routes/candidate/communication-training-history'
+import { Route as CandidateCommunicationTrainingTipsRouteImport } from './routes/candidate/communication-training-tips'
+import { Route as CandidateCoursesRouteImport } from './routes/candidate/courses'
+import { Route as CandidateDailyTargetsRouteImport } from './routes/candidate/daily-targets'
+import { Route as CandidateDiscussionForumRouteImport } from './routes/candidate/discussion-forum'
+import { Route as CandidateDsaTrainingRouteImport } from './routes/candidate/dsa-training'
+import { Route as CandidateEnglishTrainingRouteImport } from './routes/candidate/english-training'
+import { Route as CandidateEnglishTrainingHistoryRouteImport } from './routes/candidate/english-training-history'
+import { Route as CandidateEnglishTrainingTipsRouteImport } from './routes/candidate/english-training-tips'
+import { Route as CandidateGdHistoryRouteImport } from './routes/candidate/gd-history'
+import { Route as CandidateGdRoomRouteImport } from './routes/candidate/gd-room'
+import { Route as CandidateGdTrainingRouteImport } from './routes/candidate/gd-training'
+import { Route as CandidateLdTrainingRouteImport } from './routes/candidate/ld-training'
+import { Route as CandidateLeaderboardRouteImport } from './routes/candidate/leaderboard'
+import { Route as CandidateLearningRouteImport } from './routes/candidate/learning'
+import { Route as CandidateMockInterviewRouteImport } from './routes/candidate/mock-interview'
+import { Route as CandidateMockInterviewHistoryRouteImport } from './routes/candidate/mock-interview-history'
+import { Route as CandidateNotificationsRouteImport } from './routes/candidate/notifications'
+import { Route as CandidateOnboardingRouteImport } from './routes/candidate/onboarding'
+import { Route as CandidateProfileRouteImport } from './routes/candidate/profile'
+import { Route as CandidateResumeBuilderRouteImport } from './routes/candidate/resume-builder'
+import { Route as CandidateRoadmapDrillRouteImport } from './routes/candidate/roadmap-drill'
+import { Route as CandidateSelfTrainingRouteImport } from './routes/candidate/self-training'
+import { Route as CandidateSituationalTrainingRouteImport } from './routes/candidate/situational-training'
+import { Route as CandidateStudentMessageRouteImport } from './routes/candidate/student-message'
+import { Route as CandidateTechnicalTrainingRouteImport } from './routes/candidate/technical-training'
+import { Route as CandidateTutorialsRouteImport } from './routes/candidate/tutorials'
+import { Route as ClientAuthRouteImport } from './routes/client/auth'
+import { Route as ClientChatRouteImport } from './routes/client/chat'
+import { Route as ClientClientChatRouteImport } from './routes/client/client-chat'
+import { Route as ClientClientOnboardingRouteImport } from './routes/client/client-onboarding'
+import { Route as ClientClientProfileRouteImport } from './routes/client/client-profile'
+import { Route as ClientCompaniesRouteImport } from './routes/client/companies'
+import { Route as ClientCompanyDrivesRouteImport } from './routes/client/company-drives'
+import { Route as ClientDashboardRouteImport } from './routes/client/dashboard'
+import { Route as ClientDrivesRouteImport } from './routes/client/drives'
+import { Route as ClientInstituteBillingRouteImport } from './routes/client/institute-billing'
+import { Route as ClientInstitutionAuthRouteImport } from './routes/client/institution-auth'
+import { Route as ClientNotificationsRouteImport } from './routes/client/notifications'
+import { Route as ClientOnboardingRouteImport } from './routes/client/onboarding'
+import { Route as ClientPlacementCellRouteImport } from './routes/client/placement-cell'
+import { Route as ClientProfileRouteImport } from './routes/client/profile'
+import { Route as ClientReportsRouteImport } from './routes/client/reports'
+import { Route as ClientStudentsRouteImport } from './routes/client/students'
 import { Route as CommunicationTrainingReportSessionIdRouteImport } from './routes/communication-training-report.$sessionId'
 import { Route as CompanyDrivesCompanyIdRouteImport } from './routes/company-drives_.$companyId'
 import { Route as EnglishTrainingReportSessionIdRouteImport } from './routes/english-training-report.$sessionId'
@@ -75,126 +82,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AplrTrainingRoute = AplrTrainingRouteImport.update({
-  id: '/aplr-training',
-  path: '/aplr-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BasicMathTrainingRoute = BasicMathTrainingRouteImport.update({
-  id: '/basic-math-training',
-  path: '/basic-math-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CandidateAuthRoute = CandidateAuthRouteImport.update({
-  id: '/candidate-auth',
-  path: '/candidate-auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CandidateProfileRoute = CandidateProfileRouteImport.update({
-  id: '/candidate-profile',
-  path: '/candidate-profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientChatRoute = ClientChatRouteImport.update({
-  id: '/client-chat',
-  path: '/client-chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientOnboardingRoute = ClientOnboardingRouteImport.update({
-  id: '/client-onboarding',
-  path: '/client-onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientProfileRoute = ClientProfileRouteImport.update({
-  id: '/client-profile',
-  path: '/client-profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunicationTrainingRoute = CommunicationTrainingRouteImport.update({
-  id: '/communication-training',
-  path: '/communication-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunicationTrainingHistoryRoute =
-  CommunicationTrainingHistoryRouteImport.update({
-    id: '/communication-training-history',
-    path: '/communication-training-history',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const CommunicationTrainingTipsRoute =
-  CommunicationTrainingTipsRouteImport.update({
-    id: '/communication-training-tips',
-    path: '/communication-training-tips',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const CompaniesRoute = CompaniesRouteImport.update({
-  id: '/companies',
-  path: '/companies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompanyDrivesRoute = CompanyDrivesRouteImport.update({
-  id: '/company-drives',
-  path: '/company-drives',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CoursesRoute = CoursesRouteImport.update({
-  id: '/courses',
-  path: '/courses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DailyTargetsRoute = DailyTargetsRouteImport.update({
-  id: '/daily-targets',
-  path: '/daily-targets',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DrivesRoute = DrivesRouteImport.update({
-  id: '/drives',
-  path: '/drives',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DsaTrainingRoute = DsaTrainingRouteImport.update({
-  id: '/dsa-training',
-  path: '/dsa-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnglishTrainingRoute = EnglishTrainingRouteImport.update({
-  id: '/english-training',
-  path: '/english-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnglishTrainingHistoryRoute = EnglishTrainingHistoryRouteImport.update({
-  id: '/english-training-history',
-  path: '/english-training-history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnglishTrainingTipsRoute = EnglishTrainingTipsRouteImport.update({
-  id: '/english-training-tips',
-  path: '/english-training-tips',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GdHistoryRoute = GdHistoryRouteImport.update({
-  id: '/gd-history',
-  path: '/gd-history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GdRoomRoute = GdRoomRouteImport.update({
-  id: '/gd-room',
-  path: '/gd-room',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GdTrainingRoute = GdTrainingRouteImport.update({
-  id: '/gd-training',
-  path: '/gd-training',
+const CandidateRouteRoute = CandidateRouteRouteImport.update({
+  id: '/candidate',
+  path: '/candidate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GetStartedRoute = GetStartedRouteImport.update({
@@ -202,59 +92,9 @@ const GetStartedRoute = GetStartedRouteImport.update({
   path: '/get-started',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InstituteBillingRoute = InstituteBillingRouteImport.update({
-  id: '/institute-billing',
-  path: '/institute-billing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InstitutionAuthRoute = InstitutionAuthRouteImport.update({
-  id: '/institution-auth',
-  path: '/institution-auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LdTrainingRoute = LdTrainingRouteImport.update({
-  id: '/ld-training',
-  path: '/ld-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeaderboardRoute = LeaderboardRouteImport.update({
-  id: '/leaderboard',
-  path: '/leaderboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LearningRoute = LearningRouteImport.update({
-  id: '/learning',
-  path: '/learning',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LogoutRoute = LogoutRouteImport.update({
   id: '/logout',
   path: '/logout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MockInterviewRoute = MockInterviewRouteImport.update({
-  id: '/mock-interview',
-  path: '/mock-interview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MockInterviewHistoryRoute = MockInterviewHistoryRouteImport.update({
-  id: '/mock-interview-history',
-  path: '/mock-interview-history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlacementCellRoute = PlacementCellRouteImport.update({
-  id: '/placement-cell',
-  path: '/placement-cell',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -262,44 +102,9 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResumeBuilderRoute = ResumeBuilderRouteImport.update({
-  id: '/resume-builder',
-  path: '/resume-builder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoadmapDrillRoute = RoadmapDrillRouteImport.update({
-  id: '/roadmap-drill',
-  path: '/roadmap-drill',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SandboxRoute = SandboxRouteImport.update({
   id: '/sandbox',
   path: '/sandbox',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SelfTrainingRoute = SelfTrainingRouteImport.update({
-  id: '/self-training',
-  path: '/self-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SituationalTrainingRoute = SituationalTrainingRouteImport.update({
-  id: '/situational-training',
-  path: '/situational-training',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudentMessageRoute = StudentMessageRouteImport.update({
-  id: '/student-message',
-  path: '/student-message',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudentsRoute = StudentsRouteImport.update({
-  id: '/students',
-  path: '/students',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TacRoute = TacRouteImport.update({
@@ -307,14 +112,260 @@ const TacRoute = TacRouteImport.update({
   path: '/tac',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TechnicalTrainingRoute = TechnicalTrainingRouteImport.update({
-  id: '/technical-training',
-  path: '/technical-training',
-  getParentRoute: () => rootRouteImport,
+const CandidateAplrTrainingRoute = CandidateAplrTrainingRouteImport.update({
+  id: '/aplr-training',
+  path: '/aplr-training',
+  getParentRoute: () => CandidateRouteRoute,
 } as any)
-const TutorialsRoute = TutorialsRouteImport.update({
+const CandidateAuthRoute = CandidateAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateBasicMathTrainingRoute =
+  CandidateBasicMathTrainingRouteImport.update({
+    id: '/basic-math-training',
+    path: '/basic-math-training',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateChatRoute = CandidateChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateCommunicationTrainingRoute =
+  CandidateCommunicationTrainingRouteImport.update({
+    id: '/communication-training',
+    path: '/communication-training',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateCommunicationTrainingHistoryRoute =
+  CandidateCommunicationTrainingHistoryRouteImport.update({
+    id: '/communication-training-history',
+    path: '/communication-training-history',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateCommunicationTrainingTipsRoute =
+  CandidateCommunicationTrainingTipsRouteImport.update({
+    id: '/communication-training-tips',
+    path: '/communication-training-tips',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateCoursesRoute = CandidateCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateDailyTargetsRoute = CandidateDailyTargetsRouteImport.update({
+  id: '/daily-targets',
+  path: '/daily-targets',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateDiscussionForumRoute =
+  CandidateDiscussionForumRouteImport.update({
+    id: '/discussion-forum',
+    path: '/discussion-forum',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateDsaTrainingRoute = CandidateDsaTrainingRouteImport.update({
+  id: '/dsa-training',
+  path: '/dsa-training',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateEnglishTrainingRoute =
+  CandidateEnglishTrainingRouteImport.update({
+    id: '/english-training',
+    path: '/english-training',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateEnglishTrainingHistoryRoute =
+  CandidateEnglishTrainingHistoryRouteImport.update({
+    id: '/english-training-history',
+    path: '/english-training-history',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateEnglishTrainingTipsRoute =
+  CandidateEnglishTrainingTipsRouteImport.update({
+    id: '/english-training-tips',
+    path: '/english-training-tips',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateGdHistoryRoute = CandidateGdHistoryRouteImport.update({
+  id: '/gd-history',
+  path: '/gd-history',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateGdRoomRoute = CandidateGdRoomRouteImport.update({
+  id: '/gd-room',
+  path: '/gd-room',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateGdTrainingRoute = CandidateGdTrainingRouteImport.update({
+  id: '/gd-training',
+  path: '/gd-training',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateLdTrainingRoute = CandidateLdTrainingRouteImport.update({
+  id: '/ld-training',
+  path: '/ld-training',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateLeaderboardRoute = CandidateLeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateLearningRoute = CandidateLearningRouteImport.update({
+  id: '/learning',
+  path: '/learning',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateMockInterviewRoute = CandidateMockInterviewRouteImport.update({
+  id: '/mock-interview',
+  path: '/mock-interview',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateMockInterviewHistoryRoute =
+  CandidateMockInterviewHistoryRouteImport.update({
+    id: '/mock-interview-history',
+    path: '/mock-interview-history',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateNotificationsRoute = CandidateNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateOnboardingRoute = CandidateOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateProfileRoute = CandidateProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateResumeBuilderRoute = CandidateResumeBuilderRouteImport.update({
+  id: '/resume-builder',
+  path: '/resume-builder',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateRoadmapDrillRoute = CandidateRoadmapDrillRouteImport.update({
+  id: '/roadmap-drill',
+  path: '/roadmap-drill',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateSelfTrainingRoute = CandidateSelfTrainingRouteImport.update({
+  id: '/self-training',
+  path: '/self-training',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateSituationalTrainingRoute =
+  CandidateSituationalTrainingRouteImport.update({
+    id: '/situational-training',
+    path: '/situational-training',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateStudentMessageRoute = CandidateStudentMessageRouteImport.update({
+  id: '/student-message',
+  path: '/student-message',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const CandidateTechnicalTrainingRoute =
+  CandidateTechnicalTrainingRouteImport.update({
+    id: '/technical-training',
+    path: '/technical-training',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
+const CandidateTutorialsRoute = CandidateTutorialsRouteImport.update({
   id: '/tutorials',
   path: '/tutorials',
+  getParentRoute: () => CandidateRouteRoute,
+} as any)
+const ClientAuthRoute = ClientAuthRouteImport.update({
+  id: '/client/auth',
+  path: '/client/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientChatRoute = ClientChatRouteImport.update({
+  id: '/client/chat',
+  path: '/client/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientClientChatRoute = ClientClientChatRouteImport.update({
+  id: '/client/client-chat',
+  path: '/client/client-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientClientOnboardingRoute = ClientClientOnboardingRouteImport.update({
+  id: '/client/client-onboarding',
+  path: '/client/client-onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientClientProfileRoute = ClientClientProfileRouteImport.update({
+  id: '/client/client-profile',
+  path: '/client/client-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientCompaniesRoute = ClientCompaniesRouteImport.update({
+  id: '/client/companies',
+  path: '/client/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientCompanyDrivesRoute = ClientCompanyDrivesRouteImport.update({
+  id: '/client/company-drives',
+  path: '/client/company-drives',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientDashboardRoute = ClientDashboardRouteImport.update({
+  id: '/client/dashboard',
+  path: '/client/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientDrivesRoute = ClientDrivesRouteImport.update({
+  id: '/client/drives',
+  path: '/client/drives',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientInstituteBillingRoute = ClientInstituteBillingRouteImport.update({
+  id: '/client/institute-billing',
+  path: '/client/institute-billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientInstitutionAuthRoute = ClientInstitutionAuthRouteImport.update({
+  id: '/client/institution-auth',
+  path: '/client/institution-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientNotificationsRoute = ClientNotificationsRouteImport.update({
+  id: '/client/notifications',
+  path: '/client/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientOnboardingRoute = ClientOnboardingRouteImport.update({
+  id: '/client/onboarding',
+  path: '/client/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientPlacementCellRoute = ClientPlacementCellRouteImport.update({
+  id: '/client/placement-cell',
+  path: '/client/placement-cell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientProfileRoute = ClientProfileRouteImport.update({
+  id: '/client/profile',
+  path: '/client/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientReportsRoute = ClientReportsRouteImport.update({
+  id: '/client/reports',
+  path: '/client/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientStudentsRoute = ClientStudentsRouteImport.update({
+  id: '/client/students',
+  path: '/client/students',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunicationTrainingReportSessionIdRoute =
@@ -382,54 +433,61 @@ const StudentModuleStudentIdModuleKeyRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/aplr-training': typeof AplrTrainingRoute
-  '/basic-math-training': typeof BasicMathTrainingRoute
-  '/candidate-auth': typeof CandidateAuthRoute
-  '/candidate-profile': typeof CandidateProfileRoute
-  '/chat': typeof ChatRoute
-  '/client-chat': typeof ClientChatRoute
-  '/client-onboarding': typeof ClientOnboardingRoute
-  '/client-profile': typeof ClientProfileRoute
-  '/communication-training': typeof CommunicationTrainingRoute
-  '/communication-training-history': typeof CommunicationTrainingHistoryRoute
-  '/communication-training-tips': typeof CommunicationTrainingTipsRoute
-  '/companies': typeof CompaniesRoute
-  '/company-drives': typeof CompanyDrivesRoute
-  '/courses': typeof CoursesRoute
-  '/daily-targets': typeof DailyTargetsRoute
-  '/dashboard': typeof DashboardRoute
-  '/drives': typeof DrivesRoute
-  '/dsa-training': typeof DsaTrainingRoute
-  '/english-training': typeof EnglishTrainingRoute
-  '/english-training-history': typeof EnglishTrainingHistoryRoute
-  '/english-training-tips': typeof EnglishTrainingTipsRoute
-  '/gd-history': typeof GdHistoryRoute
-  '/gd-room': typeof GdRoomRoute
-  '/gd-training': typeof GdTrainingRoute
+  '/candidate': typeof CandidateRouteRouteWithChildren
   '/get-started': typeof GetStartedRoute
-  '/institute-billing': typeof InstituteBillingRoute
-  '/institution-auth': typeof InstitutionAuthRoute
-  '/ld-training': typeof LdTrainingRoute
-  '/leaderboard': typeof LeaderboardRoute
-  '/learning': typeof LearningRoute
   '/logout': typeof LogoutRoute
-  '/mock-interview': typeof MockInterviewRoute
-  '/mock-interview-history': typeof MockInterviewHistoryRoute
-  '/notifications': typeof NotificationsRoute
-  '/onboarding': typeof OnboardingRoute
-  '/placement-cell': typeof PlacementCellRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/reports': typeof ReportsRoute
-  '/resume-builder': typeof ResumeBuilderRoute
-  '/roadmap-drill': typeof RoadmapDrillRoute
   '/sandbox': typeof SandboxRoute
-  '/self-training': typeof SelfTrainingRoute
-  '/situational-training': typeof SituationalTrainingRoute
-  '/student-message': typeof StudentMessageRoute
-  '/students': typeof StudentsRoute
   '/tac': typeof TacRoute
-  '/technical-training': typeof TechnicalTrainingRoute
-  '/tutorials': typeof TutorialsRoute
+  '/candidate/aplr-training': typeof CandidateAplrTrainingRoute
+  '/candidate/auth': typeof CandidateAuthRoute
+  '/candidate/basic-math-training': typeof CandidateBasicMathTrainingRoute
+  '/candidate/chat': typeof CandidateChatRoute
+  '/candidate/communication-training': typeof CandidateCommunicationTrainingRoute
+  '/candidate/communication-training-history': typeof CandidateCommunicationTrainingHistoryRoute
+  '/candidate/communication-training-tips': typeof CandidateCommunicationTrainingTipsRoute
+  '/candidate/courses': typeof CandidateCoursesRoute
+  '/candidate/daily-targets': typeof CandidateDailyTargetsRoute
+  '/candidate/discussion-forum': typeof CandidateDiscussionForumRoute
+  '/candidate/dsa-training': typeof CandidateDsaTrainingRoute
+  '/candidate/english-training': typeof CandidateEnglishTrainingRoute
+  '/candidate/english-training-history': typeof CandidateEnglishTrainingHistoryRoute
+  '/candidate/english-training-tips': typeof CandidateEnglishTrainingTipsRoute
+  '/candidate/gd-history': typeof CandidateGdHistoryRoute
+  '/candidate/gd-room': typeof CandidateGdRoomRoute
+  '/candidate/gd-training': typeof CandidateGdTrainingRoute
+  '/candidate/ld-training': typeof CandidateLdTrainingRoute
+  '/candidate/leaderboard': typeof CandidateLeaderboardRoute
+  '/candidate/learning': typeof CandidateLearningRoute
+  '/candidate/mock-interview': typeof CandidateMockInterviewRoute
+  '/candidate/mock-interview-history': typeof CandidateMockInterviewHistoryRoute
+  '/candidate/notifications': typeof CandidateNotificationsRoute
+  '/candidate/onboarding': typeof CandidateOnboardingRoute
+  '/candidate/profile': typeof CandidateProfileRoute
+  '/candidate/resume-builder': typeof CandidateResumeBuilderRoute
+  '/candidate/roadmap-drill': typeof CandidateRoadmapDrillRoute
+  '/candidate/self-training': typeof CandidateSelfTrainingRoute
+  '/candidate/situational-training': typeof CandidateSituationalTrainingRoute
+  '/candidate/student-message': typeof CandidateStudentMessageRoute
+  '/candidate/technical-training': typeof CandidateTechnicalTrainingRoute
+  '/candidate/tutorials': typeof CandidateTutorialsRoute
+  '/client/auth': typeof ClientAuthRoute
+  '/client/chat': typeof ClientChatRoute
+  '/client/client-chat': typeof ClientClientChatRoute
+  '/client/client-onboarding': typeof ClientClientOnboardingRoute
+  '/client/client-profile': typeof ClientClientProfileRoute
+  '/client/companies': typeof ClientCompaniesRoute
+  '/client/company-drives': typeof ClientCompanyDrivesRoute
+  '/client/dashboard': typeof ClientDashboardRoute
+  '/client/drives': typeof ClientDrivesRoute
+  '/client/institute-billing': typeof ClientInstituteBillingRoute
+  '/client/institution-auth': typeof ClientInstitutionAuthRoute
+  '/client/notifications': typeof ClientNotificationsRoute
+  '/client/onboarding': typeof ClientOnboardingRoute
+  '/client/placement-cell': typeof ClientPlacementCellRoute
+  '/client/profile': typeof ClientProfileRoute
+  '/client/reports': typeof ClientReportsRoute
+  '/client/students': typeof ClientStudentsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
   '/company-drives/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
@@ -444,54 +502,61 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/aplr-training': typeof AplrTrainingRoute
-  '/basic-math-training': typeof BasicMathTrainingRoute
-  '/candidate-auth': typeof CandidateAuthRoute
-  '/candidate-profile': typeof CandidateProfileRoute
-  '/chat': typeof ChatRoute
-  '/client-chat': typeof ClientChatRoute
-  '/client-onboarding': typeof ClientOnboardingRoute
-  '/client-profile': typeof ClientProfileRoute
-  '/communication-training': typeof CommunicationTrainingRoute
-  '/communication-training-history': typeof CommunicationTrainingHistoryRoute
-  '/communication-training-tips': typeof CommunicationTrainingTipsRoute
-  '/companies': typeof CompaniesRoute
-  '/company-drives': typeof CompanyDrivesRoute
-  '/courses': typeof CoursesRoute
-  '/daily-targets': typeof DailyTargetsRoute
-  '/dashboard': typeof DashboardRoute
-  '/drives': typeof DrivesRoute
-  '/dsa-training': typeof DsaTrainingRoute
-  '/english-training': typeof EnglishTrainingRoute
-  '/english-training-history': typeof EnglishTrainingHistoryRoute
-  '/english-training-tips': typeof EnglishTrainingTipsRoute
-  '/gd-history': typeof GdHistoryRoute
-  '/gd-room': typeof GdRoomRoute
-  '/gd-training': typeof GdTrainingRoute
+  '/candidate': typeof CandidateRouteRouteWithChildren
   '/get-started': typeof GetStartedRoute
-  '/institute-billing': typeof InstituteBillingRoute
-  '/institution-auth': typeof InstitutionAuthRoute
-  '/ld-training': typeof LdTrainingRoute
-  '/leaderboard': typeof LeaderboardRoute
-  '/learning': typeof LearningRoute
   '/logout': typeof LogoutRoute
-  '/mock-interview': typeof MockInterviewRoute
-  '/mock-interview-history': typeof MockInterviewHistoryRoute
-  '/notifications': typeof NotificationsRoute
-  '/onboarding': typeof OnboardingRoute
-  '/placement-cell': typeof PlacementCellRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/reports': typeof ReportsRoute
-  '/resume-builder': typeof ResumeBuilderRoute
-  '/roadmap-drill': typeof RoadmapDrillRoute
   '/sandbox': typeof SandboxRoute
-  '/self-training': typeof SelfTrainingRoute
-  '/situational-training': typeof SituationalTrainingRoute
-  '/student-message': typeof StudentMessageRoute
-  '/students': typeof StudentsRoute
   '/tac': typeof TacRoute
-  '/technical-training': typeof TechnicalTrainingRoute
-  '/tutorials': typeof TutorialsRoute
+  '/candidate/aplr-training': typeof CandidateAplrTrainingRoute
+  '/candidate/auth': typeof CandidateAuthRoute
+  '/candidate/basic-math-training': typeof CandidateBasicMathTrainingRoute
+  '/candidate/chat': typeof CandidateChatRoute
+  '/candidate/communication-training': typeof CandidateCommunicationTrainingRoute
+  '/candidate/communication-training-history': typeof CandidateCommunicationTrainingHistoryRoute
+  '/candidate/communication-training-tips': typeof CandidateCommunicationTrainingTipsRoute
+  '/candidate/courses': typeof CandidateCoursesRoute
+  '/candidate/daily-targets': typeof CandidateDailyTargetsRoute
+  '/candidate/discussion-forum': typeof CandidateDiscussionForumRoute
+  '/candidate/dsa-training': typeof CandidateDsaTrainingRoute
+  '/candidate/english-training': typeof CandidateEnglishTrainingRoute
+  '/candidate/english-training-history': typeof CandidateEnglishTrainingHistoryRoute
+  '/candidate/english-training-tips': typeof CandidateEnglishTrainingTipsRoute
+  '/candidate/gd-history': typeof CandidateGdHistoryRoute
+  '/candidate/gd-room': typeof CandidateGdRoomRoute
+  '/candidate/gd-training': typeof CandidateGdTrainingRoute
+  '/candidate/ld-training': typeof CandidateLdTrainingRoute
+  '/candidate/leaderboard': typeof CandidateLeaderboardRoute
+  '/candidate/learning': typeof CandidateLearningRoute
+  '/candidate/mock-interview': typeof CandidateMockInterviewRoute
+  '/candidate/mock-interview-history': typeof CandidateMockInterviewHistoryRoute
+  '/candidate/notifications': typeof CandidateNotificationsRoute
+  '/candidate/onboarding': typeof CandidateOnboardingRoute
+  '/candidate/profile': typeof CandidateProfileRoute
+  '/candidate/resume-builder': typeof CandidateResumeBuilderRoute
+  '/candidate/roadmap-drill': typeof CandidateRoadmapDrillRoute
+  '/candidate/self-training': typeof CandidateSelfTrainingRoute
+  '/candidate/situational-training': typeof CandidateSituationalTrainingRoute
+  '/candidate/student-message': typeof CandidateStudentMessageRoute
+  '/candidate/technical-training': typeof CandidateTechnicalTrainingRoute
+  '/candidate/tutorials': typeof CandidateTutorialsRoute
+  '/client/auth': typeof ClientAuthRoute
+  '/client/chat': typeof ClientChatRoute
+  '/client/client-chat': typeof ClientClientChatRoute
+  '/client/client-onboarding': typeof ClientClientOnboardingRoute
+  '/client/client-profile': typeof ClientClientProfileRoute
+  '/client/companies': typeof ClientCompaniesRoute
+  '/client/company-drives': typeof ClientCompanyDrivesRoute
+  '/client/dashboard': typeof ClientDashboardRoute
+  '/client/drives': typeof ClientDrivesRoute
+  '/client/institute-billing': typeof ClientInstituteBillingRoute
+  '/client/institution-auth': typeof ClientInstitutionAuthRoute
+  '/client/notifications': typeof ClientNotificationsRoute
+  '/client/onboarding': typeof ClientOnboardingRoute
+  '/client/placement-cell': typeof ClientPlacementCellRoute
+  '/client/profile': typeof ClientProfileRoute
+  '/client/reports': typeof ClientReportsRoute
+  '/client/students': typeof ClientStudentsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
   '/company-drives/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
@@ -507,54 +572,61 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/aplr-training': typeof AplrTrainingRoute
-  '/basic-math-training': typeof BasicMathTrainingRoute
-  '/candidate-auth': typeof CandidateAuthRoute
-  '/candidate-profile': typeof CandidateProfileRoute
-  '/chat': typeof ChatRoute
-  '/client-chat': typeof ClientChatRoute
-  '/client-onboarding': typeof ClientOnboardingRoute
-  '/client-profile': typeof ClientProfileRoute
-  '/communication-training': typeof CommunicationTrainingRoute
-  '/communication-training-history': typeof CommunicationTrainingHistoryRoute
-  '/communication-training-tips': typeof CommunicationTrainingTipsRoute
-  '/companies': typeof CompaniesRoute
-  '/company-drives': typeof CompanyDrivesRoute
-  '/courses': typeof CoursesRoute
-  '/daily-targets': typeof DailyTargetsRoute
-  '/dashboard': typeof DashboardRoute
-  '/drives': typeof DrivesRoute
-  '/dsa-training': typeof DsaTrainingRoute
-  '/english-training': typeof EnglishTrainingRoute
-  '/english-training-history': typeof EnglishTrainingHistoryRoute
-  '/english-training-tips': typeof EnglishTrainingTipsRoute
-  '/gd-history': typeof GdHistoryRoute
-  '/gd-room': typeof GdRoomRoute
-  '/gd-training': typeof GdTrainingRoute
+  '/candidate': typeof CandidateRouteRouteWithChildren
   '/get-started': typeof GetStartedRoute
-  '/institute-billing': typeof InstituteBillingRoute
-  '/institution-auth': typeof InstitutionAuthRoute
-  '/ld-training': typeof LdTrainingRoute
-  '/leaderboard': typeof LeaderboardRoute
-  '/learning': typeof LearningRoute
   '/logout': typeof LogoutRoute
-  '/mock-interview': typeof MockInterviewRoute
-  '/mock-interview-history': typeof MockInterviewHistoryRoute
-  '/notifications': typeof NotificationsRoute
-  '/onboarding': typeof OnboardingRoute
-  '/placement-cell': typeof PlacementCellRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
-  '/reports': typeof ReportsRoute
-  '/resume-builder': typeof ResumeBuilderRoute
-  '/roadmap-drill': typeof RoadmapDrillRoute
   '/sandbox': typeof SandboxRoute
-  '/self-training': typeof SelfTrainingRoute
-  '/situational-training': typeof SituationalTrainingRoute
-  '/student-message': typeof StudentMessageRoute
-  '/students': typeof StudentsRoute
   '/tac': typeof TacRoute
-  '/technical-training': typeof TechnicalTrainingRoute
-  '/tutorials': typeof TutorialsRoute
+  '/candidate/aplr-training': typeof CandidateAplrTrainingRoute
+  '/candidate/auth': typeof CandidateAuthRoute
+  '/candidate/basic-math-training': typeof CandidateBasicMathTrainingRoute
+  '/candidate/chat': typeof CandidateChatRoute
+  '/candidate/communication-training': typeof CandidateCommunicationTrainingRoute
+  '/candidate/communication-training-history': typeof CandidateCommunicationTrainingHistoryRoute
+  '/candidate/communication-training-tips': typeof CandidateCommunicationTrainingTipsRoute
+  '/candidate/courses': typeof CandidateCoursesRoute
+  '/candidate/daily-targets': typeof CandidateDailyTargetsRoute
+  '/candidate/discussion-forum': typeof CandidateDiscussionForumRoute
+  '/candidate/dsa-training': typeof CandidateDsaTrainingRoute
+  '/candidate/english-training': typeof CandidateEnglishTrainingRoute
+  '/candidate/english-training-history': typeof CandidateEnglishTrainingHistoryRoute
+  '/candidate/english-training-tips': typeof CandidateEnglishTrainingTipsRoute
+  '/candidate/gd-history': typeof CandidateGdHistoryRoute
+  '/candidate/gd-room': typeof CandidateGdRoomRoute
+  '/candidate/gd-training': typeof CandidateGdTrainingRoute
+  '/candidate/ld-training': typeof CandidateLdTrainingRoute
+  '/candidate/leaderboard': typeof CandidateLeaderboardRoute
+  '/candidate/learning': typeof CandidateLearningRoute
+  '/candidate/mock-interview': typeof CandidateMockInterviewRoute
+  '/candidate/mock-interview-history': typeof CandidateMockInterviewHistoryRoute
+  '/candidate/notifications': typeof CandidateNotificationsRoute
+  '/candidate/onboarding': typeof CandidateOnboardingRoute
+  '/candidate/profile': typeof CandidateProfileRoute
+  '/candidate/resume-builder': typeof CandidateResumeBuilderRoute
+  '/candidate/roadmap-drill': typeof CandidateRoadmapDrillRoute
+  '/candidate/self-training': typeof CandidateSelfTrainingRoute
+  '/candidate/situational-training': typeof CandidateSituationalTrainingRoute
+  '/candidate/student-message': typeof CandidateStudentMessageRoute
+  '/candidate/technical-training': typeof CandidateTechnicalTrainingRoute
+  '/candidate/tutorials': typeof CandidateTutorialsRoute
+  '/client/auth': typeof ClientAuthRoute
+  '/client/chat': typeof ClientChatRoute
+  '/client/client-chat': typeof ClientClientChatRoute
+  '/client/client-onboarding': typeof ClientClientOnboardingRoute
+  '/client/client-profile': typeof ClientClientProfileRoute
+  '/client/companies': typeof ClientCompaniesRoute
+  '/client/company-drives': typeof ClientCompanyDrivesRoute
+  '/client/dashboard': typeof ClientDashboardRoute
+  '/client/drives': typeof ClientDrivesRoute
+  '/client/institute-billing': typeof ClientInstituteBillingRoute
+  '/client/institution-auth': typeof ClientInstitutionAuthRoute
+  '/client/notifications': typeof ClientNotificationsRoute
+  '/client/onboarding': typeof ClientOnboardingRoute
+  '/client/placement-cell': typeof ClientPlacementCellRoute
+  '/client/profile': typeof ClientProfileRoute
+  '/client/reports': typeof ClientReportsRoute
+  '/client/students': typeof ClientStudentsRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
   '/company-drives_/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
@@ -571,54 +643,61 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/aplr-training'
-    | '/basic-math-training'
-    | '/candidate-auth'
-    | '/candidate-profile'
-    | '/chat'
-    | '/client-chat'
-    | '/client-onboarding'
-    | '/client-profile'
-    | '/communication-training'
-    | '/communication-training-history'
-    | '/communication-training-tips'
-    | '/companies'
-    | '/company-drives'
-    | '/courses'
-    | '/daily-targets'
-    | '/dashboard'
-    | '/drives'
-    | '/dsa-training'
-    | '/english-training'
-    | '/english-training-history'
-    | '/english-training-tips'
-    | '/gd-history'
-    | '/gd-room'
-    | '/gd-training'
+    | '/candidate'
     | '/get-started'
-    | '/institute-billing'
-    | '/institution-auth'
-    | '/ld-training'
-    | '/leaderboard'
-    | '/learning'
     | '/logout'
-    | '/mock-interview'
-    | '/mock-interview-history'
-    | '/notifications'
-    | '/onboarding'
-    | '/placement-cell'
     | '/privacy-policy'
-    | '/reports'
-    | '/resume-builder'
-    | '/roadmap-drill'
     | '/sandbox'
-    | '/self-training'
-    | '/situational-training'
-    | '/student-message'
-    | '/students'
     | '/tac'
-    | '/technical-training'
-    | '/tutorials'
+    | '/candidate/aplr-training'
+    | '/candidate/auth'
+    | '/candidate/basic-math-training'
+    | '/candidate/chat'
+    | '/candidate/communication-training'
+    | '/candidate/communication-training-history'
+    | '/candidate/communication-training-tips'
+    | '/candidate/courses'
+    | '/candidate/daily-targets'
+    | '/candidate/discussion-forum'
+    | '/candidate/dsa-training'
+    | '/candidate/english-training'
+    | '/candidate/english-training-history'
+    | '/candidate/english-training-tips'
+    | '/candidate/gd-history'
+    | '/candidate/gd-room'
+    | '/candidate/gd-training'
+    | '/candidate/ld-training'
+    | '/candidate/leaderboard'
+    | '/candidate/learning'
+    | '/candidate/mock-interview'
+    | '/candidate/mock-interview-history'
+    | '/candidate/notifications'
+    | '/candidate/onboarding'
+    | '/candidate/profile'
+    | '/candidate/resume-builder'
+    | '/candidate/roadmap-drill'
+    | '/candidate/self-training'
+    | '/candidate/situational-training'
+    | '/candidate/student-message'
+    | '/candidate/technical-training'
+    | '/candidate/tutorials'
+    | '/client/auth'
+    | '/client/chat'
+    | '/client/client-chat'
+    | '/client/client-onboarding'
+    | '/client/client-profile'
+    | '/client/companies'
+    | '/client/company-drives'
+    | '/client/dashboard'
+    | '/client/drives'
+    | '/client/institute-billing'
+    | '/client/institution-auth'
+    | '/client/notifications'
+    | '/client/onboarding'
+    | '/client/placement-cell'
+    | '/client/profile'
+    | '/client/reports'
+    | '/client/students'
     | '/communication-training-report/$sessionId'
     | '/company-drives/$companyId'
     | '/english-training-report/$sessionId'
@@ -633,54 +712,61 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/aplr-training'
-    | '/basic-math-training'
-    | '/candidate-auth'
-    | '/candidate-profile'
-    | '/chat'
-    | '/client-chat'
-    | '/client-onboarding'
-    | '/client-profile'
-    | '/communication-training'
-    | '/communication-training-history'
-    | '/communication-training-tips'
-    | '/companies'
-    | '/company-drives'
-    | '/courses'
-    | '/daily-targets'
-    | '/dashboard'
-    | '/drives'
-    | '/dsa-training'
-    | '/english-training'
-    | '/english-training-history'
-    | '/english-training-tips'
-    | '/gd-history'
-    | '/gd-room'
-    | '/gd-training'
+    | '/candidate'
     | '/get-started'
-    | '/institute-billing'
-    | '/institution-auth'
-    | '/ld-training'
-    | '/leaderboard'
-    | '/learning'
     | '/logout'
-    | '/mock-interview'
-    | '/mock-interview-history'
-    | '/notifications'
-    | '/onboarding'
-    | '/placement-cell'
     | '/privacy-policy'
-    | '/reports'
-    | '/resume-builder'
-    | '/roadmap-drill'
     | '/sandbox'
-    | '/self-training'
-    | '/situational-training'
-    | '/student-message'
-    | '/students'
     | '/tac'
-    | '/technical-training'
-    | '/tutorials'
+    | '/candidate/aplr-training'
+    | '/candidate/auth'
+    | '/candidate/basic-math-training'
+    | '/candidate/chat'
+    | '/candidate/communication-training'
+    | '/candidate/communication-training-history'
+    | '/candidate/communication-training-tips'
+    | '/candidate/courses'
+    | '/candidate/daily-targets'
+    | '/candidate/discussion-forum'
+    | '/candidate/dsa-training'
+    | '/candidate/english-training'
+    | '/candidate/english-training-history'
+    | '/candidate/english-training-tips'
+    | '/candidate/gd-history'
+    | '/candidate/gd-room'
+    | '/candidate/gd-training'
+    | '/candidate/ld-training'
+    | '/candidate/leaderboard'
+    | '/candidate/learning'
+    | '/candidate/mock-interview'
+    | '/candidate/mock-interview-history'
+    | '/candidate/notifications'
+    | '/candidate/onboarding'
+    | '/candidate/profile'
+    | '/candidate/resume-builder'
+    | '/candidate/roadmap-drill'
+    | '/candidate/self-training'
+    | '/candidate/situational-training'
+    | '/candidate/student-message'
+    | '/candidate/technical-training'
+    | '/candidate/tutorials'
+    | '/client/auth'
+    | '/client/chat'
+    | '/client/client-chat'
+    | '/client/client-onboarding'
+    | '/client/client-profile'
+    | '/client/companies'
+    | '/client/company-drives'
+    | '/client/dashboard'
+    | '/client/drives'
+    | '/client/institute-billing'
+    | '/client/institution-auth'
+    | '/client/notifications'
+    | '/client/onboarding'
+    | '/client/placement-cell'
+    | '/client/profile'
+    | '/client/reports'
+    | '/client/students'
     | '/communication-training-report/$sessionId'
     | '/company-drives/$companyId'
     | '/english-training-report/$sessionId'
@@ -695,54 +781,61 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/aplr-training'
-    | '/basic-math-training'
-    | '/candidate-auth'
-    | '/candidate-profile'
-    | '/chat'
-    | '/client-chat'
-    | '/client-onboarding'
-    | '/client-profile'
-    | '/communication-training'
-    | '/communication-training-history'
-    | '/communication-training-tips'
-    | '/companies'
-    | '/company-drives'
-    | '/courses'
-    | '/daily-targets'
-    | '/dashboard'
-    | '/drives'
-    | '/dsa-training'
-    | '/english-training'
-    | '/english-training-history'
-    | '/english-training-tips'
-    | '/gd-history'
-    | '/gd-room'
-    | '/gd-training'
+    | '/candidate'
     | '/get-started'
-    | '/institute-billing'
-    | '/institution-auth'
-    | '/ld-training'
-    | '/leaderboard'
-    | '/learning'
     | '/logout'
-    | '/mock-interview'
-    | '/mock-interview-history'
-    | '/notifications'
-    | '/onboarding'
-    | '/placement-cell'
     | '/privacy-policy'
-    | '/reports'
-    | '/resume-builder'
-    | '/roadmap-drill'
     | '/sandbox'
-    | '/self-training'
-    | '/situational-training'
-    | '/student-message'
-    | '/students'
     | '/tac'
-    | '/technical-training'
-    | '/tutorials'
+    | '/candidate/aplr-training'
+    | '/candidate/auth'
+    | '/candidate/basic-math-training'
+    | '/candidate/chat'
+    | '/candidate/communication-training'
+    | '/candidate/communication-training-history'
+    | '/candidate/communication-training-tips'
+    | '/candidate/courses'
+    | '/candidate/daily-targets'
+    | '/candidate/discussion-forum'
+    | '/candidate/dsa-training'
+    | '/candidate/english-training'
+    | '/candidate/english-training-history'
+    | '/candidate/english-training-tips'
+    | '/candidate/gd-history'
+    | '/candidate/gd-room'
+    | '/candidate/gd-training'
+    | '/candidate/ld-training'
+    | '/candidate/leaderboard'
+    | '/candidate/learning'
+    | '/candidate/mock-interview'
+    | '/candidate/mock-interview-history'
+    | '/candidate/notifications'
+    | '/candidate/onboarding'
+    | '/candidate/profile'
+    | '/candidate/resume-builder'
+    | '/candidate/roadmap-drill'
+    | '/candidate/self-training'
+    | '/candidate/situational-training'
+    | '/candidate/student-message'
+    | '/candidate/technical-training'
+    | '/candidate/tutorials'
+    | '/client/auth'
+    | '/client/chat'
+    | '/client/client-chat'
+    | '/client/client-onboarding'
+    | '/client/client-profile'
+    | '/client/companies'
+    | '/client/company-drives'
+    | '/client/dashboard'
+    | '/client/drives'
+    | '/client/institute-billing'
+    | '/client/institution-auth'
+    | '/client/notifications'
+    | '/client/onboarding'
+    | '/client/placement-cell'
+    | '/client/profile'
+    | '/client/reports'
+    | '/client/students'
     | '/communication-training-report/$sessionId'
     | '/company-drives_/$companyId'
     | '/english-training-report/$sessionId'
@@ -758,54 +851,29 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AplrTrainingRoute: typeof AplrTrainingRoute
-  BasicMathTrainingRoute: typeof BasicMathTrainingRoute
-  CandidateAuthRoute: typeof CandidateAuthRoute
-  CandidateProfileRoute: typeof CandidateProfileRoute
-  ChatRoute: typeof ChatRoute
-  ClientChatRoute: typeof ClientChatRoute
-  ClientOnboardingRoute: typeof ClientOnboardingRoute
-  ClientProfileRoute: typeof ClientProfileRoute
-  CommunicationTrainingRoute: typeof CommunicationTrainingRoute
-  CommunicationTrainingHistoryRoute: typeof CommunicationTrainingHistoryRoute
-  CommunicationTrainingTipsRoute: typeof CommunicationTrainingTipsRoute
-  CompaniesRoute: typeof CompaniesRoute
-  CompanyDrivesRoute: typeof CompanyDrivesRoute
-  CoursesRoute: typeof CoursesRoute
-  DailyTargetsRoute: typeof DailyTargetsRoute
-  DashboardRoute: typeof DashboardRoute
-  DrivesRoute: typeof DrivesRoute
-  DsaTrainingRoute: typeof DsaTrainingRoute
-  EnglishTrainingRoute: typeof EnglishTrainingRoute
-  EnglishTrainingHistoryRoute: typeof EnglishTrainingHistoryRoute
-  EnglishTrainingTipsRoute: typeof EnglishTrainingTipsRoute
-  GdHistoryRoute: typeof GdHistoryRoute
-  GdRoomRoute: typeof GdRoomRoute
-  GdTrainingRoute: typeof GdTrainingRoute
+  CandidateRouteRoute: typeof CandidateRouteRouteWithChildren
   GetStartedRoute: typeof GetStartedRoute
-  InstituteBillingRoute: typeof InstituteBillingRoute
-  InstitutionAuthRoute: typeof InstitutionAuthRoute
-  LdTrainingRoute: typeof LdTrainingRoute
-  LeaderboardRoute: typeof LeaderboardRoute
-  LearningRoute: typeof LearningRoute
   LogoutRoute: typeof LogoutRoute
-  MockInterviewRoute: typeof MockInterviewRoute
-  MockInterviewHistoryRoute: typeof MockInterviewHistoryRoute
-  NotificationsRoute: typeof NotificationsRoute
-  OnboardingRoute: typeof OnboardingRoute
-  PlacementCellRoute: typeof PlacementCellRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
-  ReportsRoute: typeof ReportsRoute
-  ResumeBuilderRoute: typeof ResumeBuilderRoute
-  RoadmapDrillRoute: typeof RoadmapDrillRoute
   SandboxRoute: typeof SandboxRoute
-  SelfTrainingRoute: typeof SelfTrainingRoute
-  SituationalTrainingRoute: typeof SituationalTrainingRoute
-  StudentMessageRoute: typeof StudentMessageRoute
-  StudentsRoute: typeof StudentsRoute
   TacRoute: typeof TacRoute
-  TechnicalTrainingRoute: typeof TechnicalTrainingRoute
-  TutorialsRoute: typeof TutorialsRoute
+  ClientAuthRoute: typeof ClientAuthRoute
+  ClientChatRoute: typeof ClientChatRoute
+  ClientClientChatRoute: typeof ClientClientChatRoute
+  ClientClientOnboardingRoute: typeof ClientClientOnboardingRoute
+  ClientClientProfileRoute: typeof ClientClientProfileRoute
+  ClientCompaniesRoute: typeof ClientCompaniesRoute
+  ClientCompanyDrivesRoute: typeof ClientCompanyDrivesRoute
+  ClientDashboardRoute: typeof ClientDashboardRoute
+  ClientDrivesRoute: typeof ClientDrivesRoute
+  ClientInstituteBillingRoute: typeof ClientInstituteBillingRoute
+  ClientInstitutionAuthRoute: typeof ClientInstitutionAuthRoute
+  ClientNotificationsRoute: typeof ClientNotificationsRoute
+  ClientOnboardingRoute: typeof ClientOnboardingRoute
+  ClientPlacementCellRoute: typeof ClientPlacementCellRoute
+  ClientProfileRoute: typeof ClientProfileRoute
+  ClientReportsRoute: typeof ClientReportsRoute
+  ClientStudentsRoute: typeof ClientStudentsRoute
   CommunicationTrainingReportSessionIdRoute: typeof CommunicationTrainingReportSessionIdRoute
   CompanyDrivesCompanyIdRoute: typeof CompanyDrivesCompanyIdRoute
   EnglishTrainingReportSessionIdRoute: typeof EnglishTrainingReportSessionIdRoute
@@ -828,172 +896,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/aplr-training': {
-      id: '/aplr-training'
-      path: '/aplr-training'
-      fullPath: '/aplr-training'
-      preLoaderRoute: typeof AplrTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/basic-math-training': {
-      id: '/basic-math-training'
-      path: '/basic-math-training'
-      fullPath: '/basic-math-training'
-      preLoaderRoute: typeof BasicMathTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/candidate-auth': {
-      id: '/candidate-auth'
-      path: '/candidate-auth'
-      fullPath: '/candidate-auth'
-      preLoaderRoute: typeof CandidateAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/candidate-profile': {
-      id: '/candidate-profile'
-      path: '/candidate-profile'
-      fullPath: '/candidate-profile'
-      preLoaderRoute: typeof CandidateProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chat': {
-      id: '/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof ChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/client-chat': {
-      id: '/client-chat'
-      path: '/client-chat'
-      fullPath: '/client-chat'
-      preLoaderRoute: typeof ClientChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/client-onboarding': {
-      id: '/client-onboarding'
-      path: '/client-onboarding'
-      fullPath: '/client-onboarding'
-      preLoaderRoute: typeof ClientOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/client-profile': {
-      id: '/client-profile'
-      path: '/client-profile'
-      fullPath: '/client-profile'
-      preLoaderRoute: typeof ClientProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/communication-training': {
-      id: '/communication-training'
-      path: '/communication-training'
-      fullPath: '/communication-training'
-      preLoaderRoute: typeof CommunicationTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/communication-training-history': {
-      id: '/communication-training-history'
-      path: '/communication-training-history'
-      fullPath: '/communication-training-history'
-      preLoaderRoute: typeof CommunicationTrainingHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/communication-training-tips': {
-      id: '/communication-training-tips'
-      path: '/communication-training-tips'
-      fullPath: '/communication-training-tips'
-      preLoaderRoute: typeof CommunicationTrainingTipsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/companies': {
-      id: '/companies'
-      path: '/companies'
-      fullPath: '/companies'
-      preLoaderRoute: typeof CompaniesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/company-drives': {
-      id: '/company-drives'
-      path: '/company-drives'
-      fullPath: '/company-drives'
-      preLoaderRoute: typeof CompanyDrivesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/courses': {
-      id: '/courses'
-      path: '/courses'
-      fullPath: '/courses'
-      preLoaderRoute: typeof CoursesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/daily-targets': {
-      id: '/daily-targets'
-      path: '/daily-targets'
-      fullPath: '/daily-targets'
-      preLoaderRoute: typeof DailyTargetsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/drives': {
-      id: '/drives'
-      path: '/drives'
-      fullPath: '/drives'
-      preLoaderRoute: typeof DrivesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dsa-training': {
-      id: '/dsa-training'
-      path: '/dsa-training'
-      fullPath: '/dsa-training'
-      preLoaderRoute: typeof DsaTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/english-training': {
-      id: '/english-training'
-      path: '/english-training'
-      fullPath: '/english-training'
-      preLoaderRoute: typeof EnglishTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/english-training-history': {
-      id: '/english-training-history'
-      path: '/english-training-history'
-      fullPath: '/english-training-history'
-      preLoaderRoute: typeof EnglishTrainingHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/english-training-tips': {
-      id: '/english-training-tips'
-      path: '/english-training-tips'
-      fullPath: '/english-training-tips'
-      preLoaderRoute: typeof EnglishTrainingTipsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gd-history': {
-      id: '/gd-history'
-      path: '/gd-history'
-      fullPath: '/gd-history'
-      preLoaderRoute: typeof GdHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gd-room': {
-      id: '/gd-room'
-      path: '/gd-room'
-      fullPath: '/gd-room'
-      preLoaderRoute: typeof GdRoomRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gd-training': {
-      id: '/gd-training'
-      path: '/gd-training'
-      fullPath: '/gd-training'
-      preLoaderRoute: typeof GdTrainingRouteImport
+    '/candidate': {
+      id: '/candidate'
+      path: '/candidate'
+      fullPath: '/candidate'
+      preLoaderRoute: typeof CandidateRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/get-started': {
@@ -1003,81 +910,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GetStartedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/institute-billing': {
-      id: '/institute-billing'
-      path: '/institute-billing'
-      fullPath: '/institute-billing'
-      preLoaderRoute: typeof InstituteBillingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/institution-auth': {
-      id: '/institution-auth'
-      path: '/institution-auth'
-      fullPath: '/institution-auth'
-      preLoaderRoute: typeof InstitutionAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ld-training': {
-      id: '/ld-training'
-      path: '/ld-training'
-      fullPath: '/ld-training'
-      preLoaderRoute: typeof LdTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leaderboard': {
-      id: '/leaderboard'
-      path: '/leaderboard'
-      fullPath: '/leaderboard'
-      preLoaderRoute: typeof LeaderboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/learning': {
-      id: '/learning'
-      path: '/learning'
-      fullPath: '/learning'
-      preLoaderRoute: typeof LearningRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/logout': {
       id: '/logout'
       path: '/logout'
       fullPath: '/logout'
       preLoaderRoute: typeof LogoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mock-interview': {
-      id: '/mock-interview'
-      path: '/mock-interview'
-      fullPath: '/mock-interview'
-      preLoaderRoute: typeof MockInterviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mock-interview-history': {
-      id: '/mock-interview-history'
-      path: '/mock-interview-history'
-      fullPath: '/mock-interview-history'
-      preLoaderRoute: typeof MockInterviewHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/placement-cell': {
-      id: '/placement-cell'
-      path: '/placement-cell'
-      fullPath: '/placement-cell'
-      preLoaderRoute: typeof PlacementCellRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -1087,60 +924,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/resume-builder': {
-      id: '/resume-builder'
-      path: '/resume-builder'
-      fullPath: '/resume-builder'
-      preLoaderRoute: typeof ResumeBuilderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/roadmap-drill': {
-      id: '/roadmap-drill'
-      path: '/roadmap-drill'
-      fullPath: '/roadmap-drill'
-      preLoaderRoute: typeof RoadmapDrillRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sandbox': {
       id: '/sandbox'
       path: '/sandbox'
       fullPath: '/sandbox'
       preLoaderRoute: typeof SandboxRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/self-training': {
-      id: '/self-training'
-      path: '/self-training'
-      fullPath: '/self-training'
-      preLoaderRoute: typeof SelfTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/situational-training': {
-      id: '/situational-training'
-      path: '/situational-training'
-      fullPath: '/situational-training'
-      preLoaderRoute: typeof SituationalTrainingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/student-message': {
-      id: '/student-message'
-      path: '/student-message'
-      fullPath: '/student-message'
-      preLoaderRoute: typeof StudentMessageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/students': {
-      id: '/students'
-      path: '/students'
-      fullPath: '/students'
-      preLoaderRoute: typeof StudentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tac': {
@@ -1150,18 +938,347 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TacRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/technical-training': {
-      id: '/technical-training'
+    '/candidate/aplr-training': {
+      id: '/candidate/aplr-training'
+      path: '/aplr-training'
+      fullPath: '/candidate/aplr-training'
+      preLoaderRoute: typeof CandidateAplrTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/auth': {
+      id: '/candidate/auth'
+      path: '/auth'
+      fullPath: '/candidate/auth'
+      preLoaderRoute: typeof CandidateAuthRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/basic-math-training': {
+      id: '/candidate/basic-math-training'
+      path: '/basic-math-training'
+      fullPath: '/candidate/basic-math-training'
+      preLoaderRoute: typeof CandidateBasicMathTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/chat': {
+      id: '/candidate/chat'
+      path: '/chat'
+      fullPath: '/candidate/chat'
+      preLoaderRoute: typeof CandidateChatRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/communication-training': {
+      id: '/candidate/communication-training'
+      path: '/communication-training'
+      fullPath: '/candidate/communication-training'
+      preLoaderRoute: typeof CandidateCommunicationTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/communication-training-history': {
+      id: '/candidate/communication-training-history'
+      path: '/communication-training-history'
+      fullPath: '/candidate/communication-training-history'
+      preLoaderRoute: typeof CandidateCommunicationTrainingHistoryRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/communication-training-tips': {
+      id: '/candidate/communication-training-tips'
+      path: '/communication-training-tips'
+      fullPath: '/candidate/communication-training-tips'
+      preLoaderRoute: typeof CandidateCommunicationTrainingTipsRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/courses': {
+      id: '/candidate/courses'
+      path: '/courses'
+      fullPath: '/candidate/courses'
+      preLoaderRoute: typeof CandidateCoursesRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/daily-targets': {
+      id: '/candidate/daily-targets'
+      path: '/daily-targets'
+      fullPath: '/candidate/daily-targets'
+      preLoaderRoute: typeof CandidateDailyTargetsRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/discussion-forum': {
+      id: '/candidate/discussion-forum'
+      path: '/discussion-forum'
+      fullPath: '/candidate/discussion-forum'
+      preLoaderRoute: typeof CandidateDiscussionForumRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/dsa-training': {
+      id: '/candidate/dsa-training'
+      path: '/dsa-training'
+      fullPath: '/candidate/dsa-training'
+      preLoaderRoute: typeof CandidateDsaTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/english-training': {
+      id: '/candidate/english-training'
+      path: '/english-training'
+      fullPath: '/candidate/english-training'
+      preLoaderRoute: typeof CandidateEnglishTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/english-training-history': {
+      id: '/candidate/english-training-history'
+      path: '/english-training-history'
+      fullPath: '/candidate/english-training-history'
+      preLoaderRoute: typeof CandidateEnglishTrainingHistoryRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/english-training-tips': {
+      id: '/candidate/english-training-tips'
+      path: '/english-training-tips'
+      fullPath: '/candidate/english-training-tips'
+      preLoaderRoute: typeof CandidateEnglishTrainingTipsRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/gd-history': {
+      id: '/candidate/gd-history'
+      path: '/gd-history'
+      fullPath: '/candidate/gd-history'
+      preLoaderRoute: typeof CandidateGdHistoryRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/gd-room': {
+      id: '/candidate/gd-room'
+      path: '/gd-room'
+      fullPath: '/candidate/gd-room'
+      preLoaderRoute: typeof CandidateGdRoomRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/gd-training': {
+      id: '/candidate/gd-training'
+      path: '/gd-training'
+      fullPath: '/candidate/gd-training'
+      preLoaderRoute: typeof CandidateGdTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/ld-training': {
+      id: '/candidate/ld-training'
+      path: '/ld-training'
+      fullPath: '/candidate/ld-training'
+      preLoaderRoute: typeof CandidateLdTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/leaderboard': {
+      id: '/candidate/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/candidate/leaderboard'
+      preLoaderRoute: typeof CandidateLeaderboardRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/learning': {
+      id: '/candidate/learning'
+      path: '/learning'
+      fullPath: '/candidate/learning'
+      preLoaderRoute: typeof CandidateLearningRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/mock-interview': {
+      id: '/candidate/mock-interview'
+      path: '/mock-interview'
+      fullPath: '/candidate/mock-interview'
+      preLoaderRoute: typeof CandidateMockInterviewRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/mock-interview-history': {
+      id: '/candidate/mock-interview-history'
+      path: '/mock-interview-history'
+      fullPath: '/candidate/mock-interview-history'
+      preLoaderRoute: typeof CandidateMockInterviewHistoryRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/notifications': {
+      id: '/candidate/notifications'
+      path: '/notifications'
+      fullPath: '/candidate/notifications'
+      preLoaderRoute: typeof CandidateNotificationsRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/onboarding': {
+      id: '/candidate/onboarding'
+      path: '/onboarding'
+      fullPath: '/candidate/onboarding'
+      preLoaderRoute: typeof CandidateOnboardingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/profile': {
+      id: '/candidate/profile'
+      path: '/profile'
+      fullPath: '/candidate/profile'
+      preLoaderRoute: typeof CandidateProfileRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/resume-builder': {
+      id: '/candidate/resume-builder'
+      path: '/resume-builder'
+      fullPath: '/candidate/resume-builder'
+      preLoaderRoute: typeof CandidateResumeBuilderRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/roadmap-drill': {
+      id: '/candidate/roadmap-drill'
+      path: '/roadmap-drill'
+      fullPath: '/candidate/roadmap-drill'
+      preLoaderRoute: typeof CandidateRoadmapDrillRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/self-training': {
+      id: '/candidate/self-training'
+      path: '/self-training'
+      fullPath: '/candidate/self-training'
+      preLoaderRoute: typeof CandidateSelfTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/situational-training': {
+      id: '/candidate/situational-training'
+      path: '/situational-training'
+      fullPath: '/candidate/situational-training'
+      preLoaderRoute: typeof CandidateSituationalTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/student-message': {
+      id: '/candidate/student-message'
+      path: '/student-message'
+      fullPath: '/candidate/student-message'
+      preLoaderRoute: typeof CandidateStudentMessageRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/technical-training': {
+      id: '/candidate/technical-training'
       path: '/technical-training'
-      fullPath: '/technical-training'
-      preLoaderRoute: typeof TechnicalTrainingRouteImport
+      fullPath: '/candidate/technical-training'
+      preLoaderRoute: typeof CandidateTechnicalTrainingRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/tutorials': {
+      id: '/candidate/tutorials'
+      path: '/tutorials'
+      fullPath: '/candidate/tutorials'
+      preLoaderRoute: typeof CandidateTutorialsRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/client/auth': {
+      id: '/client/auth'
+      path: '/client/auth'
+      fullPath: '/client/auth'
+      preLoaderRoute: typeof ClientAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tutorials': {
-      id: '/tutorials'
-      path: '/tutorials'
-      fullPath: '/tutorials'
-      preLoaderRoute: typeof TutorialsRouteImport
+    '/client/chat': {
+      id: '/client/chat'
+      path: '/client/chat'
+      fullPath: '/client/chat'
+      preLoaderRoute: typeof ClientChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/client-chat': {
+      id: '/client/client-chat'
+      path: '/client/client-chat'
+      fullPath: '/client/client-chat'
+      preLoaderRoute: typeof ClientClientChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/client-onboarding': {
+      id: '/client/client-onboarding'
+      path: '/client/client-onboarding'
+      fullPath: '/client/client-onboarding'
+      preLoaderRoute: typeof ClientClientOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/client-profile': {
+      id: '/client/client-profile'
+      path: '/client/client-profile'
+      fullPath: '/client/client-profile'
+      preLoaderRoute: typeof ClientClientProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/companies': {
+      id: '/client/companies'
+      path: '/client/companies'
+      fullPath: '/client/companies'
+      preLoaderRoute: typeof ClientCompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/company-drives': {
+      id: '/client/company-drives'
+      path: '/client/company-drives'
+      fullPath: '/client/company-drives'
+      preLoaderRoute: typeof ClientCompanyDrivesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/dashboard': {
+      id: '/client/dashboard'
+      path: '/client/dashboard'
+      fullPath: '/client/dashboard'
+      preLoaderRoute: typeof ClientDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/drives': {
+      id: '/client/drives'
+      path: '/client/drives'
+      fullPath: '/client/drives'
+      preLoaderRoute: typeof ClientDrivesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/institute-billing': {
+      id: '/client/institute-billing'
+      path: '/client/institute-billing'
+      fullPath: '/client/institute-billing'
+      preLoaderRoute: typeof ClientInstituteBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/institution-auth': {
+      id: '/client/institution-auth'
+      path: '/client/institution-auth'
+      fullPath: '/client/institution-auth'
+      preLoaderRoute: typeof ClientInstitutionAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/notifications': {
+      id: '/client/notifications'
+      path: '/client/notifications'
+      fullPath: '/client/notifications'
+      preLoaderRoute: typeof ClientNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/onboarding': {
+      id: '/client/onboarding'
+      path: '/client/onboarding'
+      fullPath: '/client/onboarding'
+      preLoaderRoute: typeof ClientOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/placement-cell': {
+      id: '/client/placement-cell'
+      path: '/client/placement-cell'
+      fullPath: '/client/placement-cell'
+      preLoaderRoute: typeof ClientPlacementCellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/profile': {
+      id: '/client/profile'
+      path: '/client/profile'
+      fullPath: '/client/profile'
+      preLoaderRoute: typeof ClientProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/reports': {
+      id: '/client/reports'
+      path: '/client/reports'
+      fullPath: '/client/reports'
+      preLoaderRoute: typeof ClientReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/students': {
+      id: '/client/students'
+      path: '/client/students'
+      fullPath: '/client/students'
+      preLoaderRoute: typeof ClientStudentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/communication-training-report/$sessionId': {
@@ -1244,56 +1361,107 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CandidateRouteRouteChildren {
+  CandidateAplrTrainingRoute: typeof CandidateAplrTrainingRoute
+  CandidateAuthRoute: typeof CandidateAuthRoute
+  CandidateBasicMathTrainingRoute: typeof CandidateBasicMathTrainingRoute
+  CandidateChatRoute: typeof CandidateChatRoute
+  CandidateCommunicationTrainingRoute: typeof CandidateCommunicationTrainingRoute
+  CandidateCommunicationTrainingHistoryRoute: typeof CandidateCommunicationTrainingHistoryRoute
+  CandidateCommunicationTrainingTipsRoute: typeof CandidateCommunicationTrainingTipsRoute
+  CandidateCoursesRoute: typeof CandidateCoursesRoute
+  CandidateDailyTargetsRoute: typeof CandidateDailyTargetsRoute
+  CandidateDiscussionForumRoute: typeof CandidateDiscussionForumRoute
+  CandidateDsaTrainingRoute: typeof CandidateDsaTrainingRoute
+  CandidateEnglishTrainingRoute: typeof CandidateEnglishTrainingRoute
+  CandidateEnglishTrainingHistoryRoute: typeof CandidateEnglishTrainingHistoryRoute
+  CandidateEnglishTrainingTipsRoute: typeof CandidateEnglishTrainingTipsRoute
+  CandidateGdHistoryRoute: typeof CandidateGdHistoryRoute
+  CandidateGdRoomRoute: typeof CandidateGdRoomRoute
+  CandidateGdTrainingRoute: typeof CandidateGdTrainingRoute
+  CandidateLdTrainingRoute: typeof CandidateLdTrainingRoute
+  CandidateLeaderboardRoute: typeof CandidateLeaderboardRoute
+  CandidateLearningRoute: typeof CandidateLearningRoute
+  CandidateMockInterviewRoute: typeof CandidateMockInterviewRoute
+  CandidateMockInterviewHistoryRoute: typeof CandidateMockInterviewHistoryRoute
+  CandidateNotificationsRoute: typeof CandidateNotificationsRoute
+  CandidateOnboardingRoute: typeof CandidateOnboardingRoute
+  CandidateProfileRoute: typeof CandidateProfileRoute
+  CandidateResumeBuilderRoute: typeof CandidateResumeBuilderRoute
+  CandidateRoadmapDrillRoute: typeof CandidateRoadmapDrillRoute
+  CandidateSelfTrainingRoute: typeof CandidateSelfTrainingRoute
+  CandidateSituationalTrainingRoute: typeof CandidateSituationalTrainingRoute
+  CandidateStudentMessageRoute: typeof CandidateStudentMessageRoute
+  CandidateTechnicalTrainingRoute: typeof CandidateTechnicalTrainingRoute
+  CandidateTutorialsRoute: typeof CandidateTutorialsRoute
+}
+
+const CandidateRouteRouteChildren: CandidateRouteRouteChildren = {
+  CandidateAplrTrainingRoute: CandidateAplrTrainingRoute,
+  CandidateAuthRoute: CandidateAuthRoute,
+  CandidateBasicMathTrainingRoute: CandidateBasicMathTrainingRoute,
+  CandidateChatRoute: CandidateChatRoute,
+  CandidateCommunicationTrainingRoute: CandidateCommunicationTrainingRoute,
+  CandidateCommunicationTrainingHistoryRoute:
+    CandidateCommunicationTrainingHistoryRoute,
+  CandidateCommunicationTrainingTipsRoute:
+    CandidateCommunicationTrainingTipsRoute,
+  CandidateCoursesRoute: CandidateCoursesRoute,
+  CandidateDailyTargetsRoute: CandidateDailyTargetsRoute,
+  CandidateDiscussionForumRoute: CandidateDiscussionForumRoute,
+  CandidateDsaTrainingRoute: CandidateDsaTrainingRoute,
+  CandidateEnglishTrainingRoute: CandidateEnglishTrainingRoute,
+  CandidateEnglishTrainingHistoryRoute: CandidateEnglishTrainingHistoryRoute,
+  CandidateEnglishTrainingTipsRoute: CandidateEnglishTrainingTipsRoute,
+  CandidateGdHistoryRoute: CandidateGdHistoryRoute,
+  CandidateGdRoomRoute: CandidateGdRoomRoute,
+  CandidateGdTrainingRoute: CandidateGdTrainingRoute,
+  CandidateLdTrainingRoute: CandidateLdTrainingRoute,
+  CandidateLeaderboardRoute: CandidateLeaderboardRoute,
+  CandidateLearningRoute: CandidateLearningRoute,
+  CandidateMockInterviewRoute: CandidateMockInterviewRoute,
+  CandidateMockInterviewHistoryRoute: CandidateMockInterviewHistoryRoute,
+  CandidateNotificationsRoute: CandidateNotificationsRoute,
+  CandidateOnboardingRoute: CandidateOnboardingRoute,
+  CandidateProfileRoute: CandidateProfileRoute,
+  CandidateResumeBuilderRoute: CandidateResumeBuilderRoute,
+  CandidateRoadmapDrillRoute: CandidateRoadmapDrillRoute,
+  CandidateSelfTrainingRoute: CandidateSelfTrainingRoute,
+  CandidateSituationalTrainingRoute: CandidateSituationalTrainingRoute,
+  CandidateStudentMessageRoute: CandidateStudentMessageRoute,
+  CandidateTechnicalTrainingRoute: CandidateTechnicalTrainingRoute,
+  CandidateTutorialsRoute: CandidateTutorialsRoute,
+}
+
+const CandidateRouteRouteWithChildren = CandidateRouteRoute._addFileChildren(
+  CandidateRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AplrTrainingRoute: AplrTrainingRoute,
-  BasicMathTrainingRoute: BasicMathTrainingRoute,
-  CandidateAuthRoute: CandidateAuthRoute,
-  CandidateProfileRoute: CandidateProfileRoute,
-  ChatRoute: ChatRoute,
-  ClientChatRoute: ClientChatRoute,
-  ClientOnboardingRoute: ClientOnboardingRoute,
-  ClientProfileRoute: ClientProfileRoute,
-  CommunicationTrainingRoute: CommunicationTrainingRoute,
-  CommunicationTrainingHistoryRoute: CommunicationTrainingHistoryRoute,
-  CommunicationTrainingTipsRoute: CommunicationTrainingTipsRoute,
-  CompaniesRoute: CompaniesRoute,
-  CompanyDrivesRoute: CompanyDrivesRoute,
-  CoursesRoute: CoursesRoute,
-  DailyTargetsRoute: DailyTargetsRoute,
-  DashboardRoute: DashboardRoute,
-  DrivesRoute: DrivesRoute,
-  DsaTrainingRoute: DsaTrainingRoute,
-  EnglishTrainingRoute: EnglishTrainingRoute,
-  EnglishTrainingHistoryRoute: EnglishTrainingHistoryRoute,
-  EnglishTrainingTipsRoute: EnglishTrainingTipsRoute,
-  GdHistoryRoute: GdHistoryRoute,
-  GdRoomRoute: GdRoomRoute,
-  GdTrainingRoute: GdTrainingRoute,
+  CandidateRouteRoute: CandidateRouteRouteWithChildren,
   GetStartedRoute: GetStartedRoute,
-  InstituteBillingRoute: InstituteBillingRoute,
-  InstitutionAuthRoute: InstitutionAuthRoute,
-  LdTrainingRoute: LdTrainingRoute,
-  LeaderboardRoute: LeaderboardRoute,
-  LearningRoute: LearningRoute,
   LogoutRoute: LogoutRoute,
-  MockInterviewRoute: MockInterviewRoute,
-  MockInterviewHistoryRoute: MockInterviewHistoryRoute,
-  NotificationsRoute: NotificationsRoute,
-  OnboardingRoute: OnboardingRoute,
-  PlacementCellRoute: PlacementCellRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
-  ReportsRoute: ReportsRoute,
-  ResumeBuilderRoute: ResumeBuilderRoute,
-  RoadmapDrillRoute: RoadmapDrillRoute,
   SandboxRoute: SandboxRoute,
-  SelfTrainingRoute: SelfTrainingRoute,
-  SituationalTrainingRoute: SituationalTrainingRoute,
-  StudentMessageRoute: StudentMessageRoute,
-  StudentsRoute: StudentsRoute,
   TacRoute: TacRoute,
-  TechnicalTrainingRoute: TechnicalTrainingRoute,
-  TutorialsRoute: TutorialsRoute,
+  ClientAuthRoute: ClientAuthRoute,
+  ClientChatRoute: ClientChatRoute,
+  ClientClientChatRoute: ClientClientChatRoute,
+  ClientClientOnboardingRoute: ClientClientOnboardingRoute,
+  ClientClientProfileRoute: ClientClientProfileRoute,
+  ClientCompaniesRoute: ClientCompaniesRoute,
+  ClientCompanyDrivesRoute: ClientCompanyDrivesRoute,
+  ClientDashboardRoute: ClientDashboardRoute,
+  ClientDrivesRoute: ClientDrivesRoute,
+  ClientInstituteBillingRoute: ClientInstituteBillingRoute,
+  ClientInstitutionAuthRoute: ClientInstitutionAuthRoute,
+  ClientNotificationsRoute: ClientNotificationsRoute,
+  ClientOnboardingRoute: ClientOnboardingRoute,
+  ClientPlacementCellRoute: ClientPlacementCellRoute,
+  ClientProfileRoute: ClientProfileRoute,
+  ClientReportsRoute: ClientReportsRoute,
+  ClientStudentsRoute: ClientStudentsRoute,
   CommunicationTrainingReportSessionIdRoute:
     CommunicationTrainingReportSessionIdRoute,
   CompanyDrivesCompanyIdRoute: CompanyDrivesCompanyIdRoute,

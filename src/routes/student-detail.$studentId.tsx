@@ -275,7 +275,7 @@ function StudentDetailPage() {
         const current = await me();
         if (cancelled) return;
         if (!current) {
-          void navigate({ to: "/candidate-auth", search: { mode: "login" }, replace: true });
+          void navigate({ to: "/candidate/auth", search: { mode: "login" }, replace: true });
           return;
         }
         const board = await getReadinessLeaderboard();
@@ -302,7 +302,7 @@ function StudentDetailPage() {
     }
   }, [student]);
 
-  if (status === "loading") return <GateLoading />;
+  if (status === "loading") return <GateLoading audience="staff" />;
   if (status === "error")
     return (
       <GateError
@@ -322,7 +322,7 @@ function StudentDetailPage() {
             This student isn&apos;t on the readiness board. They may not have started training yet.
           </p>
           <Link
-            to="/leaderboard"
+            to="/candidate/leaderboard"
             className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             <ArrowLeft className="size-4" /> Back to leaderboard
@@ -363,7 +363,7 @@ function StudentDetailPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between gap-3">
           <Link
-            to="/leaderboard"
+            to="/candidate/leaderboard"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" /> Back to Leaderboard
@@ -375,7 +375,7 @@ function StudentDetailPage() {
                 type="button"
                 onClick={() =>
                   void navigate({
-                    to: "/student-message",
+                    to: "/candidate/student-message",
                     search: { peer: student.id },
                   })
                 }

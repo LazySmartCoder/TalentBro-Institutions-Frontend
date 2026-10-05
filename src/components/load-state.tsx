@@ -6,13 +6,25 @@ import { shouldShowLoadingQuotes } from "@/lib/user-role";
 // request lingers, a short hint so a slow server never looks like a frozen
 // white screen.
 //
-// The motivation quote is for candidates. College staff see the spinner alone —
-// they are not the audience for "your competition is practicing" — so the gate
-// asks the remembered account role rather than re-reading the session, which
-// would just be more waiting on top of the wait being covered.
-export function GateLoading({ slowHintMs = 6000 }: { slowHintMs?: number }) {
+// The motivation quote is for candidates. College staff are not the audience for
+// "your competition is practicing", so they get a plain "Loading..." instead.
+//
+// Pages pass `audience` when they already know which side they are on. That is
+// the only reliable signal: the gate renders while the session check is still in
+// flight, so the remembered role is still null on a cold load, and an unknown
+// role is deliberately read as a candidate. Left to that default, a staff member
+// hard-refreshing a page would get a quote. It also cannot be keyed off the
+// pathname — candidate pages live under /client/ and at the root (the
+// company-drives screens), and staff pages live under /candidate/ (ld-training).
+export function GateLoading({
+  slowHintMs = 6000,
+  audience,
+}: {
+  slowHintMs?: number;
+  audience?: "candidate" | "staff";
+}) {
   const [slow, setSlow] = useState(false);
-  const [showQuotes] = useState(shouldShowLoadingQuotes);
+  const [showQuotes] = useState(audience === "staff" ? false : shouldShowLoadingQuotes);
   const [quote] = useState(randomMotivationQuote);
   useEffect(() => {
     const timer = setTimeout(() => setSlow(true), slowHintMs);
@@ -25,7 +37,11 @@ export function GateLoading({ slowHintMs = 6000 }: { slowHintMs?: number }) {
         aria-hidden
         className="size-7 animate-spin rounded-full border-2 border-border border-t-foreground"
       />
-      {showQuotes && <p className="max-w-md text-center text-sm leading-relaxed">{quote}</p>}
+      {showQuotes ? (
+        <p className="max-w-md text-center text-sm leading-relaxed">{quote}</p>
+      ) : (
+        <p className="text-center text-sm leading-relaxed">Loading...</p>
+      )}
       {slow && (
         <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground/80">
           Still working — this can take a moment when the server is busy. If it doesn&rsquo;t finish

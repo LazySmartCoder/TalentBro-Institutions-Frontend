@@ -18,19 +18,18 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import heroImage from "@/assets/talentbro-hero.jpg";
 import studentImage from "@/assets/student-prep.jpg";
 import placementImage from "@/assets/placement-cell.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "TalentBro Institutions — Campus talent, ready for what’s next" },
+      { title: "TalentBro Institutions | Student Competitive Placement Platform" },
       {
         name: "description",
         content: "AI-powered placement preparation for students and actionable talent intelligence for placement cells.",
       },
-      { property: "og:title", content: "TalentBro Institutions — Placement readiness, connected" },
+      { property: "og:title", content: "TalentBro Institutions | Student Competitive Placement Platform" },
       {
         property: "og:description",
         content: "Prepare every student. Understand every skill. Run every placement drive with confidence.",
@@ -87,6 +86,9 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
 function Logo() {
   return (
     <a href="#top" className="group flex items-center gap-2" aria-label="TalentBro home">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary transition-transform group-hover:rotate-12">
+        <img src="/favicon.ico" alt="" width={26} height={26} className="size-6.5 rounded-full object-cover" />
+      </span>
       <span className="text-sm font-bold">TalentBro <span className="font-medium text-muted-foreground">Institutions</span></span>
     </a>
   );
@@ -94,65 +96,128 @@ function Logo() {
 
 function TalentBroPage() {
   const heroRef = useRef<HTMLElement>(null);
+  const cursorDotRef = useRef<HTMLDivElement>(null);
+  const cursorRingRef = useRef<HTMLDivElement>(null);
+  const cursorTrailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const hero = heroRef.current;
-    if (!hero || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const dot = cursorDotRef.current;
+    const ring = cursorRingRef.current;
+    if (!hero || !dot || !ring || !cursorTrailRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const trail = Array.from(cursorTrailRef.current.children) as HTMLElement[];
+    const target = { x: -100, y: -100 };
+    const dotPos = { x: -100, y: -100 };
+    const ringPos = { x: -100, y: -100 };
+    const trailPos = trail.map(() => ({ x: -100, y: -100 }));
+    let raf = 0;
+    let spin = 0;
 
     const move = (event: PointerEvent) => {
       const bounds = hero.getBoundingClientRect();
-      hero.style.setProperty("--hero-x", `${((event.clientX - bounds.left) / bounds.width - 0.5) * 2}`);
-      hero.style.setProperty("--hero-y", `${((event.clientY - bounds.top) / bounds.height - 0.5) * 2}`);
+      target.x = event.clientX - bounds.left;
+      target.y = event.clientY - bounds.top;
+      hero.style.setProperty("--mx", `${(target.x / bounds.width - 0.5) * 2}`);
+      hero.style.setProperty("--my", `${(target.y / bounds.height - 0.5) * 2}`);
     };
-    const reset = () => {
-      hero.style.setProperty("--hero-x", "0");
-      hero.style.setProperty("--hero-y", "0");
+    const leave = () => {
+      hero.style.setProperty("--mx", "0");
+      hero.style.setProperty("--my", "0");
+    };
+    const loop = () => {
+      const velX = target.x - dotPos.x;
+      const velY = target.y - dotPos.y;
+      const speed = Math.min(Math.hypot(velX, velY), 60);
+
+      dotPos.x += velX * 0.4;
+      dotPos.y += velY * 0.4;
+      ringPos.x += (target.x - ringPos.x) * 0.12;
+      ringPos.y += (target.y - ringPos.y) * 0.12;
+
+      const stretch = 1 + speed * 0.012;
+      spin += 0.6 + speed * 0.15;
+      dot.style.transform = `translate3d(${dotPos.x}px, ${dotPos.y}px, 0) scale(${(1 + speed * 0.008).toFixed(3)})`;
+      ring.style.transform = `translate3d(${ringPos.x}px, ${ringPos.y}px, 0) rotate(${spin.toFixed(1)}deg) scale(${stretch.toFixed(3)})`;
+
+      let px = dotPos.x;
+      let py = dotPos.y;
+      trailPos.forEach((pos, index) => {
+        pos.x += (px - pos.x) * 0.38;
+        pos.y += (py - pos.y) * 0.38;
+        const node = trail[index];
+        if (!node) return;
+        const fade = 1 - index / trail.length;
+        node.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${fade.toFixed(3)})`;
+        node.style.opacity = `${(fade * 0.45).toFixed(3)}`;
+        px = pos.x;
+        py = pos.y;
+      });
+
+      raf = requestAnimationFrame(loop);
     };
 
     hero.addEventListener("pointermove", move);
-    hero.addEventListener("pointerleave", reset);
+    hero.addEventListener("pointerleave", leave);
+    raf = requestAnimationFrame(loop);
     return () => {
       hero.removeEventListener("pointermove", move);
-      hero.removeEventListener("pointerleave", reset);
+      hero.removeEventListener("pointerleave", leave);
+      cancelAnimationFrame(raf);
     };
   }, []);
 
   return (
     <main id="top" className="overflow-hidden bg-background text-foreground">
-      <section ref={heroRef} className="hero-shell relative min-h-[700px] bg-ink text-paper lg:min-h-screen">
-        <nav className="relative z-30 mx-auto flex max-w-[1500px] items-center justify-between px-5 py-5 md:px-10 lg:px-14">
-          <div className="hero-status hidden items-center gap-3 md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2"><span className="live-dot" /> AI FOR/BY TOP INSTITUTIONAL PLACEMENT CELLS</div>
-          <Link to="/get-started" className="hero-enter group ml-auto" aria-label="Book a TalentBro walkthrough">ENTER <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></Link>
+      <section ref={heroRef} className="hero-shell relative flex min-h-[620px] flex-col bg-background text-ink md:min-h-[94vh]">
+        <nav className="relative z-30 mx-auto flex w-full max-w-[1500px] items-center justify-between px-5 py-6 md:px-10 lg:px-14">
+          <Logo />
+          <div className="hidden items-center gap-9 md:flex">
+            <a href="#institutions" className="nav-link text-[13px] font-semibold">Clients</a>
+            <a href="#students" className="nav-link text-[13px] font-semibold">Students</a>
+            <a href="#contact" className="nav-link text-[13px] font-semibold">Pricing</a>
+          </div>
+          <Link to="/get-started" className="cta-ink">Contact Sales</Link>
         </nav>
 
-        <div className="hero-word hero-word-top" aria-hidden="true">TALENT</div>
-        <div className="hero-word hero-word-bottom" aria-hidden="true">BRO</div>
-        <div className="hero-stage" aria-hidden="true">
-          <div className="hero-image">
-            <img src={heroImage} width={1920} height={1200} alt="" className="h-full w-full object-cover object-[68%_center]" />
+        <div className="hero-curves" aria-hidden="true">
+          <span className="hero-curve hero-curve-one" />
+          <span className="hero-curve hero-curve-two" />
+          <span className="hero-curve hero-curve-three" />
+          <span className="hero-curve hero-curve-dash" />
+        </div>
+
+        <div ref={cursorDotRef} className="hero-cursor-dot" aria-hidden="true" />
+        <div ref={cursorRingRef} className="hero-cursor-ring" aria-hidden="true" />
+        <div ref={cursorTrailRef} className="hero-cursor-trail" aria-hidden="true">
+          {Array.from({ length: 8 }).map((_, index) => <i key={index} />)}
+        </div>
+
+        <div className="relative z-20 mx-auto grid w-full max-w-[1500px] flex-1 items-center gap-8 px-6 pb-28 pt-4 md:grid-cols-[1.05fr_0.95fr] md:px-10 lg:px-14">
+          <div className="hero-copy -translate-y-8 text-center md:-translate-y-10 md:text-left">
+            <p className="hero-kicker">EVERY STUDENT, PLACEMENT READY.</p>
+            <h1 className="hero-title">Student Competitive<br /><span>Placement Platform.</span></h1>
+            <p className="hero-sub mx-auto md:mx-0">We assess students across every placement skill and criterion, then give you one consolidated report per student.</p>
           </div>
-          <div className="hero-image-echo hero-image-echo-one"><img src={heroImage} alt="" /></div>
-          <div className="hero-image-echo hero-image-echo-two"><img src={heroImage} alt="" /></div>
-          <div className="scanner-line" />
+
+          <div className="hero-graphic relative -top-8 md:-top-10" aria-hidden="true">
+            <span className="hg-ring hg-ring-outer" />
+            <span className="hg-ring hg-ring-mid" />
+            <span className="hg-ring hg-ring-dash" />
+            <span className="hg-arc" />
+            <span className="hg-orbit"><i /></span>
+            <div className="hg-core">
+              <strong>92%</strong>
+              <small>readiness</small>
+            </div>
+            <span className="hg-chip hg-chip-ai"><i className="hg-live" />AI · Live</span>
+            <span className="hg-chip hg-chip-matches">24 matched</span>
+            <span className="hg-chip hg-chip-skill">Skill +12</span>
+          </div>
         </div>
 
-        <div className="hero-radar" aria-hidden="true">
-          <span className="radar-ring radar-ring-one" /><span className="radar-ring radar-ring-two" /><span className="radar-ring radar-ring-three" />
-          <span className="radar-axis radar-axis-x" /><span className="radar-axis radar-axis-y" />
-        </div>
-        <div className="hero-grain" aria-hidden="true" />
-        <div className="hero-grid" aria-hidden="true" />
-
-        <div className="hero-center-copy">
-          <h1><span>Placement Competition</span><span>begins here.</span></h1>
-        </div>
-
-        <div className="orbit-label orbit-label-one"><span>87</span> READINESS</div>
-        <div className="orbit-label orbit-label-two">AI / LIVE <span>●</span></div>
-        <div className="orbit-label orbit-label-three">24 MATCHES</div>
-        <div className="orbit-label orbit-label-four">SKILL +12</div>
-
-        <a href="#proof" className="scroll-cue" aria-label="Explore TalentBro"><ArrowDown className="size-4" /></a>
+        <a href="#proof" className="scroll-cue" aria-label="Scroll to explore"><ArrowDown className="size-4" /></a>
       </section>
 
       <section className="search-stage bg-paper px-5 pb-16 pt-12 text-ink md:px-10 lg:px-14 lg:pb-24 lg:pt-16">

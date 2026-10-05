@@ -25,7 +25,7 @@ export function ClientChatRail() {
     select: (s) => (s.location.search as { session?: string }).session,
   });
 
-  const onChatPage = pathname.startsWith("/client-chat");
+  const onChatPage = pathname.startsWith("/client/chat");
   const sessions = (pages.data?.pages.flatMap((page) => page.sessions) ?? []).filter(
     (s) => !isDraft(s.title, s.message_count),
   );
@@ -42,7 +42,7 @@ export function ClientChatRail() {
       await deleteClientChatSession(id);
       await queryClient.invalidateQueries({ queryKey: CLIENT_CHAT_SESSIONS_KEY });
       if (onChatPage && activeSession === id) {
-        void navigate({ to: "/client-chat", search: {}, replace: true });
+        void navigate({ to: "/client/chat", search: {}, replace: true });
       }
     } catch {
       // A failed delete must not clear the rail; the list stays as it was.
@@ -54,7 +54,7 @@ export function ClientChatRail() {
       <div className="px-1 pt-3">
         <button
           type="button"
-          onClick={() => void navigate({ to: "/client-chat", search: {} })}
+          onClick={() => void navigate({ to: "/client/chat", search: {} })}
           className={cn(
             "flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-sidebar-border bg-transparent py-2.5 text-sm font-medium transition-colors hover:bg-sidebar-accent/60",
             onChatPage && !activeSession
@@ -84,7 +84,7 @@ export function ClientChatRail() {
             >
               <button
                 type="button"
-                onClick={() => void navigate({ to: "/client-chat", search: { session: s.id } })}
+                onClick={() => void navigate({ to: "/client/chat", search: { session: s.id } })}
                 className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left text-sm"
               >
                 <MessageSquare className="size-3.5 shrink-0 opacity-70" />

@@ -46,7 +46,7 @@ function GetStartedPage() {
             <Reveal delay={180}>
               <button
                 type="button"
-                onClick={() => void navigate({ to: "/institution-auth" })}
+                onClick={() => void navigate({ to: "/client/institution-auth" })}
                 className="group flex h-full w-full cursor-pointer flex-col items-start gap-5 border border-border bg-card p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-lg sm:p-8"
               >
                 <span className="grid size-12 place-items-center border border-border bg-background transition-colors group-hover:bg-foreground group-hover:text-background">
@@ -68,7 +68,7 @@ function GetStartedPage() {
             <Reveal delay={260}>
               <button
                 type="button"
-                onClick={() => void navigate({ to: "/candidate-auth" })}
+                onClick={() => void navigate({ to: "/candidate/auth" })}
                 className="group flex h-full w-full cursor-pointer flex-col items-start gap-5 border border-border bg-card p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-lg sm:p-8"
               >
                 <span className="grid size-12 place-items-center border border-border bg-background transition-colors group-hover:bg-foreground group-hover:text-background">

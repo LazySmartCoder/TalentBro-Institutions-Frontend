@@ -178,7 +178,7 @@ function AnalysisPage() {
         .join("\n");
 
       await navigate({
-        to: "/chat",
+        to: "/candidate/chat",
         search: { prompt },
       });
     } finally {
@@ -192,7 +192,7 @@ function AnalysisPage() {
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between">
           <Link
-            to="/mock-interview"
+            to="/candidate/mock-interview"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" /> Back to Mock Interviews
