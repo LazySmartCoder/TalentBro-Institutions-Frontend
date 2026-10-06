@@ -238,7 +238,7 @@ function StudentNotifications() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => void navigate({ to: "/client/dashboard", replace: true })}
+              onClick={() => void navigate({ to: "/client/chat", replace: true })}
               className="grid size-8 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Back to Home"
             >

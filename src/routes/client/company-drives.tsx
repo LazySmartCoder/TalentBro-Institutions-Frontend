@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  ArrowLeft,
   Briefcase,
   Building2,
   CalendarClock,
@@ -66,6 +67,7 @@ function fmtDate(iso: string | null): string | null {
 type Tab = "companies" | "drives";
 
 function CompanyDrivesPage() {
+  const navigate = useNavigate();
   const [data, setData] = useState<StudentCompanyDrives | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -97,22 +99,33 @@ function CompanyDrivesPage() {
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-background text-foreground">
-      <AppNavHeader current="chat" />
+      <AppNavHeader
+        current="chat"
+        sticky
+        left={
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/candidate/chat" })}
+              className="grid size-8 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Back to Chat"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+            <span className="grid size-9 place-items-center rounded-lg bg-foreground text-background">
+              <Building2 className="size-4" />
+            </span>
+            <span>
+              <p className="text-sm font-semibold leading-tight">Companies &amp; Drives</p>
+            </span>
+          </div>
+        }
+      />
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
-          <header className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-border bg-card">
-              <Building2 className="size-5" />
-            </span>
-            <div>
-              <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-                Companies &amp; Drives
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Every recruiter your college is registered with, and the hiring drives they run.
-              </p>
-            </div>
-          </header>
+          <p className="text-sm text-muted-foreground">
+            Every recruiter your college is registered with, and the hiring drives they run.
+          </p>
 
           <div className="mt-6 inline-flex rounded-lg border border-border bg-card p-1">
             <TabButton active={tab === "companies"} onClick={() => setTab("companies")}>
@@ -293,22 +306,23 @@ function DrivesTab({ drives }: { drives: StudentDrive[] }) {
                     className="size-10 shrink-0 rounded-lg border border-border"
                   />
                   <div className="min-w-0">
-                    <h3 className="font-display text-base font-bold">
-                      {d.title || d.company_name}
-                    </h3>
+                    {/* Tier and status sit with the name they qualify rather than on
+                        the far edge, so a row reads left to right as one thing
+                        instead of two disconnected halves. */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-display text-base font-bold">
+                        {d.title || d.company_name}
+                      </h3>
+                      <Badge variant="secondary">{TIER_LABEL[d.tier]}</Badge>
+                      <Badge>{d.status}</Badge>
+                    </div>
                     <p className="mt-0.5 text-sm text-muted-foreground">
                       {d.company_name}
                       {d.role ? ` · ${d.role}` : ""}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="secondary">{TIER_LABEL[d.tier]}</Badge>
-                    <Badge>{d.status}</Badge>
-                  </div>
-                  <SkillMatchMeter percent={d.profile_match ?? null} basis={d.match_basis} />
-                </div>
+                <SkillMatchMeter percent={d.profile_match ?? null} basis={d.match_basis} />
               </div>
 
               <div className="mt-3 grid gap-x-6 gap-y-1.5 text-xs text-muted-foreground sm:grid-cols-2">

@@ -102,7 +102,7 @@ function DailyTargetsPage() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Candidates only. Institution staff are redirected to their own dashboard.
+  // Candidates only. Institution staff are sent to their own chat screen.
   useEffect(() => {
     let cancelled = false;
     me()
@@ -113,7 +113,7 @@ function DailyTargetsPage() {
           return;
         }
         if (current.role !== "student") {
-          void navigate({ to: "/client/dashboard", replace: true });
+          void navigate({ to: "/client/chat", replace: true });
           return;
         }
         if (current.profile_complete === false) {

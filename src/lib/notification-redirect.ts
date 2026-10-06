@@ -36,6 +36,9 @@ const LEGACY_CANDIDATE_PATHS: Record<string, string> = {
   "/student-message": "/candidate/student-message",
   "/resume-builder": "/candidate/resume-builder",
   "/learning": "/candidate/learning",
+  // The staff overview was retired: the chat screen is the staff landing page now,
+  // and notices written before the cutover still carry the old path.
+  "/client/dashboard": "/client/chat",
 };
 
 /**

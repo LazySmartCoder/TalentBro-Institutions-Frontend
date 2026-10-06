@@ -14,8 +14,8 @@ import { shouldShowLoadingQuotes } from "@/lib/user-role";
 // flight, so the remembered role is still null on a cold load, and an unknown
 // role is deliberately read as a candidate. Left to that default, a staff member
 // hard-refreshing a page would get a quote. It also cannot be keyed off the
-// pathname — candidate pages live under /client/ and at the root (the
-// company-drives screens), and staff pages live under /candidate/ (ld-training).
+// pathname — candidate pages live under /candidate/ and staff pages under
+// /client/.
 export function GateLoading({
   slowHintMs = 6000,
   audience,

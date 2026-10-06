@@ -1,10 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, Loader2, Send, UserRound } from "lucide-react";
+import { ArrowLeft, Loader2, Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { AppNavHeader } from "@/components/tb/app-nav";
 import {
   me,
   ownCandidateId,
@@ -18,6 +19,11 @@ import { GateError, GateLoading } from "@/components/load-state";
 
 const title = "Messages | TalentBro";
 const description = "Your candidate conversations on TalentBro.";
+
+// Where the composer stops growing and starts scrolling, in px. Must stay in
+// step with its `max-h-40`, or the box would be told to be taller than it is
+// allowed to paint and the last line would be cut off.
+const COMPOSER_MAX_PX = 160;
 
 // The window is always scoped to the signed-in candidate's own profile id; the
 // optional `peer` param only picks which conversation is open inside it. A
@@ -81,6 +87,11 @@ function StudentMessagePage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  // Whether the reader is parked at the newest message. A ref, not state: the
+  // scroll handler and the effect that jumps to the bottom both read it, and a
+  // re-render between them would let a stale value win.
+  const stickToBottom = useRef(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,16 +130,38 @@ function StudentMessagePage() {
     };
   }, [navigate, peerFromUrl]);
 
-  useEffect(() => {
-    if (status !== "ready") return;
+  // Hold the thread on its newest message. A layout effect rather than a normal
+  // one so the jump happens before the browser paints the new bubble — with a
+  // plain effect the reader sees the message land below the fold and then get
+  // yanked, which on a phone reads as the page lurching. Skipped once the
+  // reader has scrolled up, so browsing history is not interrupted by their own
+  // or the other side's next message.
+  useLayoutEffect(() => {
     const scroller = scrollerRef.current;
-    if (scroller) scroller.scrollTop = scroller.scrollHeight;
-  }, [status, thread]);
+    if (scroller && stickToBottom.current) scroller.scrollTop = scroller.scrollHeight;
+  }, [thread]);
+
+  // Size the composer to its own content: one line to begin with, exactly as
+  // tall as the send button beside it, widening only once a message actually
+  // wraps. Keyed on `draft` rather than the change event so clearing the box
+  // after a send shrinks it again instead of leaving the last message's height
+  // behind. `auto` first, because the browser only reports the height a box
+  // *would* take unclamped.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_PX)}px`;
+  }, [draft]);
 
   async function handleSend() {
     const content = draft.trim();
     const targetId = peer?.id;
     if (!content || sending || !targetId) return;
+    // Enter posts from inside the composer, so the caret has to survive the
+    // round-trip. Only when it was in there to begin with: a send started from
+    // the button while the reader had scrolled off should not drag focus back.
+    const restoreFocus = composerRef.current === document.activeElement;
     setSending(true);
     try {
       const saved = await sendStudentMessage(targetId, content);
@@ -138,6 +171,7 @@ function StudentMessagePage() {
       toast.error(err instanceof Error ? err.message : "Could not send message.");
     } finally {
       setSending(false);
+      if (restoreFocus) composerRef.current?.focus();
     }
   }
 
@@ -156,50 +190,45 @@ function StudentMessagePage() {
     );
 
   const peerName = peer?.full_name || (isSelf ? "You" : "this candidate");
-  const peerSubtitle = [peer?.department, peer?.program].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6">
-        {isSelf ? (
-          <Link
-            to="/candidate/leaderboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" /> Back to Leaderboard
-          </Link>
-        ) : (
-          <Link
-            to="/student-detail/$studentId"
-            params={{ studentId: peer?.id ?? "" }}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" /> Back to candidate
-          </Link>
-        )}
-
-        <header className="mt-4 flex items-center gap-3 border-b border-border pb-4">
-          <Avatar className="size-11 rounded-xl">
-            <AvatarFallback className="rounded-xl bg-primary text-sm font-bold text-primary-foreground">
-              {initialsOf(peerName)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold">{peerName}</h1>
-            {isSelf ? (
-              <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                <UserRound className="size-3.5 shrink-0" /> Your own candidate profile
-              </p>
-            ) : (
-              peerSubtitle && (
-                <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                  <Building2 className="size-3.5 shrink-0" /> {peerSubtitle}
-                </p>
-              )
-            )}
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
+      <AppNavHeader
+        current="chat"
+        sticky
+        left={
+          <div className="flex min-w-0 items-center gap-2.5">
+            {/* The way back depends on how the thread was opened: your own profile
+                is reached from the leaderboard, someone else's from their detail
+                page. One button, so the nav row cannot disagree with itself. */}
+            <button
+              type="button"
+              onClick={() =>
+                isSelf
+                  ? void navigate({ to: "/candidate/leaderboard" })
+                  : void navigate({
+                      to: "/student-detail/$studentId",
+                      params: { studentId: peer?.id ?? "" },
+                    })
+              }
+              className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={isSelf ? "Back to Leaderboard" : "Back to candidate"}
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+            <Avatar className="size-9 shrink-0 rounded-lg">
+              <AvatarFallback className="rounded-lg bg-primary text-xs font-bold text-primary-foreground">
+                {initialsOf(peerName)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0">
+              <p className="truncate text-sm font-semibold leading-tight">{peerName}</p>
+            </span>
           </div>
-        </header>
+        }
+      />
 
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6">
         {isSelf ? (
           <div className="flex-1 py-10 text-center">
             <p className="text-sm text-muted-foreground">
@@ -221,7 +250,18 @@ function StudentMessagePage() {
           </div>
         ) : (
           <>
-            <div ref={scrollerRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto py-5">
+            <div
+              ref={scrollerRef}
+              onScroll={(event) => {
+                const el = event.currentTarget;
+                // Within one message height of the bottom counts as "at the
+                // bottom": a bubble that is only partly cut off still reads as
+                // the newest thing in the thread.
+                stickToBottom.current =
+                  el.scrollHeight - el.scrollTop - el.clientHeight < el.clientHeight;
+              }}
+              className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-1"
+            >
               {thread.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
                   No messages yet. Say hello to {peerName}.
@@ -256,6 +296,7 @@ function StudentMessagePage() {
               className="sticky bottom-0 flex items-end gap-2 border-t border-border bg-background py-4"
             >
               <Textarea
+                ref={composerRef}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -266,14 +307,18 @@ function StudentMessagePage() {
                 }}
                 placeholder={`Message ${peerName}…`}
                 maxLength={2000}
-                rows={2}
-                disabled={sending}
+                rows={1}
                 aria-label={`Message ${peerName}`}
-                className="max-h-40 min-h-[2.75rem] resize-y"
+                /* Deliberately not disabled while sending. Disabling a focused
+                   textarea blurs it, which is exactly what threw the caret back
+                   to the page after every Enter; handleSend already refuses to
+                   send twice, so the guard is all the disabled state ever did. */
+                className="max-h-40 min-h-9 resize-none overflow-y-auto"
               />
               <Button
                 type="submit"
                 size="icon"
+                className="shrink-0"
                 disabled={sending || !draft.trim()}
                 aria-label="Send"
               >
@@ -286,7 +331,7 @@ function StudentMessagePage() {
             </form>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

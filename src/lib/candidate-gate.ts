@@ -1,10 +1,10 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { PROFILE_SAVED_EVENT, me, type AuthUser } from "@/lib/api";
 
 export type CandidateDestination =
-  { to: "/candidate/auth" } | { to: "/candidate/onboarding" } | { to: "/client/dashboard" };
+  { to: "/candidate/auth" } | { to: "/candidate/onboarding" } | { to: "/client/chat" };
 
 /**
  * Where this user belongs, or `null` when they are allowed to stay put.
@@ -12,12 +12,30 @@ export type CandidateDestination =
  * Returns a destination rather than navigating itself so the answer can be
  * computed during render: the gate stays a pure function of (user, path), which
  * is what makes it impossible to redirect in a loop.
+ *
+ * `path` is the route the user is currently on, and it is load-bearing rather
+ * than informational. `/candidate/auth` and `/candidate/onboarding` are children
+ * of this gate, so a logged-out visitor sitting on the login page is told to go
+ * to the login page. Without comparing against where they already are, the gate
+ * hides its own `<Outlet />` behind a spinner and replaces the URL with an
+ * identical one, and the page never renders at all.
  */
-export function resolveCandidateRoute(user: AuthUser | null): CandidateDestination | null {
+export function resolveCandidateRoute(
+  user: AuthUser | null,
+  path: string,
+): CandidateDestination | null {
+  const destination = destinationFor(user);
+  // Already where they were sent. Anything else is a redirect loop wearing a
+  // spinner, and the gate would never let its own child render.
+  if (destination !== null && destination.to === path) return null;
+  return destination;
+}
+
+function destinationFor(user: AuthUser | null): CandidateDestination | null {
   // No session at all: send them to sign in rather than showing an empty shell.
   if (!user) return { to: "/candidate/auth" };
   // Institution staff never meet the candidate gate; they have their own area.
-  if (user.role !== "student") return { to: "/client/dashboard" };
+  if (user.role !== "student") return { to: "/client/chat" };
   // An incomplete profile is the one thing a candidate cannot be moved past
   // without becoming someone else: onboarding writes the skills and roles.
   if (user.profile_complete === false) return { to: "/candidate/onboarding" };
@@ -38,6 +56,7 @@ export type CandidateGate = {
  */
 export function useCandidateGate(): CandidateGate {
   const navigate = useNavigate();
+  const path = useLocation({ select: (location) => location.pathname });
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [message, setMessage] = useState<string | null>(null);
@@ -80,7 +99,7 @@ export function useCandidateGate(): CandidateGate {
     };
   }, []);
 
-  const destination = status === "ready" ? resolveCandidateRoute(user) : null;
+  const destination = status === "ready" ? resolveCandidateRoute(user, path) : null;
   // Keyed on the path rather than the object: `resolveCandidateRoute` returns a
   // fresh literal each render, so depending on it would re-navigate on every
   // refetch even when the answer has not changed.

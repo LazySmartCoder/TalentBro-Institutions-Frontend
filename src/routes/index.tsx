@@ -320,7 +320,7 @@ function TalentBroPage() {
           <Reveal className="relative">
             <div className="photo-arch photo-arch-right"><img src={placementImage} loading="lazy" width={1408} height={1008} alt="Placement team reviewing student analytics" /></div>
             <div className="analytics-float">
-              <div className="flex justify-between text-[10px] uppercase text-paper/45"><span>Batch readiness</span><span>Live</span></div>
+              <div className="flex justify-between text-[10px] uppercase text-white/45"><span>Batch readiness</span><span>Live</span></div>
               <div className="mt-5 flex items-end justify-between"><strong className="text-4xl">78%</strong><div className="mini-bars">{[38, 65, 48, 82, 71, 94].map((h) => <i key={h} style={{ height: `${h}%` }} />)}</div></div>
             </div>
           </Reveal>

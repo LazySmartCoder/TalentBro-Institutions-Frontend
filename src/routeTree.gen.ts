@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CandidateRouteRouteImport } from './routes/candidate/route'
+import { Route as DowntimeRouteImport } from './routes/downtime'
 import { Route as GetStartedRouteImport } from './routes/get-started'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
@@ -33,7 +34,6 @@ import { Route as CandidateEnglishTrainingTipsRouteImport } from './routes/candi
 import { Route as CandidateGdHistoryRouteImport } from './routes/candidate/gd-history'
 import { Route as CandidateGdRoomRouteImport } from './routes/candidate/gd-room'
 import { Route as CandidateGdTrainingRouteImport } from './routes/candidate/gd-training'
-import { Route as CandidateLdTrainingRouteImport } from './routes/candidate/ld-training'
 import { Route as CandidateLeaderboardRouteImport } from './routes/candidate/leaderboard'
 import { Route as CandidateLearningRouteImport } from './routes/candidate/learning'
 import { Route as CandidateMockInterviewRouteImport } from './routes/candidate/mock-interview'
@@ -55,10 +55,11 @@ import { Route as ClientClientOnboardingRouteImport } from './routes/client/clie
 import { Route as ClientClientProfileRouteImport } from './routes/client/client-profile'
 import { Route as ClientCompaniesRouteImport } from './routes/client/companies'
 import { Route as ClientCompanyDrivesRouteImport } from './routes/client/company-drives'
-import { Route as ClientDashboardRouteImport } from './routes/client/dashboard'
 import { Route as ClientDrivesRouteImport } from './routes/client/drives'
 import { Route as ClientInstituteBillingRouteImport } from './routes/client/institute-billing'
 import { Route as ClientInstitutionAuthRouteImport } from './routes/client/institution-auth'
+import { Route as ClientLaunchTargetsRouteImport } from './routes/client/launch-targets'
+import { Route as ClientLdTrainingRouteImport } from './routes/client/ld-training'
 import { Route as ClientNotificationsRouteImport } from './routes/client/notifications'
 import { Route as ClientOnboardingRouteImport } from './routes/client/onboarding'
 import { Route as ClientPlacementCellRouteImport } from './routes/client/placement-cell'
@@ -85,6 +86,11 @@ const IndexRoute = IndexRouteImport.update({
 const CandidateRouteRoute = CandidateRouteRouteImport.update({
   id: '/candidate',
   path: '/candidate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DowntimeRoute = DowntimeRouteImport.update({
+  id: '/downtime',
+  path: '/downtime',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GetStartedRoute = GetStartedRouteImport.update({
@@ -205,11 +211,6 @@ const CandidateGdTrainingRoute = CandidateGdTrainingRouteImport.update({
   path: '/gd-training',
   getParentRoute: () => CandidateRouteRoute,
 } as any)
-const CandidateLdTrainingRoute = CandidateLdTrainingRouteImport.update({
-  id: '/ld-training',
-  path: '/ld-training',
-  getParentRoute: () => CandidateRouteRoute,
-} as any)
 const CandidateLeaderboardRoute = CandidateLeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
@@ -318,11 +319,6 @@ const ClientCompanyDrivesRoute = ClientCompanyDrivesRouteImport.update({
   path: '/client/company-drives',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ClientDashboardRoute = ClientDashboardRouteImport.update({
-  id: '/client/dashboard',
-  path: '/client/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ClientDrivesRoute = ClientDrivesRouteImport.update({
   id: '/client/drives',
   path: '/client/drives',
@@ -336,6 +332,16 @@ const ClientInstituteBillingRoute = ClientInstituteBillingRouteImport.update({
 const ClientInstitutionAuthRoute = ClientInstitutionAuthRouteImport.update({
   id: '/client/institution-auth',
   path: '/client/institution-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientLaunchTargetsRoute = ClientLaunchTargetsRouteImport.update({
+  id: '/client/launch-targets',
+  path: '/client/launch-targets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientLdTrainingRoute = ClientLdTrainingRouteImport.update({
+  id: '/client/ld-training',
+  path: '/client/ld-training',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientNotificationsRoute = ClientNotificationsRouteImport.update({
@@ -434,6 +440,7 @@ const StudentModuleStudentIdModuleKeyRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/downtime': typeof DowntimeRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -456,7 +463,6 @@ export interface FileRoutesByFullPath {
   '/candidate/gd-history': typeof CandidateGdHistoryRoute
   '/candidate/gd-room': typeof CandidateGdRoomRoute
   '/candidate/gd-training': typeof CandidateGdTrainingRoute
-  '/candidate/ld-training': typeof CandidateLdTrainingRoute
   '/candidate/leaderboard': typeof CandidateLeaderboardRoute
   '/candidate/learning': typeof CandidateLearningRoute
   '/candidate/mock-interview': typeof CandidateMockInterviewRoute
@@ -478,10 +484,11 @@ export interface FileRoutesByFullPath {
   '/client/client-profile': typeof ClientClientProfileRoute
   '/client/companies': typeof ClientCompaniesRoute
   '/client/company-drives': typeof ClientCompanyDrivesRoute
-  '/client/dashboard': typeof ClientDashboardRoute
   '/client/drives': typeof ClientDrivesRoute
   '/client/institute-billing': typeof ClientInstituteBillingRoute
   '/client/institution-auth': typeof ClientInstitutionAuthRoute
+  '/client/launch-targets': typeof ClientLaunchTargetsRoute
+  '/client/ld-training': typeof ClientLdTrainingRoute
   '/client/notifications': typeof ClientNotificationsRoute
   '/client/onboarding': typeof ClientOnboardingRoute
   '/client/placement-cell': typeof ClientPlacementCellRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/downtime': typeof DowntimeRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -525,7 +533,6 @@ export interface FileRoutesByTo {
   '/candidate/gd-history': typeof CandidateGdHistoryRoute
   '/candidate/gd-room': typeof CandidateGdRoomRoute
   '/candidate/gd-training': typeof CandidateGdTrainingRoute
-  '/candidate/ld-training': typeof CandidateLdTrainingRoute
   '/candidate/leaderboard': typeof CandidateLeaderboardRoute
   '/candidate/learning': typeof CandidateLearningRoute
   '/candidate/mock-interview': typeof CandidateMockInterviewRoute
@@ -547,10 +554,11 @@ export interface FileRoutesByTo {
   '/client/client-profile': typeof ClientClientProfileRoute
   '/client/companies': typeof ClientCompaniesRoute
   '/client/company-drives': typeof ClientCompanyDrivesRoute
-  '/client/dashboard': typeof ClientDashboardRoute
   '/client/drives': typeof ClientDrivesRoute
   '/client/institute-billing': typeof ClientInstituteBillingRoute
   '/client/institution-auth': typeof ClientInstitutionAuthRoute
+  '/client/launch-targets': typeof ClientLaunchTargetsRoute
+  '/client/ld-training': typeof ClientLdTrainingRoute
   '/client/notifications': typeof ClientNotificationsRoute
   '/client/onboarding': typeof ClientOnboardingRoute
   '/client/placement-cell': typeof ClientPlacementCellRoute
@@ -573,6 +581,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/downtime': typeof DowntimeRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -595,7 +604,6 @@ export interface FileRoutesById {
   '/candidate/gd-history': typeof CandidateGdHistoryRoute
   '/candidate/gd-room': typeof CandidateGdRoomRoute
   '/candidate/gd-training': typeof CandidateGdTrainingRoute
-  '/candidate/ld-training': typeof CandidateLdTrainingRoute
   '/candidate/leaderboard': typeof CandidateLeaderboardRoute
   '/candidate/learning': typeof CandidateLearningRoute
   '/candidate/mock-interview': typeof CandidateMockInterviewRoute
@@ -617,10 +625,11 @@ export interface FileRoutesById {
   '/client/client-profile': typeof ClientClientProfileRoute
   '/client/companies': typeof ClientCompaniesRoute
   '/client/company-drives': typeof ClientCompanyDrivesRoute
-  '/client/dashboard': typeof ClientDashboardRoute
   '/client/drives': typeof ClientDrivesRoute
   '/client/institute-billing': typeof ClientInstituteBillingRoute
   '/client/institution-auth': typeof ClientInstitutionAuthRoute
+  '/client/launch-targets': typeof ClientLaunchTargetsRoute
+  '/client/ld-training': typeof ClientLdTrainingRoute
   '/client/notifications': typeof ClientNotificationsRoute
   '/client/onboarding': typeof ClientOnboardingRoute
   '/client/placement-cell': typeof ClientPlacementCellRoute
@@ -644,6 +653,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/candidate'
+    | '/downtime'
     | '/get-started'
     | '/logout'
     | '/privacy-policy'
@@ -666,7 +676,6 @@ export interface FileRouteTypes {
     | '/candidate/gd-history'
     | '/candidate/gd-room'
     | '/candidate/gd-training'
-    | '/candidate/ld-training'
     | '/candidate/leaderboard'
     | '/candidate/learning'
     | '/candidate/mock-interview'
@@ -688,10 +697,11 @@ export interface FileRouteTypes {
     | '/client/client-profile'
     | '/client/companies'
     | '/client/company-drives'
-    | '/client/dashboard'
     | '/client/drives'
     | '/client/institute-billing'
     | '/client/institution-auth'
+    | '/client/launch-targets'
+    | '/client/ld-training'
     | '/client/notifications'
     | '/client/onboarding'
     | '/client/placement-cell'
@@ -713,6 +723,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/candidate'
+    | '/downtime'
     | '/get-started'
     | '/logout'
     | '/privacy-policy'
@@ -735,7 +746,6 @@ export interface FileRouteTypes {
     | '/candidate/gd-history'
     | '/candidate/gd-room'
     | '/candidate/gd-training'
-    | '/candidate/ld-training'
     | '/candidate/leaderboard'
     | '/candidate/learning'
     | '/candidate/mock-interview'
@@ -757,10 +767,11 @@ export interface FileRouteTypes {
     | '/client/client-profile'
     | '/client/companies'
     | '/client/company-drives'
-    | '/client/dashboard'
     | '/client/drives'
     | '/client/institute-billing'
     | '/client/institution-auth'
+    | '/client/launch-targets'
+    | '/client/ld-training'
     | '/client/notifications'
     | '/client/onboarding'
     | '/client/placement-cell'
@@ -782,6 +793,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/candidate'
+    | '/downtime'
     | '/get-started'
     | '/logout'
     | '/privacy-policy'
@@ -804,7 +816,6 @@ export interface FileRouteTypes {
     | '/candidate/gd-history'
     | '/candidate/gd-room'
     | '/candidate/gd-training'
-    | '/candidate/ld-training'
     | '/candidate/leaderboard'
     | '/candidate/learning'
     | '/candidate/mock-interview'
@@ -826,10 +837,11 @@ export interface FileRouteTypes {
     | '/client/client-profile'
     | '/client/companies'
     | '/client/company-drives'
-    | '/client/dashboard'
     | '/client/drives'
     | '/client/institute-billing'
     | '/client/institution-auth'
+    | '/client/launch-targets'
+    | '/client/ld-training'
     | '/client/notifications'
     | '/client/onboarding'
     | '/client/placement-cell'
@@ -852,6 +864,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CandidateRouteRoute: typeof CandidateRouteRouteWithChildren
+  DowntimeRoute: typeof DowntimeRoute
   GetStartedRoute: typeof GetStartedRoute
   LogoutRoute: typeof LogoutRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -864,10 +877,11 @@ export interface RootRouteChildren {
   ClientClientProfileRoute: typeof ClientClientProfileRoute
   ClientCompaniesRoute: typeof ClientCompaniesRoute
   ClientCompanyDrivesRoute: typeof ClientCompanyDrivesRoute
-  ClientDashboardRoute: typeof ClientDashboardRoute
   ClientDrivesRoute: typeof ClientDrivesRoute
   ClientInstituteBillingRoute: typeof ClientInstituteBillingRoute
   ClientInstitutionAuthRoute: typeof ClientInstitutionAuthRoute
+  ClientLaunchTargetsRoute: typeof ClientLaunchTargetsRoute
+  ClientLdTrainingRoute: typeof ClientLdTrainingRoute
   ClientNotificationsRoute: typeof ClientNotificationsRoute
   ClientOnboardingRoute: typeof ClientOnboardingRoute
   ClientPlacementCellRoute: typeof ClientPlacementCellRoute
@@ -901,6 +915,13 @@ declare module '@tanstack/react-router' {
       path: '/candidate'
       fullPath: '/candidate'
       preLoaderRoute: typeof CandidateRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/downtime': {
+      id: '/downtime'
+      path: '/downtime'
+      fullPath: '/downtime'
+      preLoaderRoute: typeof DowntimeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/get-started': {
@@ -1057,13 +1078,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidateGdTrainingRouteImport
       parentRoute: typeof CandidateRouteRoute
     }
-    '/candidate/ld-training': {
-      id: '/candidate/ld-training'
-      path: '/ld-training'
-      fullPath: '/candidate/ld-training'
-      preLoaderRoute: typeof CandidateLdTrainingRouteImport
-      parentRoute: typeof CandidateRouteRoute
-    }
     '/candidate/leaderboard': {
       id: '/candidate/leaderboard'
       path: '/leaderboard'
@@ -1211,13 +1225,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientCompanyDrivesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/client/dashboard': {
-      id: '/client/dashboard'
-      path: '/client/dashboard'
-      fullPath: '/client/dashboard'
-      preLoaderRoute: typeof ClientDashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/client/drives': {
       id: '/client/drives'
       path: '/client/drives'
@@ -1237,6 +1244,20 @@ declare module '@tanstack/react-router' {
       path: '/client/institution-auth'
       fullPath: '/client/institution-auth'
       preLoaderRoute: typeof ClientInstitutionAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/launch-targets': {
+      id: '/client/launch-targets'
+      path: '/client/launch-targets'
+      fullPath: '/client/launch-targets'
+      preLoaderRoute: typeof ClientLaunchTargetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/ld-training': {
+      id: '/client/ld-training'
+      path: '/client/ld-training'
+      fullPath: '/client/ld-training'
+      preLoaderRoute: typeof ClientLdTrainingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/client/notifications': {
@@ -1379,7 +1400,6 @@ interface CandidateRouteRouteChildren {
   CandidateGdHistoryRoute: typeof CandidateGdHistoryRoute
   CandidateGdRoomRoute: typeof CandidateGdRoomRoute
   CandidateGdTrainingRoute: typeof CandidateGdTrainingRoute
-  CandidateLdTrainingRoute: typeof CandidateLdTrainingRoute
   CandidateLeaderboardRoute: typeof CandidateLeaderboardRoute
   CandidateLearningRoute: typeof CandidateLearningRoute
   CandidateMockInterviewRoute: typeof CandidateMockInterviewRoute
@@ -1416,7 +1436,6 @@ const CandidateRouteRouteChildren: CandidateRouteRouteChildren = {
   CandidateGdHistoryRoute: CandidateGdHistoryRoute,
   CandidateGdRoomRoute: CandidateGdRoomRoute,
   CandidateGdTrainingRoute: CandidateGdTrainingRoute,
-  CandidateLdTrainingRoute: CandidateLdTrainingRoute,
   CandidateLeaderboardRoute: CandidateLeaderboardRoute,
   CandidateLearningRoute: CandidateLearningRoute,
   CandidateMockInterviewRoute: CandidateMockInterviewRoute,
@@ -1440,6 +1459,7 @@ const CandidateRouteRouteWithChildren = CandidateRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CandidateRouteRoute: CandidateRouteRouteWithChildren,
+  DowntimeRoute: DowntimeRoute,
   GetStartedRoute: GetStartedRoute,
   LogoutRoute: LogoutRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
@@ -1452,10 +1472,11 @@ const rootRouteChildren: RootRouteChildren = {
   ClientClientProfileRoute: ClientClientProfileRoute,
   ClientCompaniesRoute: ClientCompaniesRoute,
   ClientCompanyDrivesRoute: ClientCompanyDrivesRoute,
-  ClientDashboardRoute: ClientDashboardRoute,
   ClientDrivesRoute: ClientDrivesRoute,
   ClientInstituteBillingRoute: ClientInstituteBillingRoute,
   ClientInstitutionAuthRoute: ClientInstitutionAuthRoute,
+  ClientLaunchTargetsRoute: ClientLaunchTargetsRoute,
+  ClientLdTrainingRoute: ClientLdTrainingRoute,
   ClientNotificationsRoute: ClientNotificationsRoute,
   ClientOnboardingRoute: ClientOnboardingRoute,
   ClientPlacementCellRoute: ClientPlacementCellRoute,

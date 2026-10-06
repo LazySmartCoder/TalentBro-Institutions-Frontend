@@ -29,7 +29,7 @@ const NAV = [
   { to: "/client/companies", label: "Companies", icon: Building2 },
   { to: "/client/drives", label: "Drives", icon: CalendarRange },
   { to: "/client/placement-cell", label: "Placement Cell", icon: Landmark },
-  { to: "/candidate/ld-training", label: "L&D Training", icon: Presentation },
+  { to: "/client/ld-training", label: "L&D Training", icon: Presentation },
   { to: "/client/institute-billing", label: "Institute Billing", icon: ReceiptIndianRupee },
 ] as const;
 

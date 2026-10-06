@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -51,6 +51,7 @@ function fmtDate(iso: string | null): string | null {
 }
 
 function CompanyDetailPage() {
+  const navigate = useNavigate();
   const { companyId } = Route.useParams();
   const [data, setData] = useState<CandidateCompanyDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +84,28 @@ function CompanyDetailPage() {
   if (error) {
     return (
       <div className="flex h-svh flex-col overflow-hidden bg-background text-foreground">
-        <AppNavHeader current="chat" />
+        <AppNavHeader
+          current="chat"
+          sticky
+          left={
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => void navigate({ to: "/client/company-drives" })}
+                className="grid size-8 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Back to Companies &amp; Drives"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+              <span className="grid size-9 place-items-center rounded-lg bg-foreground text-background">
+                <Building2 className="size-4" />
+              </span>
+              <span>
+                <p className="text-sm font-semibold leading-tight">Company</p>
+              </span>
+            </div>
+          }
+        />
         <main className="grid flex-1 place-items-center px-5">
           <div className="max-w-sm text-center">
             <span className="mx-auto grid size-12 place-items-center rounded-full border border-border bg-card text-muted-foreground">
@@ -124,47 +146,56 @@ function CompanyDetailPage() {
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-background text-foreground">
-      <AppNavHeader current="chat" />
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8">
-          <Link
-            to="/client/company-drives"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" /> Companies &amp; Drives
-          </Link>
-
-          <header className="mt-4 flex items-start gap-3">
+      <AppNavHeader
+        current="chat"
+        sticky
+        left={
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/client/company-drives" })}
+              className="grid size-8 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Back to Companies &amp; Drives"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
             <CompanyMark
               company={company}
-              className="size-12 shrink-0 rounded-xl border border-border"
+              className="size-9 shrink-0 rounded-lg border border-border"
             />
-            <div className="min-w-0">
-              <h1 className="font-display text-2xl font-bold tracking-tight">
-                {company.company_name}
-              </h1>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <Badge variant="secondary">{TIER_LABEL[company.tier]}</Badge>
-                {company.industry && (
-                  <span className="text-sm text-muted-foreground">{company.industry}</span>
-                )}
-                {company.company_id && (
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {company.company_id}
-                  </span>
-                )}
-                {websiteHref && (
-                  <a
-                    href={websiteHref}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                  >
-                    {company.website}
-                    <ExternalLink className="size-3" />
-                  </a>
-                )}
-              </div>
+            <span className="min-w-0">
+              <p className="truncate text-sm font-semibold leading-tight">{company.company_name}</p>
+            </span>
+          </div>
+        }
+      />
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8">
+          <header>
+            <h1 className="font-display text-2xl font-bold tracking-tight">
+              {company.company_name}
+            </h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <Badge variant="secondary">{TIER_LABEL[company.tier]}</Badge>
+              {company.industry && (
+                <span className="text-sm text-muted-foreground">{company.industry}</span>
+              )}
+              {company.company_id && (
+                <span className="font-mono text-xs text-muted-foreground">
+                  {company.company_id}
+                </span>
+              )}
+              {websiteHref && (
+                <a
+                  href={websiteHref}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {company.website}
+                  <ExternalLink className="size-3" />
+                </a>
+              )}
             </div>
           </header>
 

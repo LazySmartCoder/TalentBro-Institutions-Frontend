@@ -3,7 +3,9 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  useNavigate,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,6 +15,9 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { brandedTitle } from "@/lib/branding";
 import { initTimeTracker } from "@/lib/time-tracker";
+import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
+import { useSiteAvailability } from "@/lib/use-site-availability";
+import { DowntimeScreen } from "@/components/downtime-screen";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -109,9 +114,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // The inline script below sets the theme class on this element before the
+    // body exists. React renders <html> without it during SSR, so the attribute
+    // it adds is a real mismatch by the time hydration runs and has to be
+    // suppressed here rather than warned about on every load.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -149,7 +159,46 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AvailabilityGate />
     </QueryClientProvider>
   );
+}
+
+/**
+ * Sends every route to the one downtime page while the site is switched off.
+ *
+ * The switch is flipped from the Django admin dashboard. Two things happen and
+ * both matter:
+ *
+ *   1. Any path that is not the home page is redirected to /downtime, carrying
+ *      where it came from in `?from=` so the visitor lands back there afterwards.
+ *   2. The downtime screen is rendered in place of <Outlet /> for the frame
+ *      while that redirect is in flight, so the page behind it never mounts and
+ *      never fires a query.
+ *
+ * The home page is deliberately exempt from both. It is the public marketing
+ * page, it does not call the API, and leaving it readable means a link shared
+ * from outside still lands somewhere sensible while the app itself is closed.
+ *
+ * While the answer is still in flight the app renders as normal. Blocking the
+ * whole app on one request would make every page load wait on it, and a page
+ * that never finished that request would be a page nobody could reach even when
+ * the site is perfectly up.
+ */
+function AvailabilityGate() {
+  const { down, message } = useSiteAvailability();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const navigate = useNavigate();
+
+  const home = pathname === "/";
+  const alreadyThere = pathname === "/downtime";
+  const blocked = down && !home;
+
+  useEffect(() => {
+    if (!blocked || alreadyThere) return;
+    void navigate({ to: "/downtime", search: { from: pathname }, replace: true });
+  }, [blocked, alreadyThere, pathname, navigate]);
+
+  if (blocked) return <DowntimeScreen message={message} />;
+  return <Outlet />;
 }

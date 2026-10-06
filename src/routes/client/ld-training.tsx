@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarDays, CalendarPlus, Clock, Loader2, MapPin, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarPlus, Clock, Loader2, MapPin, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Bar as ChartBar,
@@ -190,7 +190,7 @@ function departmentReadiness(rows: StudentRecord[]): DepartmentStat[] {
     .sort((a, b) => b.avg - a.avg);
 }
 
-export const Route = createFileRoute("/candidate/ld-training")({
+export const Route = createFileRoute("/client/ld-training")({
   head: () => ({
     meta: [
       { title: "L&D Training — TalentBro Placement Dashboard" },
@@ -450,9 +450,17 @@ function LdTrainingPage() {
       title="L&D Training"
       subtitle={`Learning & Development readiness for ${overview?.institution.name ?? "your college"}`}
       actions={
-        <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium">
-          <CalendarDays className="size-3.5 text-muted-foreground" /> {termLabel}
-        </span>
+        <>
+          <Link
+            to="/client/launch-targets"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+          >
+            <Target className="size-3.5" /> Launch Targets
+          </Link>
+          <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium">
+            <CalendarDays className="size-3.5 text-muted-foreground" /> {termLabel}
+          </span>
+        </>
       }
     >
       <Panel

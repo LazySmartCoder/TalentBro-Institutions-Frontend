@@ -396,7 +396,7 @@ function CoursesPage() {
   // query instead of fetching the default and immediately refetching.
   const [segmentsResolved, setSegmentsResolved] = useState(false);
 
-  // Candidates only. Institution staff are redirected to their own dashboard.
+  // Candidates only. Institution staff are sent to their own chat screen.
   useEffect(() => {
     let cancelled = false;
     me()
@@ -407,7 +407,7 @@ function CoursesPage() {
           return;
         }
         if (current.role !== "student") {
-          void navigate({ to: "/client/dashboard", replace: true });
+          void navigate({ to: "/client/chat", replace: true });
           return;
         }
         if (current.profile_complete === false) {

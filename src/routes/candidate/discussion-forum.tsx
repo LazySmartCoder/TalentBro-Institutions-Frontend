@@ -1,9 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, Loader2, MessagesSquare, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { AppNavHeader } from "@/components/tb/app-nav";
 import { createForumPost, deleteForumPost, forumPosts, type ForumPost } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { GateError, GateLoading } from "@/components/load-state";
@@ -147,26 +148,37 @@ function DiscussionForumPage() {
   const canPost = draft.trim().length > 0 && draft.length <= MAX_CHARS;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6">
-        <Link
-          to="/candidate/chat"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> Back to Chat
-        </Link>
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
+      <AppNavHeader
+        current="chat"
+        sticky
+        left={
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/candidate/chat" })}
+              className="grid size-8 cursor-pointer place-items-center rounded-md border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Back to Chat"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+            <span className="grid size-9 place-items-center rounded-lg bg-foreground text-background">
+              <MessagesSquare className="size-4" />
+            </span>
+            <span>
+              <p className="text-sm font-semibold leading-tight">Discussion Forum</p>
+            </span>
+          </div>
+        }
+      />
 
-        <header className="mt-4 border-b border-border pb-4">
-          <h1 className="flex items-center gap-2 text-lg font-semibold">
-            <MessagesSquare className="size-5" /> Discussion Forum
-          </h1>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Building2 className="size-3.5 shrink-0" />
-            {institution
-              ? `${institution.name} — only students here can see these posts.`
-              : "Add your college to your profile to join the discussion."}
-          </p>
-        </header>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6">
+        <p className="flex items-center gap-1.5 border-b border-border pb-4 text-xs text-muted-foreground">
+          <Building2 className="size-3.5 shrink-0" />
+          {institution
+            ? `${institution.name} — only students here can see these posts.`
+            : "Add your college to your profile to join the discussion."}
+        </p>
 
         {/* Composer. Hidden without a college because the server resolves the
             college from the profile and would reject the post anyway. A single
@@ -332,7 +344,7 @@ function DiscussionForumPage() {
             </button>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -2649,6 +2649,121 @@ export async function removeClassroomLDSession(id: string): Promise<void> {
   await apiFetch<{ ok: boolean }>(`/api/classroom-ld-sessions/${id}/`, { method: "DELETE" });
 }
 
+// ---------------------------------------------------------------------------
+// Launched training targets
+// ---------------------------------------------------------------------------
+
+/** One self-training module a target can set a count against. */
+export type StudentTargetModule = {
+  key: string;
+  label: string;
+  /** Condensed name for the number grid, where the full label will not fit. */
+  short: string;
+};
+
+/** How far the students a target covers have got against it. */
+export type StudentTargetProgress = {
+  /** Students the target covers. Department-scoped targets resolve this now. */
+  students: number;
+  /** Of those, how many have met every number on the target. */
+  students_met: number;
+  /** Of those, how many have done some of it without finishing. */
+  students_started: number;
+  self_training_target: number;
+  self_training_done: number;
+  mock_target: number;
+  mock_done: number;
+  /**
+   * `null` when nobody is assigned: "0% on track" would read as a failing target
+   * when in fact it has no audience yet.
+   */
+  percent_met: number | null;
+};
+
+/** One target on the officer's launch board. */
+export type StudentTarget = {
+  id: string;
+  title: string;
+  /** Empty for a target that is not scoped to one department. */
+  department: string;
+  /** One-line description of the audience, built by the server. */
+  audience_label: string;
+  /** How many items of each module are targeted. Always every module key. */
+  modules: Record<string, number>;
+  self_training_count: number;
+  mock_interview_count: number;
+  /** Everything the target asks for: self-training plus mock interviews. */
+  total_count: number;
+  starts_on: string | null;
+  due_on: string | null;
+  due_on_display: string;
+  /** Negative once the deadline has passed. */
+  days_left: number;
+  is_open: boolean;
+  notes: string;
+  progress: StudentTargetProgress;
+  created_by: string;
+  created_at: string | null;
+};
+
+/** A department the college actually has students in. */
+export type StudentTargetDepartment = {
+  name: string;
+  students: number;
+};
+
+export type StudentTargets = {
+  /** Open targets first (soonest deadline leading), then closed ones. */
+  targets: StudentTarget[];
+  counts: {
+    open: number;
+    closed: number;
+  };
+  /** The module catalogue the launch form is built from. */
+  modules: StudentTargetModule[];
+  /** Departments to offer, with a headcount for each. */
+  departments: StudentTargetDepartment[];
+};
+
+export async function getStudentTargets(): Promise<StudentTargets> {
+  return apiFetch<StudentTargets>("/api/students-targets/");
+}
+
+export type StudentTargetPayload = {
+  /** Left blank to have the server name it after the audience. */
+  title?: string;
+  /** Empty string for a target that is not department-scoped. */
+  department?: string;
+  /** Candidate ids to attach, alongside whatever the department already covers. */
+  candidate_ids?: string[];
+  /** Count per module key, from the `modules` catalogue the list endpoint sent. */
+  modules?: Record<string, number>;
+  mock_interview_count?: number;
+  /** `YYYY-MM-DD`; blank means the target starts counting today. */
+  starts_on?: string;
+  /** `YYYY-MM-DD`. Required — a target with no deadline is not a commitment. */
+  due_on: string;
+  notes?: string;
+};
+
+export type StudentTargetCreated = {
+  target: StudentTarget;
+};
+
+export async function addStudentTarget(
+  payload: StudentTargetPayload,
+): Promise<StudentTargetCreated> {
+  return apiFetch<StudentTargetCreated>("/api/students-targets/create/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Withdraw a launched target. The students it covered are untouched. */
+export async function removeStudentTarget(id: string): Promise<void> {
+  await apiFetch<{ ok: boolean }>(`/api/students-targets/${id}/`, { method: "DELETE" });
+}
+
 export type PlacementStatus = "not_started" | "applying" | "shortlisted" | "placed";
 
 export type StudentRecord = {
@@ -3492,4 +3607,21 @@ export type CourseWeaknessSegmentsResponse = {
 
 export async function courseSegments(): Promise<CourseWeaknessSegmentsResponse> {
   return apiFetch<CourseWeaknessSegmentsResponse>("/api/courses/segments/");
+}
+
+// ── Site availability ───────────────────────────────────────────────────────
+// Read on every page load by the root route, and flipped by the Down/Up button
+// on the Django admin dashboard. Unauthenticated on purpose: a visitor who
+// cannot sign in still has to be told the site is down rather than be shown a
+// page whose API calls are all about to fail.
+
+export type SiteStatusResponse = {
+  /** True while the site has been deliberately switched off. */
+  site_down: boolean;
+  /** What the downtime page should say. Never blank — the API fills a default in. */
+  message: string;
+};
+
+export async function getSiteStatus(): Promise<SiteStatusResponse> {
+  return apiFetch<SiteStatusResponse>("/api/site-status/");
 }
