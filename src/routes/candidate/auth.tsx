@@ -4,7 +4,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { GridField } from "@/components/graphics";
 import { Input } from "@/components/ui/input";
-import { ApiError, login, me, signup } from "@/lib/api";
+import { ApiError, login, signup } from "@/lib/api";
+import { useCandidateGateResult } from "@/lib/candidate-gate";
 import { GateLoading } from "@/components/load-state";
 
 const title = "TalentBro | Student Login or Create Account";
@@ -53,32 +54,26 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+
+  // The gate around this page has already asked the server who is signed in, so
+  // the page reads that answer instead of repeating the request behind a second
+  // full-page loader — which is what made the spinner appear, vanish and appear
+  // again on the way in.
+  const gate = useCandidateGateResult();
+  const sessionChecked = gate != null && gate.status !== "loading";
+  const currentUser = gate?.user ?? null;
 
   useEffect(() => {
-    let cancelled = false;
-    me()
-      .then((current) => {
-        if (cancelled) return;
-        if (current) {
-          if (current.role !== "student") {
-            navigate({ to: "/client/auth", search: { mode: "login" }, replace: true });
-          } else if (current.profile_complete === false) {
-            navigate({ to: "/candidate/onboarding", replace: true });
-          } else {
-            navigate({ to: "/candidate/chat", replace: true });
-          }
-        } else {
-          setCheckingSession(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setCheckingSession(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
+    // Nobody signed in: the login form is the right thing to show.
+    if (!sessionChecked || currentUser === null) return;
+    // Staff never reach this page — the gate sends them to their own area — so
+    // the only question left is whether this candidate has finished onboarding.
+    if (currentUser.profile_complete === false) {
+      navigate({ to: "/candidate/onboarding", replace: true });
+    } else {
+      navigate({ to: "/candidate/chat", replace: true });
+    }
+  }, [sessionChecked, currentUser, navigate]);
 
   const resetForm = () => {
     setEmail("");
@@ -114,14 +109,11 @@ function AuthPage() {
       } else {
         await login({ email, password, userType: "student" });
       }
-      const current = await me();
-      if (current?.role !== "student") {
-        navigate({ to: "/client/auth", search: { mode: "login" }, replace: true });
-      } else if (current?.profile_complete === false) {
-        navigate({ to: "/candidate/onboarding" });
-      } else {
-        navigate({ to: "/candidate/chat" });
-      }
+      // No navigation here. Signing in announces the new session, the gate
+      // adopts it in the same tick, and the effect above sends the candidate on
+      // to whichever page their profile says they belong on. Doing it from here
+      // as well was the race that used to ping-pong the URL between here and
+      // /candidate/chat behind the loader.
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -133,7 +125,7 @@ function AuthPage() {
     }
   };
 
-  if (checkingSession) {
+  if (!sessionChecked) {
     return <GateLoading />;
   }
 

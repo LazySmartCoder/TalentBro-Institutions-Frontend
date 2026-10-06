@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 import { GateError, GateLoading } from "@/components/load-state";
-import { useCandidateGate } from "@/lib/candidate-gate";
+import { CandidateGateContext, useCandidateGate } from "@/lib/candidate-gate";
 
 /**
  * The gate for the whole candidate area.
@@ -18,7 +18,8 @@ export const Route = createFileRoute("/candidate")({
 });
 
 function CandidateGateLayout() {
-  const { status, message, redirecting } = useCandidateGate();
+  const gate = useCandidateGate();
+  const { status, message, redirecting } = gate;
 
   if (status === "error") return <GateError message={message} />;
   // Loading and redirecting both render the spinner rather than the child page:
@@ -26,5 +27,11 @@ function CandidateGateLayout() {
   // new URL has loaded" would flash exactly the content the gate keeps out.
   if (status === "loading" || redirecting) return <GateLoading />;
 
-  return <Outlet />;
+  // Published only once the answer is settled, so a child reading it never has
+  // to ask the same question again or render a second loader of its own.
+  return (
+    <CandidateGateContext.Provider value={gate}>
+      <Outlet />
+    </CandidateGateContext.Provider>
+  );
 }

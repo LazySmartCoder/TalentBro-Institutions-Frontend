@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-import { PROFILE_SAVED_EVENT, me, type AuthUser } from "@/lib/api";
+import { PROFILE_SAVED_EVENT, SESSION_CHANGED_EVENT, me, type AuthUser } from "@/lib/api";
 
 export type CandidateDestination =
   { to: "/candidate/auth" } | { to: "/candidate/onboarding" } | { to: "/client/chat" };
@@ -88,13 +88,32 @@ export function useCandidateGate(): CandidateGate {
 
     const refresh = () => load(false);
 
+    // Signing in, signing up or signing out replaces the answer outright, and
+    // the event carries the account it replaced it with. That account is adopted
+    // straight away rather than after the `me()` below: waiting one request
+    // would leave the gate still reporting "signed out" while the login page
+    // reports the opposite, and the two would trade the URL back and forth
+    // behind the spinner for as long as it took. The request still runs, so the
+    // gate ends up agreeing with the server rather than with the login response.
+    const adoptSession = (event: Event) => {
+      const next = (event as CustomEvent<AuthUser | null>).detail;
+      // An event with no payload is not one of ours; treating it as a sign-out
+      // would eject a candidate who is in fact signed in.
+      if (next === undefined) return;
+      setUser(next);
+      setStatus("ready");
+      load(false);
+    };
+
     load(true);
     window.addEventListener(PROFILE_SAVED_EVENT, refresh);
+    window.addEventListener(SESSION_CHANGED_EVENT, adoptSession);
     // Catches the AI's post-chat profile writes, which land with no client event.
     window.addEventListener("focus", refresh);
     return () => {
       cancelled = true;
       window.removeEventListener(PROFILE_SAVED_EVENT, refresh);
+      window.removeEventListener(SESSION_CHANGED_EVENT, adoptSession);
       window.removeEventListener("focus", refresh);
     };
   }, []);
@@ -115,4 +134,19 @@ export function useCandidateGate(): CandidateGate {
   }, [target, navigate]);
 
   return { status, message, user, redirecting: target !== null };
+}
+
+/**
+ * Carries the layout's answer down to the pages inside the gate.
+ *
+ * The login page used to ask the server who is signed in a second time behind a
+ * spinner of its own, on top of the one the layout was already showing. One
+ * request and one loader are enough for both, and this is how the page reads
+ * that single answer rather than repeating the question.
+ */
+export const CandidateGateContext = createContext<CandidateGate | null>(null);
+
+/** The gate this page sits inside, or `null` when it is rendered outside one. */
+export function useCandidateGateResult(): CandidateGate | null {
+  return useContext(CandidateGateContext);
 }

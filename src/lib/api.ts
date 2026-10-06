@@ -217,6 +217,27 @@ async function ensureCsrfCookie(): Promise<void> {
   await fetchCsrfToken();
 }
 
+/**
+ * Fired on the window whenever the signed-in account changes — sign in, sign up,
+ * sign out, account deletion — carrying the account it changed to (`null` when
+ * nobody is signed in).
+ *
+ * Guards hold the user record in memory so they can answer "may this person be
+ * in here?" without a request on every navigation. Signing in therefore left
+ * them holding the pre-login answer, and the candidate gate reacted to a
+ * successful sign-in by sending the candidate straight back to the login page:
+ * the gate saw no session, the login page saw one, and the two pushed the URL
+ * back and forth behind the full-page spinner. Handing the new account over in
+ * the event lets a guard adopt it in the same tick, so the spinner never appears
+ * at all.
+ */
+export const SESSION_CHANGED_EVENT = "talentbro:session-changed";
+
+export function announceSessionChange(user: AuthUser | null): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SESSION_CHANGED_EVENT, { detail: user }));
+}
+
 export async function signup(body: {
   institutionName: string;
   fullName: string;
@@ -233,6 +254,7 @@ export async function signup(body: {
   await ensureCsrfCookie();
   setCollegeName(data.user.institution);
   setUserRole(data.user.role);
+  announceSessionChange(data.user);
   return data.user;
 }
 
@@ -253,6 +275,7 @@ export async function login(body: {
   await ensureCsrfCookie();
   setCollegeName(data.user.institution);
   setUserRole(data.user.role);
+  announceSessionChange(data.user);
   return data.user;
 }
 
@@ -271,6 +294,7 @@ export async function logout(): Promise<void> {
   cachedCsrfToken = null;
   setCollegeName(null);
   setUserRole(null);
+  announceSessionChange(null);
 }
 
 export async function deleteAccount(password?: string): Promise<void> {
@@ -283,6 +307,7 @@ export async function deleteAccount(password?: string): Promise<void> {
   cachedCsrfToken = null;
   setCollegeName(null);
   setUserRole(null);
+  announceSessionChange(null);
 }
 
 export async function me(): Promise<AuthUser | null> {
