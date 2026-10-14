@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Building2, GraduationCap, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { GridField } from "@/components/graphics";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const title = "TalentBro | Get Started";
 const description = "Choose how you'd like to join TalentBro — as an institution or as a student.";
@@ -25,24 +24,23 @@ function GetStartedPage() {
   const navigate = useNavigate();
 
   return (
-    <main className="tg-grain relative flex min-h-screen flex-col bg-background text-foreground">
+    <main className="tg-grain relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
       <GridField className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] w-full text-foreground opacity-40" />
       <div
         aria-hidden
-        className="tg-drift pointer-events-none absolute -top-40 left-1/4 h-[36rem] w-[36rem] rounded-full opacity-[0.08] blur-3xl"
+        className="tg-drift pointer-events-none absolute -top-40 left-1/4 h-[36rem] w-[36rem] max-w-full rounded-full opacity-[0.08] blur-3xl"
         style={{ background: "radial-gradient(circle, var(--color-foreground), transparent 62%)" }}
       />
-      <ThemeToggle className="fixed right-4 top-4 z-50 size-9 sm:right-6 sm:top-6" />
 
       <section className="relative z-10 flex flex-1 items-center justify-center px-5 py-12 sm:px-8">
         <div className="mx-auto w-full max-w-3xl text-center">
           <Reveal delay={90}>
-            <h1 className="font-[family-name:var(--font-display)] text-4xl leading-tight tracking-tight sm:text-6xl">
+            <h1 className="font-[family-name:var(--font-display)] text-[2rem] leading-tight tracking-tight sm:text-6xl">
               Who&rsquo;s getting started<span className="italic text-muted-foreground">?</span>
             </h1>
           </Reveal>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2">
             <Reveal delay={180}>
               <button
                 type="button"

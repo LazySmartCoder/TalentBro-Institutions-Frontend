@@ -195,7 +195,7 @@ function TalentBroPage() {
         </div>
 
         <div className="relative z-20 mx-auto grid w-full max-w-[1500px] flex-1 items-center gap-8 px-6 pb-28 pt-4 md:grid-cols-[1.05fr_0.95fr] md:px-10 lg:px-14">
-          <div className="hero-copy -translate-y-8 text-center md:-translate-y-10 md:text-left">
+          <div className="hero-copy -translate-y-2 text-center md:-translate-y-4 md:text-left">
             <p className="hero-kicker">EVERY STUDENT, PLACEMENT READY.</p>
             <h1 className="hero-title">Student Competitive<br /><span>Placement Platform.</span></h1>
             <p className="hero-sub mx-auto md:mx-0">We assess students across every placement skill and criterion, then give you one consolidated report per student.</p>

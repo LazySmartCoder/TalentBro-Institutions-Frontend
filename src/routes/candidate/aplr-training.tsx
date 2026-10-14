@@ -831,10 +831,10 @@ function AplrPage() {
                       void submit(input);
                     }
                   }}
-                  placeholder='Answer + your approach (e.g. "36 — I added the lengths, divided by time, then converted units")'
+                  placeholder="Write your Answer..."
                   rows={2}
                   disabled={flow !== "idle" || !session}
-                  className="min-h-[52px] flex-1 resize-none"
+                  className="h-[52px] min-h-0 flex-1 resize-none"
                 />
                 <Button
                   size="icon"

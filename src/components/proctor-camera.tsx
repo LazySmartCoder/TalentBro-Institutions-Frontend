@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { CameraOff, ScanEye } from "lucide-react";
 
@@ -201,6 +201,53 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
   const [episodes, setEpisodes] = useState(0);
   const episodesRef = useRef(0);
   const [camError, setCamError] = useState<string | null>(null);
+
+  // The feed is a floating window: it starts parked in the top-right and can be
+  // dragged anywhere on screen with a mouse, pen or finger. Position lives in
+  // viewport coordinates and is clamped so it can never be dragged off-screen.
+  const camRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ dx: number; dy: number; id: number } | null>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const place = () => {
+      const el = camRef.current;
+      if (!el) return;
+      setPos((prev) => {
+        const maxX = Math.max(0, window.innerWidth - el.offsetWidth);
+        const maxY = Math.max(0, window.innerHeight - el.offsetHeight);
+        const x = prev ? Math.min(Math.max(prev.x, 0), maxX) : maxX - 16;
+        const y = prev ? Math.min(Math.max(prev.y, 0), maxY) : 62;
+        return { x, y };
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, []);
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = camRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    dragRef.current = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+    setPos({ x: r.left, y: r.top });
+    el.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const el = camRef.current;
+    if (!drag || drag.id !== e.pointerId || !el) return;
+    const maxX = Math.max(0, window.innerWidth - el.offsetWidth);
+    const maxY = Math.max(0, window.innerHeight - el.offsetHeight);
+    setPos({
+      x: Math.min(Math.max(e.clientX - drag.dx, 0), maxX),
+      y: Math.min(Math.max(e.clientY - drag.dy, 0), maxY),
+    });
+  };
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.id === e.pointerId) dragRef.current = null;
+  };
 
   // Phased tolerance: the first 5 looks-away are free ("happens", blue), 6-8
   // signal "break time?" (amber), and only the 9th look-away onward begins the
@@ -496,9 +543,17 @@ export function ProctorCamera({ onViolation }: { onViolation?: (() => void) | un
 
   return (
     <div
-      className="pointer-events-none absolute right-4 top-[3.9rem] z-30 w-52 overflow-hidden rounded-xl border border-border bg-background/85 shadow-lg backdrop-blur"
-      aria-label="Proctor camera feed"
-      title="Keep your eyes on the chat room at the centre of the screen — read it there and answer the panel."
+      ref={camRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      style={pos ? { left: pos.x, top: pos.y } : undefined}
+      className={`fixed z-30 w-52 touch-none select-none cursor-grab overflow-hidden rounded-xl border border-border bg-background/85 shadow-lg backdrop-blur active:cursor-grabbing ${
+        pos ? "" : "right-4 top-[3.9rem]"
+      }`}
+      aria-label="Proctor camera feed — drag to move"
+      title="Drag to move. Keep your eyes on the chat room at the centre of the screen — read it there and answer the panel."
     >
       <div className="relative flex h-36 items-center justify-center bg-black">
         <video

@@ -70,7 +70,7 @@ const DURATION_MINUTES: Record<MockInterviewDuration, number> = {
 // A locked interview refuses every navigation, so the handful of places the
 // candidate legitimately has to be able to reach have to be let through:
 // the analysis report and raw transcript the finished room links to, and the
-// auth/onboarding routes an expired session redirects to � blocking those would
+// auth/onboarding routes an expired session redirects to — blocking those would
 // strand them in a room they can no longer leave.
 const LOCK_EXEMPT_PATHS = [
   "/interview-analysis/",
@@ -82,14 +82,14 @@ const LOCK_EXEMPT_PATHS = [
 const title = "TalentBro | Mock Interview";
 const description = "Practice a realistic mock interview for the company of your choice.";
 
-// Called from the Start/Open click that sends the user into a session � a real
+// Called from the Start/Open click that sends the user into a session — a real
 // user gesture, so it grants the page sound permission. Resuming an
 // AudioContext inside that gesture makes the mic unlock smoothly; this is the
 // same "land in the room, the panel just starts talking" pattern the GD room
 // uses. If a cold browser still holds the first clip back, the voice engine
 // lights a "tap anywhere" hint and replays the clip on the user's first tap,
 // exactly like it does there. NOTE: we deliberately do NOT prime
-// speechSynthesis here � a speak() on a cold page wedges Chrome's fallback
+// speechSynthesis here — a speak() on a cold page wedges Chrome's fallback
 // voice into silent failure, which is precisely what bit the first line.
 function unlockBrowserAudio() {
   try {
@@ -171,8 +171,8 @@ function MockInterviewPage() {
   const lock = useInterviewLock(
     useCallback((reason: InterviewLockBreak) => {
       // Dropping out of fullscreen is the candidate actively trying to get out.
-      // A window blur is weaker evidence � it also fires on a stray click on the
-      // browser's own chrome or a permission prompt � so that one only raises the
+      // A window blur is weaker evidence — it also fires on a stray click on the
+      // browser's own chrome or a permission prompt — so that one only raises the
       // overlay and is not charged to the interview.
       if (reason === "window") return;
       const id = activeRef.current?.id;
@@ -189,7 +189,7 @@ function MockInterviewPage() {
   // back button, and not a tab or window close. The unmount effect above
   // finalises the interview on the server, and because `mode` is component
   // state, remounting the route always lands back on the plain starter screen.
-  // The lock lifts the moment the interview is over � the room is a results
+  // The lock lifts the moment the interview is over — the room is a results
   // screen by then, not a proctored session, and the candidate has to be able to
   // reach the analysis report.
   useBlocker({
@@ -260,20 +260,20 @@ function MockInterviewPage() {
           const interviews = await mockInterviews();
           if (!cancelled) setList(interviews);
         } catch {
-          // offline � session list stays empty
+          // offline — session list stays empty
         }
         let companyList: string[] = [];
         try {
           companyList = await candidateCompanies();
         } catch {
-          // candidate companies unavailable � fall back below
+          // candidate companies unavailable — fall back below
         }
         if (companyList.length === 0) {
           try {
             const { drives } = await getDrives();
             companyList = Array.from(new Set(drives.map((d) => d.company_name).filter(Boolean)));
           } catch {
-            // drives unavailable � no companies to show
+            // drives unavailable — no companies to show
           }
         }
         if (!cancelled) setCompanies(companyList);
@@ -294,7 +294,7 @@ function MockInterviewPage() {
     const c = company.trim();
     if (!c || sending) return;
     // The submit click that reaches here is the very user gesture the browser
-    // wants for audio � warm the page up inside it so the panel's first line
+    // wants for audio — warm the page up inside it so the panel's first line
     // can autoplay when the room mounts. It is also the only gesture the
     // fullscreen API accepts, so the screen is taken over right here and the
     // candidate never sees the app chrome, not even on the loader.
@@ -335,7 +335,7 @@ function MockInterviewPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start the interview.");
       setMode("setup");
-      // The launch failed, so there is no room to protect � hand the screen back
+      // The launch failed, so there is no room to protect — hand the screen back
       // rather than stranding the candidate in fullscreen on the starter page.
       lock.release();
     } finally {
@@ -569,12 +569,12 @@ function MockInterviewPage() {
               </span>
               <h1 className="mt-5 text-2xl font-semibold tracking-tight">Mock Interview</h1>
               <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                Your dream company called. ??
+                Your dream company called. 📞
                 <br />
-                Well� not really.
+                Well— not really.
                 <br />
                 Pick the company, choose your role, hit Start, and let our AI interview panel test
-                if you're actually ready. ??
+                if you're actually ready. 🎯
               </p>
             </div>
 
@@ -607,7 +607,7 @@ function MockInterviewPage() {
                     id="mi-company"
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
-                    placeholder="e.g. Google, Infosys, TCS�"
+                    placeholder="e.g. Google, Infosys, TCS…"
                     className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/25"
                   />
                 )}
@@ -686,7 +686,7 @@ function MockInterviewPage() {
               <div>
                 <label className="text-xs font-medium">Panelists</label>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Pick who should interview you � e.g. only Communication or only Technical.
+                  Pick who should interview you — e.g. only Communication or only Technical.
                 </p>
                 <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
                   {PANELIST_OPTIONS.map((opt) => {
@@ -752,7 +752,7 @@ function MockInterviewPage() {
                 {sending ? (
                   <>
                     <span className="size-3 animate-spin rounded-full border-2 border-background/40 border-t-background" />
-                    Starting interview�
+                    Starting interview…
                   </>
                 ) : (
                   <>
@@ -781,7 +781,7 @@ function MockInterviewPage() {
 }
 
 // Drawn the moment the candidate leaves the locked surface. A tab switch is
-// recoverable � the room is still there, so the overlay's only way through is the
+// recoverable — the room is still there, so the overlay's only way through is the
 // button that re-enters fullscreen from a real gesture. Changing the screen or
 // exiting fullscreen is not: fullscreen is the one thing the interview cannot be
 // proctored without, so rather than trap the candidate behind a button that
@@ -874,7 +874,7 @@ function MockInterviewLaunchLoader({
   const seated = panelists.includes("atlas" as PanelistId) ? panelists : ["atlas", ...panelists];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-6 text-muted-foreground">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background px-5 py-8 text-muted-foreground sm:px-6">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="relative grid size-14 place-items-center rounded-2xl bg-foreground text-background">
           <BriefcaseBusiness className="size-7" />
@@ -883,15 +883,15 @@ function MockInterviewLaunchLoader({
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           Preparing your interview panel
         </h1>
-        <p className="text-sm">
+        <p className="max-w-full break-words px-2 text-sm">
           {company}
-          {role ? ` � ${role}` : ""}
+          {role ? ` — ${role}` : ""}
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex w-full flex-col items-center gap-3">
         <QuoteSplashContent count={3} durationMs={6000} quotes={INTERVIEW_MOTIVATION_QUOTES} />
-        <div className="flex items-center gap-3">
+        <div className="flex max-w-full flex-wrap items-center justify-center gap-2 sm:gap-3">
           {seated.map((id) => {
             const opt = PANELIST_OPTIONS.find((p) => p.id === id);
             const img = opt?.img ?? (id === "atlas" ? "/Panelists/Atlas.jpg" : undefined);
@@ -901,10 +901,10 @@ function MockInterviewLaunchLoader({
                   <img
                     src={img}
                     alt={opt?.name ?? "Atlas"}
-                    className="size-11 rounded-full border border-border object-cover"
+                    className="size-9 rounded-full border border-border object-cover sm:size-11"
                   />
                 ) : (
-                  <span className="grid size-11 place-items-center rounded-full border border-border bg-muted text-[10px] tracking-[0.1em] text-muted-foreground">
+                  <span className="grid size-9 place-items-center rounded-full border border-border bg-muted text-[10px] tracking-[0.1em] text-muted-foreground sm:size-11">
                     AT
                   </span>
                 )}

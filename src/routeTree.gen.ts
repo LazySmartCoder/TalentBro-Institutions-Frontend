@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CandidateRouteRouteImport } from './routes/candidate/route'
+import { Route as DebugCompaniesRouteImport } from './routes/debug-companies'
 import { Route as DowntimeRouteImport } from './routes/downtime'
 import { Route as GetStartedRouteImport } from './routes/get-started'
 import { Route as LogoutRouteImport } from './routes/logout'
@@ -86,6 +87,11 @@ const IndexRoute = IndexRouteImport.update({
 const CandidateRouteRoute = CandidateRouteRouteImport.update({
   id: '/candidate',
   path: '/candidate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DebugCompaniesRoute = DebugCompaniesRouteImport.update({
+  id: '/debug-companies',
+  path: '/debug-companies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DowntimeRoute = DowntimeRouteImport.update({
@@ -440,6 +446,7 @@ const StudentModuleStudentIdModuleKeyRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/debug-companies': typeof DebugCompaniesRoute
   '/downtime': typeof DowntimeRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
@@ -510,6 +517,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/debug-companies': typeof DebugCompaniesRoute
   '/downtime': typeof DowntimeRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
@@ -581,6 +589,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/debug-companies': typeof DebugCompaniesRoute
   '/downtime': typeof DowntimeRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
@@ -653,6 +662,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/candidate'
+    | '/debug-companies'
     | '/downtime'
     | '/get-started'
     | '/logout'
@@ -723,6 +733,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/candidate'
+    | '/debug-companies'
     | '/downtime'
     | '/get-started'
     | '/logout'
@@ -793,6 +804,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/candidate'
+    | '/debug-companies'
     | '/downtime'
     | '/get-started'
     | '/logout'
@@ -864,6 +876,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CandidateRouteRoute: typeof CandidateRouteRouteWithChildren
+  DebugCompaniesRoute: typeof DebugCompaniesRoute
   DowntimeRoute: typeof DowntimeRoute
   GetStartedRoute: typeof GetStartedRoute
   LogoutRoute: typeof LogoutRoute
@@ -915,6 +928,13 @@ declare module '@tanstack/react-router' {
       path: '/candidate'
       fullPath: '/candidate'
       preLoaderRoute: typeof CandidateRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/debug-companies': {
+      id: '/debug-companies'
+      path: '/debug-companies'
+      fullPath: '/debug-companies'
+      preLoaderRoute: typeof DebugCompaniesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/downtime': {
@@ -1459,6 +1479,7 @@ const CandidateRouteRouteWithChildren = CandidateRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CandidateRouteRoute: CandidateRouteRouteWithChildren,
+  DebugCompaniesRoute: DebugCompaniesRoute,
   DowntimeRoute: DowntimeRoute,
   GetStartedRoute: GetStartedRoute,
   LogoutRoute: LogoutRoute,

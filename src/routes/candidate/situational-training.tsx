@@ -861,7 +861,7 @@ function SituationalPage() {
                   placeholder="Type what you'd do + your reasoning (e.g. I'd split the task, then hear both sides privately)"
                   rows={2}
                   disabled={flow !== "idle" || !session}
-                  className="min-h-[52px] flex-1 resize-none"
+                  className="h-[52px] min-h-0 flex-1 resize-none"
                 />
                 <Button
                   size="icon"

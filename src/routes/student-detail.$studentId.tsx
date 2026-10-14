@@ -4,8 +4,10 @@ import {
   ArrowLeft,
   Award,
   BadgeCheck,
+  Briefcase,
   Building2,
   Calendar,
+  FolderGit2,
   GraduationCap,
   IndianRupee,
   Languages,
@@ -25,7 +27,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { GateError, GateLoading } from "@/components/load-state";
 import { chartTooltipProps } from "@/components/dash/bits";
+import { AppNavHeader, AppNavIconButton } from "@/components/tb/app-nav";
 
 const title = "Candidate | TalentBro";
 const description = "A candidate's placement readiness breakdown and training activity.";
@@ -261,6 +264,119 @@ function FactRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function scalarText(value: unknown): string | null {
+  if (value == null) return null;
+  const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+  const trimmed = text.trim();
+  return trimmed ? trimmed : null;
+}
+
+function entryField(item: unknown, keys: string[]): string | null {
+  if (item && typeof item === "object" && !Array.isArray(item)) {
+    const record = item as Record<string, unknown>;
+    for (const key of keys) {
+      const text = scalarText(record[key]);
+      if (text) return text;
+    }
+  }
+  return null;
+}
+
+function fallbackEntryText(item: unknown): string | null {
+  if (Array.isArray(item)) {
+    const parts = item.map((v) => scalarText(v)).filter(Boolean) as string[];
+    return parts.length ? parts.join(", ") : null;
+  }
+  if (item && typeof item === "object") {
+    for (const value of Object.values(item as Record<string, unknown>)) {
+      const text = scalarText(value);
+      if (text) return text;
+    }
+    return null;
+  }
+  return scalarText(item);
+}
+
+type EntryKind = "project" | "internship";
+
+// Which keys of a free-form project/internship entry are worth showing, in
+// order: heading, subheading, body. Entries can be plain strings too.
+const ENTRY_KEYS: Record<EntryKind, [string[], string[], string[]]> = {
+  project: [
+    ["title", "name", "project"],
+    ["tech", "stack", "description"],
+    ["description", "link", "url"],
+  ],
+  internship: [
+    ["company", "role", "org", "title"],
+    ["role", "position", "duration"],
+    ["period", "duration", "description", "summary"],
+  ],
+};
+
+function EntryCards({ items, kind }: { items: unknown[]; kind: EntryKind }) {
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">Nothing added yet.</p>;
+  }
+  const [headingKeys, subKeys, bodyKeys] = ENTRY_KEYS[kind];
+  return (
+    <div className="space-y-2.5">
+      {items.map((item, index) => {
+        const heading = entryField(item, headingKeys) ?? fallbackEntryText(item);
+        const sub = entryField(item, subKeys);
+        const body = entryField(item, bodyKeys);
+        return (
+          <div key={index} className="rounded-xl border border-border/70 bg-card/40 px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">{heading ?? "—"}</p>
+            {sub && sub !== heading && (
+              <p className="mt-0.5 text-[13px] text-muted-foreground">{sub}</p>
+            )}
+            {body && body !== sub && body !== heading && (
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">{body}</p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ExperienceSection({
+  icon: Icon,
+  title: sectionTitle,
+  children,
+}: {
+  icon: typeof Award;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <Icon className="size-3.5 text-primary" />
+        {sectionTitle}
+      </div>
+      <div className="mt-2">{children}</div>
+    </div>
+  );
+}
+
+function CertificationChips({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">Nothing added yet.</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item, index) => (
+        <Badge key={`${item}-${index}`} variant="secondary" className="gap-1">
+          <BadgeCheck className="size-3" />
+          {item}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 function StudentDetailPage() {
   const navigate = useNavigate();
   const { studentId } = Route.useParams();
@@ -358,42 +474,60 @@ function StudentDetailPage() {
   const ctc = fmtCtc(student.expected_ctc);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <GridBackdrop />
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <Link
-            to="/candidate/leaderboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" /> Back to Leaderboard
-          </Link>
-
-          <div className="flex items-center gap-2">
-            {!student.is_self && (
-              <button
-                type="button"
-                onClick={() =>
-                  void navigate({
-                    to: "/candidate/student-message",
-                    search: { peer: student.id },
-                  })
-                }
-                aria-label="Message this candidate"
-                className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90"
-              >
-                <MessageCircle className="size-4" />
-                <span className="hidden sm:inline">Chat</span>
-              </button>
-            )}
+      <AppNavHeader
+        sticky
+        left={
+          <div className="flex min-w-0 items-center gap-2.5">
+            <AppNavIconButton
+              label="Back to Leaderboard"
+              onClick={() => void navigate({ to: "/candidate/leaderboard" })}
+            >
+              <ArrowLeft className="size-4" />
+            </AppNavIconButton>
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-foreground text-background">
+              <User className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <p className="truncate text-sm font-semibold leading-tight">
+                {student.full_name || "Candidate"}
+              </p>
+            </span>
           </div>
-        </div>
-
+        }
+        actions={
+          !student.is_self ? (
+            <button
+              type="button"
+              onClick={() =>
+                void navigate({
+                  to: "/candidate/student-message",
+                  search: { peer: student.id },
+                })
+              }
+              aria-label="Message this candidate"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90"
+            >
+              <MessageCircle className="size-4" />
+              <span className="hidden sm:inline">Chat</span>
+            </button>
+          ) : null
+        }
+      />
+      <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
         <Card className="overflow-hidden rounded-2xl border-border">
           <CardContent className="p-6 sm:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-6">
-              <div className="flex items-start gap-4">
-                <Avatar className="size-16 rounded-2xl sm:size-20">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                <div className="flex items-start gap-4">
+                  <Avatar className="size-16 rounded-2xl sm:size-20">
+                  {student.avatar ? (
+                    <AvatarImage
+                      src={student.avatar}
+                      alt={student.full_name || "Candidate"}
+                      className="rounded-2xl object-cover"
+                    />
+                  ) : null}
                   <AvatarFallback className="rounded-2xl bg-primary font-display text-xl font-bold text-primary-foreground">
                     {initialsOf(student.full_name)}
                   </AvatarFallback>
@@ -403,12 +537,12 @@ function StudentDetailPage() {
                     {student.full_name || "Candidate"}
                   </h1>
                   {deptBadge && (
-                    <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                       <Building2 className="size-3.5" /> {deptBadge}
                     </div>
                   )}
                   {student.bio && (
-                    <p className="mt-2 max-w-xl text-sm font-semibold text-muted-foreground">
+                    <p className="mt-2 max-w-lg text-sm font-semibold text-muted-foreground">
                       {student.bio}
                     </p>
                   )}
@@ -445,12 +579,12 @@ function StudentDetailPage() {
                 </div>
               </div>
 
-              <div className="grid w-full sm:w-auto sm:grid-cols-2 lg:gap-4">
-                <div className="rounded-2xl bg-primary/10 px-5 py-4 text-center">
-                  <div className="text-xs uppercase tracking-wide text-primary">Readiness</div>
-                  <div className="mt-1 font-display text-4xl font-bold tabular-nums">
+              <div className="w-full md:w-auto md:ml-auto">
+                <div className="rounded-2xl bg-emerald-500/10 px-6 py-4 text-center border border-emerald-500/30 w-full md:min-w-[180px]">
+                  <div className="text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Readiness</div>
+                  <div className="mt-1 font-display text-3xl sm:text-4xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
                     {student.performance_score != null ? student.performance_score.toFixed(1) : "—"}
-                    <span className="text-lg text-muted-foreground">/100</span>
+                    <span className="text-lg text-emerald-600/70 dark:text-emerald-400/70">/100</span>
                   </div>
                 </div>
               </div>
@@ -527,24 +661,27 @@ function StudentDetailPage() {
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          {perf && perf.modules.length > 0 && (
-            <Card className="rounded-2xl border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="size-4 text-primary" /> Module Scores
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {perf.modules.map((m) => (
-                    <Badge key={m.key} variant="outline" className="gap-1">
-                      {m.label} · {Math.round(m.score)}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <Card className="rounded-2xl border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Briefcase className="size-4 text-primary" /> Experience & Credentials
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Certifications, projects and internships this candidate has added
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <ExperienceSection icon={Award} title="Certifications">
+                <CertificationChips items={student.certifications} />
+              </ExperienceSection>
+              <ExperienceSection icon={FolderGit2} title="Projects">
+                <EntryCards items={student.projects} kind="project" />
+              </ExperienceSection>
+              <ExperienceSection icon={Briefcase} title="Internships">
+                <EntryCards items={student.internships} kind="internship" />
+              </ExperienceSection>
+            </CardContent>
+          </Card>
 
           <Card className="rounded-2xl border-border">
             <CardHeader>

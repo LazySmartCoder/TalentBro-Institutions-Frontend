@@ -1532,7 +1532,13 @@ export async function chatSessionDetail(id: string, before?: number | null): Pro
 }
 
 export async function deleteChatSession(id: string): Promise<void> {
-  await apiFetch<{ ok: boolean }>(`/api/chat/sessions/${id}/`, { method: "DELETE" });
+  // The server generates the end-of-session profile summary and roadmap before
+  // dropping the row (two model calls), so this can far outlast the default
+  // timeout and must not be aborted mid-delete.
+  await apiFetch<{ ok: boolean }>(`/api/chat/sessions/${id}/`, {
+    method: "DELETE",
+    timeoutMs: LONG_TIMEOUT_MS,
+  });
 }
 
 /*
@@ -1912,6 +1918,20 @@ export async function clientOnboarding(body: Record<string, unknown>): Promise<A
     body: JSON.stringify(body),
   });
   return data.user;
+}
+
+export type WebsitePreview = {
+  website: string;
+  title: string;
+  logo: string;
+};
+
+// Reads a website's own title and favicon server-side (a single page fetch), so
+// client onboarding can prefill the institution name and logo as the officer
+// types the site. Every field is empty when the site could not be read.
+export async function institutionWebsitePreview(url: string): Promise<WebsitePreview> {
+  const search = new URLSearchParams({ url });
+  return apiFetch<WebsitePreview>(`/api/institution/website-preview/?${search.toString()}`);
 }
 
 export type MockInterviewStatus = "active" | "completed" | "not_scored";
@@ -2727,6 +2747,12 @@ export type StudentTarget = {
   is_open: boolean;
   notes: string;
   progress: StudentTargetProgress;
+  /**
+   * The students attached individually (the department branch of the audience
+   * is re-derivable from the roster). The launch form checks "one open target
+   * per student" against these before it will submit.
+   */
+  candidate_ids: string[];
   created_by: string;
   created_at: string | null;
 };
@@ -2817,6 +2843,9 @@ export type StudentRecord = {
   // exist). There is no stored boolean and no override, so this flag is the rule.
   placement_eligible: boolean;
   skills: string[];
+  certifications: string[];
+  projects: unknown[];
+  internships: unknown[];
   preferred_roles: string[];
   preferred_locations: string[];
   preferred_language: string;

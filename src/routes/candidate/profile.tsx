@@ -9,6 +9,8 @@ import {
   ExternalLink,
   FolderGit2,
   Gauge,
+  Github,
+  Globe,
   GraduationCap,
   IndianRupee,
   Languages,
@@ -23,8 +25,8 @@ import {
   Sparkles,
   Trash2,
   User,
-  X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppNavHeader } from "@/components/tb/app-nav";
 import {
   changePassword,
@@ -37,7 +39,6 @@ import {
   type PillarRanks,
 } from "@/lib/api";
 import { PERF_PILLARS, pillarStanding } from "@/lib/perf";
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
@@ -176,9 +177,11 @@ function Section({
 
 function Row({ label, value }: { label: string; value?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border/60 py-2.5 last:border-0">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-4 border-b border-border/60 py-2.5 last:border-0">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-right text-[13px] font-medium text-foreground">{value ?? "—"}</span>
+      <span className="min-w-0 break-words text-left sm:text-right text-[13px] font-medium text-foreground">
+        {value ?? "—"}
+      </span>
     </div>
   );
 }
@@ -269,12 +272,12 @@ function ReadinessBreakdown({
 }
 
 function Chips({ items }: { items: string[] }) {
-  if (!items.length) return <p className="text-xs text-muted-foreground">Nothing added yet.</p>;
+  if (items.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {items.map((item, i) => (
-        <span key={`${item}-${i}`} className={oc("", "chip")}>
-          {item}
+    <div className="flex flex-wrap gap-1.5 max-w-full">
+      {items.map((i) => (
+        <span key={i} className={cn(oc("", "chip"), "break-words")}>
+          {i}
         </span>
       ))}
     </div>
@@ -319,12 +322,14 @@ function ItemCards({ items, type }: { items: unknown[]; type: ItemCardKind }) {
         const third = itemLabel(item, thirdKeys);
         return (
           <div key={i} className="rounded-lg border border-border/70 bg-muted/30 px-4 py-3.5">
-            <p className="text-sm font-semibold">{first}</p>
+            <p className="break-words text-sm font-semibold">{first}</p>
             {second !== first && second !== "—" && (
-              <p className="mt-1 text-[13px] text-muted-foreground">{second}</p>
+              <p className="mt-1 break-words text-[13px] text-muted-foreground">{second}</p>
             )}
             {third !== first && third !== second && third !== "—" && (
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground/80">{third}</p>
+              <p className="mt-1.5 break-words text-[13px] leading-relaxed text-muted-foreground/80">
+                {third}
+              </p>
             )}
           </div>
         );
@@ -465,9 +470,9 @@ function CandidateProfilePage() {
     { icon: Sparkles, label: "Headline", value: p?.bio || "—" },
   ];
   const presenceLinks = [
-    { label: "LinkedIn", value: p?.linkedin_url },
-    { label: "GitHub", value: p?.github_url },
-    { label: "Portfolio", value: p?.portfolio_url },
+    { label: "LinkedIn", value: p?.linkedin_url, icon: Linkedin },
+    { label: "GitHub", value: p?.github_url, icon: Github },
+    { label: "Portfolio", value: p?.portfolio_url, icon: Globe },
   ].filter((link) => link.value);
 
   const ranks = payload.ranks;
@@ -536,46 +541,60 @@ function CandidateProfilePage() {
         }
       />
 
-      <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
         <div className="space-y-4">
           {/* Hero */}
           <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setAvatarHintOpen(true)}
-                title="Profile photo"
-                className="group relative cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-              >
-                <Avatar className="size-16 rounded-2xl">
-                  {payload.user.avatar ? (
-                    <AvatarImage src={payload.user.avatar} alt={payload.user.name || "Profile"} />
-                  ) : null}
-                  <AvatarFallback className="rounded-2xl bg-primary font-display text-xl font-bold text-primary-foreground">
-                    {initialsOf(payload.user.name, payload.user.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="absolute inset-0 grid place-items-center rounded-2xl bg-foreground/50 text-background opacity-0 transition-opacity group-hover:opacity-100">
-                  <Pencil className="size-5" />
-                </span>
-              </button>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-                  {payload.user.name}
-                </h1>
-                <p className="text-sm text-muted-foreground">{payload.user.email}</p>
-                {education && (
-                  <p className="mt-1 text-[13px] text-muted-foreground/80">{education}</p>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  title="Preferred language"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setAvatarHintOpen(true)}
+                  title="Profile photo"
+                  className="group relative cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 self-start"
                 >
-                  <Languages className="size-3.5" />
-                  {languageLabel(p?.preferred_language || "english")}
-                </span>
+                  <Avatar className="size-16 rounded-2xl">
+                    {payload.user.avatar ? (
+                      <AvatarImage src={payload.user.avatar} alt={payload.user.name || "Profile"} />
+                    ) : null}
+                    <AvatarFallback className="rounded-2xl bg-primary font-display text-xl font-bold text-primary-foreground">
+                      {initialsOf(payload.user.name, payload.user.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute inset-0 grid place-items-center rounded-2xl bg-foreground/50 text-background opacity-0 transition-opacity group-hover:opacity-100">
+                    <Pencil className="size-5" />
+                  </span>
+                </button>
+                <div className="min-w-0 flex-1 w-full">
+                  <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+                    {payload.user.name}
+                  </h1>
+                  <p className="break-words text-sm text-muted-foreground">{payload.user.email}</p>
+                  {education && (
+                    <p className="mt-1 break-words text-[13px] text-muted-foreground/80">
+                      {education}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 self-start">
+                  <span
+                    title="Preferred language"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                  >
+                    <Languages className="size-3.5" />
+                    {languageLabel(p?.preferred_language || "english")}
+                  </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void navigate({
+                      to: "/candidate/chat",
+                      search: { prompt: "Edit my profile" },
+                    })
+                  }
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-foreground px-3.5 py-2 text-xs font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  <Pencil className="size-3.5" /> Edit profile
+                </button>
               </div>
             </div>
           </div>
@@ -617,23 +636,21 @@ function CandidateProfilePage() {
               {presenceLinks.length === 0 && (
                 <p className="text-xs text-muted-foreground">No links added yet.</p>
               )}
-              {presenceLinks.map((link) => (
-                <Row
-                  key={link.label}
-                  label={link.label}
-                  value={
-                    <a
-                      href={link.value}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex max-w-full items-center gap-1 truncate text-emerald-600 hover:underline dark:text-emerald-400"
-                    >
-                      <span className="truncate">{link.value}</span>
-                      <ExternalLink className="size-3 shrink-0" />
-                    </a>
-                  }
-                />
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {presenceLinks.map(({ label, value, icon: Icon }) => (
+                  <a
+                    key={label}
+                    href={value}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-[13px] font-medium text-emerald-600 transition-colors hover:bg-muted hover:underline dark:text-emerald-400"
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span>{label}</span>
+                    <ExternalLink className="size-3 shrink-0 opacity-70" />
+                  </a>
+                ))}
+              </div>
             </Section>
 
             <Section icon={<Briefcase className="size-4" />} title="Job preferences">
@@ -660,7 +677,9 @@ function CandidateProfilePage() {
           </div>
 
           <Section icon={<Sparkles className="size-4" />} title="Skills">
-            <Chips items={p?.skills ?? []} />
+            <div className="flex flex-wrap gap-2">
+              <Chips items={p?.skills ?? []} />
+            </div>
           </Section>
 
           <Section icon={<Award className="size-4" />} title="Certifications">
@@ -712,8 +731,7 @@ function CandidateProfilePage() {
               <div>
                 <h3 className="text-sm font-semibold text-destructive">Danger zone</h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Permanently delete your account and all your data (profile, chats & mock
-                  interviews). This cannot be undone.
+                  Permanently delete your account and all your data. This cannot be undone.
                 </p>
               </div>
               <button
@@ -742,7 +760,7 @@ function CandidateProfilePage() {
             <AlertDialogDescription>
               Add your LinkedIn profile with a profile picture and headline over there. We use the
               same photo and headline to maintain consistency for students building their LinkedIn
-              profiles. You can edit the headline here afterwards.
+              profiles. You can edit the headline afterwards from the chat coach.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

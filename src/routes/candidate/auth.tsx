@@ -130,11 +130,11 @@ function AuthPage() {
   }
 
   return (
-    <main className="tg-grain relative flex min-h-screen bg-background text-foreground">
+    <main className="tg-grain relative flex min-h-dvh overflow-hidden bg-background text-foreground">
       <GridField className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] w-full text-foreground opacity-40" />
       <div
         aria-hidden
-        className="tg-drift pointer-events-none absolute -top-40 left-1/4 h-[36rem] w-[36rem] rounded-full opacity-[0.08] blur-3xl"
+        className="tg-drift pointer-events-none absolute -top-40 left-1/4 h-[36rem] w-[36rem] max-w-full rounded-full opacity-[0.08] blur-3xl"
         style={{ background: "radial-gradient(circle, var(--color-foreground), transparent 62%)" }}
       />
       {/* Brand panel */}

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogoutConfirmDialog } from "@/components/logout-confirm";
-import { clientOnboarding, me, type AuthUser, type ClientProfile } from "@/lib/api";
+import { clientOnboarding, institutionWebsitePreview, me, type AuthUser, type ClientProfile, type WebsitePreview } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { GateLoading } from "@/components/load-state";
 
@@ -154,6 +154,17 @@ function draftFromProfile(p: ClientProfile | null | undefined): Draft {
   };
 }
 
+function draftWithSiteInfo(draft: Draft, info: WebsitePreview): Draft {
+  // The officer's own entries win: only a field they left blank is filled, so a
+  // lookup can never overwrite a name or logo they typed themselves.
+  return {
+    ...draft,
+    institution_name:
+      info.title && !draft.institution_name.trim() ? info.title : draft.institution_name,
+    logo: info.logo || draft.logo,
+  };
+}
+
 const inputClass =
   "h-12 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition-shadow placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-ring/25";
 
@@ -195,6 +206,7 @@ function ClientOnboardingPage() {
   const [stepError, setStepError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [siteLookup, setSiteLookup] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   useEffect(() => {
     let cancelled = false;
@@ -239,52 +251,75 @@ function ClientOnboardingPage() {
     setStepError("");
   }
 
-  function validateCurrent(): string {
+  async function fetchSiteInfo(url: string): Promise<WebsitePreview | null> {
+    try {
+      return await institutionWebsitePreview(url);
+    } catch {
+      return null;
+    }
+  }
+
+  function lookupWebsite() {
+    const url = data.website.trim();
+    if (!url) return;
+    // Nothing to add when both fields are already filled, so a slow third-party
+    // fetch is not fired on every blur once the name and logo are in place.
+    if (data.institution_name.trim() && data.logo.trim()) return;
+    setSiteLookup("loading");
+    void institutionWebsitePreview(url)
+      .then((info) => {
+        setData((d) => draftWithSiteInfo(d, info));
+        setSiteLookup(info.title || info.logo ? "done" : "error");
+      })
+      .catch(() => setSiteLookup("error"));
+  }
+
+  function validateCurrent(draft: Draft): string {
     switch (step) {
       case 0:
-        if (!data.institution_name.trim()) {
+        if (!draft.institution_name.trim()) {
           return "Please enter your institution name.";
         }
-        if (!data.institution_type) {
+        if (!draft.institution_type) {
           return "Please select your institution type.";
         }
-        if (!data.website.trim()) {
+        if (!draft.website.trim()) {
           return "Please enter your institution website.";
         }
         if (
-          !data.approximate_student_strength.trim() ||
-          Number(data.approximate_student_strength) < 1
+          !draft.approximate_student_strength.trim() ||
+          Number(draft.approximate_student_strength) < 1
         ) {
           return "Please enter the approximate student strength.";
         }
         return "";
       case 1:
-        if (!data.email_domain.trim()) {
+        if (!draft.email_domain.trim()) {
           return "Please enter your official email domain (e.g. institution.edu.in).";
         }
-        if (!data.placement_office_email.trim()) {
+        if (!draft.placement_office_email.trim()) {
           return "Please enter the placement office email.";
         }
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.placement_office_email.trim())) {
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.placement_office_email.trim())) {
           return "Placement office email doesn't look valid.";
         }
-        if (!data.placement_department_name.trim()) {
+        if (!draft.placement_department_name.trim()) {
           return "Please enter the placement department name.";
         }
         return "";
       case 2:
-        if (!data.address.trim()) return "Please enter your institution's address.";
-        if (!data.city.trim()) return "Please enter your city.";
-        if (!data.state.trim()) return "Please enter your state.";
-        if (!/^[1-9][0-9]{5}$/.test(data.pin_code)) {
+        if (!draft.address.trim()) return "Please enter your institution's address.";
+        if (!draft.city.trim()) return "Please enter your city.";
+        if (!draft.state.trim()) return "Please enter your state.";
+        if (!/^[1-9][0-9]{5}$/.test(draft.pin_code)) {
           return "PIN code should be 6 digits and can't start with 0 (e.g. 411001).";
         }
         return "";
       case 3: {
-        if (!data.designation.trim()) return "Please enter your designation.";
-        if (!data.employee_staff_id.trim()) return "Please enter your employee / staff ID.";
-        if (!data.mobile_number.trim()) return "Please enter your mobile number.";
-        const digits = data.mobile_number.replace(/\D/g, "");
+        if (!draft.designation.trim()) return "Please enter your designation.";
+        if (!draft.employee_staff_id.trim()) return "Please enter your employee / staff ID.";
+        if (!draft.mobile_number.trim()) return "Please enter your mobile number.";
+        const digits = draft.mobile_number.replace(/\D/g, "");
         if (digits.length < 10 || digits.length > 15) {
           return "Mobile number should be 10–15 digits including the country code (e.g. +91 9876543210).";
         }
@@ -295,9 +330,21 @@ function ClientOnboardingPage() {
     }
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (saving || saved) return;
-    const problem = validateCurrent();
+    let draft = data;
+    // The institution name can come from the website. If the officer moved on
+    // before the blur lookup landed, fetch it now and validate the filled draft
+    // instead of the empty one they would otherwise be blocked on.
+    if (step === 0 && draft.website.trim() && !draft.institution_name.trim()) {
+      const info = await fetchSiteInfo(draft.website.trim());
+      if (info && (info.title || info.logo)) {
+        draft = draftWithSiteInfo(draft, info);
+        setData(draft);
+        setSiteLookup("done");
+      }
+    }
+    const problem = validateCurrent(draft);
     if (problem) {
       setStepError(problem);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -395,7 +442,20 @@ function ClientOnboardingPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field id="website" label="Website" required>
+            <Field
+              id="website"
+              label="Website"
+              required
+              hint={
+                siteLookup === "loading"
+                  ? "Looking up the site's name and logo…"
+                  : siteLookup === "done"
+                    ? "Pulled the institution name and logo from the site."
+                    : siteLookup === "error"
+                      ? "Couldn't read the site — enter the name and logo yourself."
+                      : "We'll fetch the institution's name and logo from this site."
+              }
+            >
               <input
                 id="website"
                 type="url"
@@ -403,6 +463,7 @@ function ClientOnboardingPage() {
                 placeholder="https://www.institution.edu.in"
                 value={data.website}
                 onChange={(e) => set("website", e.target.value)}
+                onBlur={lookupWebsite}
               />
             </Field>
             <Field id="approximate_student_strength" label="Approximate student strength" required>
@@ -694,7 +755,7 @@ function ClientOnboardingPage() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    handleNext();
+                    void handleNext();
                   }}
                   className="mt-8 space-y-5"
                 >

@@ -32,7 +32,7 @@ export function GateLoading({
   }, [slowHintMs]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-muted-foreground">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4 text-muted-foreground">
       <div
         aria-hidden
         className="size-7 animate-spin rounded-full border-2 border-border border-t-foreground"
@@ -67,7 +67,7 @@ export function QuoteSplash({
   onDone: () => void;
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-muted-foreground">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4 text-muted-foreground">
       <QuoteSplashContent
         count={count}
         durationMs={durationMs}
@@ -170,7 +170,7 @@ export function GateError({
   const retry = onRetry ?? (() => window.location.reload());
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">This page didn&rsquo;t load</h1>
         <p className="mt-2 text-sm text-muted-foreground">{detail}</p>

@@ -26,6 +26,7 @@ import {
   YAxis,
 } from "recharts";
 import { AppNavHeader, AppNavIconButton } from "@/components/tb/app-nav";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getReadinessLeaderboard, me, type LeaderboardResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { GateError, GateLoading } from "@/components/load-state";
@@ -64,6 +65,18 @@ function rankTone(rank: number): { icon: typeof Trophy; cls: string } {
   if (rank === 2) return { icon: Medal, cls: "bg-slate-300 text-slate-900" };
   if (rank === 3) return { icon: Medal, cls: "bg-orange-300 text-orange-950" };
   return { icon: Award, cls: "bg-muted text-muted-foreground" };
+}
+
+function initialsOf(name?: string) {
+  const source = (name || "?").trim();
+  return (
+    source
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0] ?? "")
+      .join("")
+      .toUpperCase() || "?"
+  );
 }
 
 function wrapLabel(text: string, maxChars: number, maxLines: number): string[] {
@@ -508,28 +521,38 @@ function LeaderboardPage() {
                     )}
                   >
                     <RankBadge rank={s.overall_rank} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {s.full_name || "Student"}
-                        {s.is_self && (
-                          <span className="ml-2 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                            YOU
-                          </span>
-                        )}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {s.department || "No department"}
-                        {s.cgpa != null && ` · CGPA ${s.cgpa}`}
-                      </p>
-                      {/* Headline, so the board reads as people rather than rows. */}
-                      {s.bio && (
-                        <p
-                          className="truncate text-[11px] font-semibold text-muted-foreground/90"
-                          title={s.bio}
-                        >
-                          {s.bio}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar className="size-9 shrink-0">
+                        {s.avatar ? (
+                          <AvatarImage src={s.avatar} alt={s.full_name || "Student"} />
+                        ) : null}
+                        <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                          {initialsOf(s.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {s.full_name || "Student"}
+                          {s.is_self && (
+                            <span className="ml-2 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                              YOU
+                            </span>
+                          )}
                         </p>
-                      )}
+                        <p className="truncate text-xs text-muted-foreground">
+                          {s.department || "No department"}
+                          {s.cgpa != null && ` · CGPA ${s.cgpa}`}
+                        </p>
+                        {/* Headline, so the board reads as people rather than rows. */}
+                        {s.bio && (
+                          <p
+                            className="truncate text-[11px] font-semibold text-muted-foreground/90"
+                            title={s.bio}
+                          >
+                            {s.bio}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="hidden text-xs text-muted-foreground sm:block">
                       {s.overall_rank != null

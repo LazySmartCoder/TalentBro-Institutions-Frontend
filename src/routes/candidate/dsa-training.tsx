@@ -841,7 +841,7 @@ function DSAPage() {
                   }
                   rows={2}
                   disabled={flow !== "idle" || !session}
-                  className="min-h-[52px] flex-1 resize-none"
+                  className="h-[52px] min-h-0 flex-1 resize-none"
                 />
                 <Button
                   size="icon"

@@ -247,6 +247,19 @@ function GdRoom() {
   const [iceLeft, setIceLeft] = useState(0);
   const [result, setResult] = useState<GdTrainingRecord | null>(null);
 
+  // On phones/tablets the participants rail is an off-canvas drawer toggled from
+  // the room header; from `md` up it is the permanent left column.
+  const [railOpen, setRailOpen] = useState(false);
+
+  useEffect(() => {
+    if (!railOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRailOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [railOpen]);
+
   const idRef = useRef(0);
   const userMsgsRef = useRef(0);
   const runTokenRef = useRef(0);
@@ -1134,9 +1147,25 @@ function GdRoom() {
         </div>
       )}
 
-      <main className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 pb-4 sm:px-6">
+      {railOpen && (
+        <button
+          type="button"
+          aria-label="Close participants"
+          onClick={() => setRailOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
+
+      <main className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 pb-4 pt-3 sm:px-6 md:pt-0">
         <div className="flex min-h-0 flex-1 gap-4">
-          <aside className="hidden w-72 shrink-0 flex-col gap-4 py-4 md:flex">
+          <aside
+            className={cn(
+              "z-50 w-72 shrink-0 flex-col gap-4 py-4",
+              railOpen ? "flex" : "hidden",
+              "fixed inset-y-0 left-0 overflow-y-auto border-r border-border bg-background px-4 shadow-2xl",
+              "md:relative md:inset-auto md:flex md:overflow-visible md:border-r-0 md:bg-transparent md:px-0 md:shadow-none",
+            )}
+          >
             <div className="rounded-2xl border border-border bg-card/70 p-4 backdrop-blur">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 Today's topic
@@ -1185,16 +1214,27 @@ function GdRoom() {
           </aside>
 
           <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/70 backdrop-blur">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold tracking-tight">"{topic}"</p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {phase === "opening"
-                    ? "Ice-break \u2014 say your opening point"
-                    : phase === "live"
-                      ? "Discussion live"
-                      : "Round complete"}
-                </p>
+            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5 sm:px-5 sm:py-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setRailOpen(true)}
+                  aria-label="Show participants"
+                  aria-expanded={railOpen}
+                  className="grid size-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground md:hidden"
+                >
+                  <Users className="size-4" />
+                </button>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold tracking-tight">"{topic}"</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {phase === "opening"
+                      ? "Ice-break \u2014 say your opening point"
+                      : phase === "live"
+                        ? "Discussion live"
+                        : "Round complete"}
+                  </p>
+                </div>
               </div>
               {phase !== "ended" && (
                 <div className="flex shrink-0 items-center gap-2">
@@ -1230,7 +1270,7 @@ function GdRoom() {
             </div>
 
             {phase === "ended" ? (
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
                 {busy && !result ? (
                   <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 py-20 text-sm text-muted-foreground">
                     <Loader2 className="size-4 animate-spin" />
@@ -1247,7 +1287,7 @@ function GdRoom() {
               </div>
             ) : (
               <>
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5">
                   <div className="mx-auto max-w-2xl space-y-3.5">
                     {messages.map((m, i) => {
                       const prev = messages[i - 1];

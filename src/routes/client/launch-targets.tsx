@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowLeft, CalendarClock, Loader2, Search, Target, Trash2, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarClock,
+  Loader2,
+  Search,
+  Target,
+  Trash2,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Shell } from "@/components/dash/Shell";
 import { Bar, Panel, Pill } from "@/components/dash/bits";
@@ -17,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   addStudentTarget,
+  ApiError,
   getStudents,
   getStudentTargets,
   removeStudentTarget,
@@ -98,6 +108,67 @@ function countChips(target: StudentTarget, modules: { key: string; short: string
     chips.push(`${target.mock_interview_count} mock`);
   }
   return chips;
+}
+
+/** Case-insensitive ids of the roster sitting in one department. */
+function deptStudentIds(students: StudentRecord[], department: string): Set<string> {
+  const needle = department.trim().toLowerCase();
+  if (!needle) return new Set();
+  return new Set(
+    students.filter((s) => (s.department ?? "").trim().toLowerCase() === needle).map((s) => s.id),
+  );
+}
+
+type TargetConflict = { target: StudentTarget; overlap: number };
+
+/**
+ * Open targets whose audience already includes anyone this draft would cover.
+ *
+ * One student can only sit in one running target at a time, and the server
+ * refuses a launch that would break that — so the form says so first, from the
+ * board it already has, instead of letting a typed 400 come back as a toast.
+ *
+ * Each open target's audience is its department's students plus its attached
+ * `candidate_ids`; the new audience is whatever `submit()` will actually send —
+ * the department, or the picked students, not both. Departments compare
+ * case-insensitively, the way the server resolves them.
+ */
+function findConflicts(
+  openTargets: StudentTarget[],
+  students: StudentRecord[],
+  mode: AudienceMode,
+  department: string,
+  picked: string[],
+): TargetConflict[] {
+  const newIds = mode === "department" ? deptStudentIds(students, department) : new Set(picked);
+  if (newIds.size === 0) return [];
+
+  const conflicts: TargetConflict[] = [];
+  for (const target of openTargets) {
+    const covered = new Set(target.candidate_ids);
+    for (const id of deptStudentIds(students, target.department)) covered.add(id);
+    let overlap = 0;
+    for (const id of newIds) if (covered.has(id)) overlap += 1;
+    if (overlap > 0) conflicts.push({ target, overlap });
+  }
+  return conflicts.sort((a, b) =>
+    (a.target.due_on ?? "").localeCompare(b.target.due_on ?? ""),
+  );
+}
+
+/** The refusal sentence, naming each running target and how many it still covers. */
+function conflictMessage(conflicts: TargetConflict[]): string {
+  const listed = conflicts
+    .slice(0, 3)
+    .map(
+      (c) =>
+        `“${c.target.title}” still covers ${c.overlap} of these student${
+          c.overlap === 1 ? "" : "s"
+        } (due ${c.target.due_on_display})`,
+    )
+    .join(", and ");
+  const more = conflicts.length > 3 ? `, and ${conflicts.length - 3} more` : "";
+  return `${listed}${more}. Let one end or withdraw it first.`;
 }
 
 export const Route = createFileRoute("/client/launch-targets")({
@@ -239,6 +310,9 @@ function LaunchTargetsPage() {
   const [studentQuery, setStudentQuery] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // The server can still refuse when the board is stale (another officer launched
+  // in between), so its 400 lands as this banner rather than a disappearing toast.
+  const [serverConflict, setServerConflict] = useState<string | null>(null);
 
   // The module catalogue arrives with the board, so the form is only built once
   // the server has said which modules there are. It cannot be rendered from a
@@ -297,8 +371,30 @@ function LaunchTargetsPage() {
     [draft?.counts],
   );
 
+  // Checked as the form moves — department choice, picked students — because the
+  // refusal has to be visible while the officer is still building the audience.
+  const conflicts = useMemo(
+    () =>
+      findConflicts(
+        (board?.targets ?? []).filter((row) => row.is_open),
+        students,
+        mode,
+        draft?.department ?? "",
+        picked,
+      ),
+    [board?.targets, students, mode, draft?.department, picked],
+  );
+
+  // A banner raised by a 400 belongs to the audience that drew it; any change to
+  // that audience is a fresh attempt, so the old refusal is cleared.
+  useEffect(() => {
+    setServerConflict(null);
+  }, [mode, draft?.department, picked]);
+
   const hasAudience = mode === "department" ? Boolean(draft?.department) : picked.length > 0;
-  const canSubmit = Boolean(draft && hasAudience && totalAsked > 0 && draft.due_on && !saving);
+  const canSubmit =
+    Boolean(draft && hasAudience && totalAsked > 0 && draft.due_on && !saving) &&
+    conflicts.length === 0;
 
   /**
    * Slot a newly created target into the board the server would have returned.
@@ -345,6 +441,7 @@ function LaunchTargetsPage() {
       toast.error("Set at least one number before launching a target.");
       return;
     }
+    if (conflicts.length > 0) return;
 
     // The module keys are split back out from the draft's flat count map so the
     // server receives the shape it validates against, with `mock` handled
@@ -352,6 +449,7 @@ function LaunchTargetsPage() {
     const { mock: mockCount, ...moduleCounts } = draft.counts;
 
     setSaving(true);
+    setServerConflict(null);
     try {
       const res = await addStudentTarget({
         title: draft.title.trim(),
@@ -373,7 +471,18 @@ function LaunchTargetsPage() {
       setStudentQuery("");
       toast.success(`Launched “${res.target.title}”`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not launch the target.");
+      // The refusal sentence is the server's own wording for a live conflict —
+      // raised as a banner under the form, where the offending audience is, and
+      // every other error still surfaces as the toast it has always been.
+      if (
+        err instanceof ApiError &&
+        err.status === 400 &&
+        err.message.toLowerCase().includes("one target at a time")
+      ) {
+        setServerConflict(err.message);
+      } else {
+        toast.error(err instanceof Error ? err.message : "Could not launch the target.");
+      }
     } finally {
       setSaving(false);
     }
@@ -669,6 +778,20 @@ function LaunchTargetsPage() {
               />
             </div>
           </div>
+
+          {(conflicts.length > 0 || serverConflict) && (
+            <div
+              role="alert"
+              className="mt-5 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-xs text-destructive"
+            >
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+              <span>
+                {conflicts.length > 0
+                  ? `Not possible yet — ${conflictMessage(conflicts)}`
+                  : serverConflict}
+              </span>
+            </div>
+          )}
 
           <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
             <button

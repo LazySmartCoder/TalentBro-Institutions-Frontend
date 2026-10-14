@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { AudioLines, Loader2, Mic } from "lucide-react";
+import { AudioLines, Loader2, Menu, Mic } from "lucide-react";
 import { GridField } from "@/components/graphics";
+import { cn } from "@/lib/utils";
 import { ProctorCamera } from "@/components/proctor-camera";
 import { usePanelVoice, type PanelVoiceControls } from "@/lib/panel-voice";
 import type { TtsVoiceStyle } from "@/lib/api";
@@ -369,6 +370,9 @@ export function PanelRoom({
   // True for the first ICE_BREAK_MS of a mounted room: the mic stays closed and
   // nothing speaks, so a fresh session settles before the panel opens.
   const [iceBreak, setIceBreak] = useState(true);
+  // On phones/tablets the channel rail is an off-canvas drawer toggled by the
+  // header's hamburger; from `md` up it is the permanent column and this is moot.
+  const [railOpen, setRailOpen] = useState(false);
 
   const startedMs = startedAt ? new Date(startedAt).getTime() : 0;
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -514,13 +518,41 @@ export function PanelRoom({
   }, [draft]);
 
   return (
-    <main className="tg-grain relative flex h-screen overflow-hidden bg-background text-foreground">
+    <main className="tg-grain relative flex h-dvh overflow-hidden bg-background text-foreground">
       <GridField className="pointer-events-none absolute inset-0 z-0 opacity-30" />
 
+      {railOpen && (
+        <button
+          type="button"
+          aria-label="Close panel menu"
+          onClick={() => setRailOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
+
       {/* rail / channels */}
-      <aside className="relative z-10 hidden w-60 shrink-0 flex-col border-r border-border md:flex">
+      <aside
+        className={cn(
+          "z-50 w-60 shrink-0 flex-col border-r border-border bg-background transition-transform",
+          "fixed inset-y-0 left-0 shadow-2xl",
+          railOpen ? "flex translate-x-0" : "hidden -translate-x-full",
+          "md:relative md:inset-auto md:z-10 md:flex md:translate-x-0 md:bg-transparent md:shadow-none",
+        )}
+      >
         <div className="border-b border-border px-5 py-4">
-          <p className="truncate font-[family-name:var(--font-display)] text-xl">{context}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate font-[family-name:var(--font-display)] text-xl">{context}</p>
+            <button
+              type="button"
+              aria-label="Close panel menu"
+              onClick={() => setRailOpen(false)}
+              className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+            >
+              <span aria-hidden className="text-lg leading-none">
+                ×
+              </span>
+            </button>
+          </div>
           <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
             Panel room
           </p>
@@ -537,7 +569,10 @@ export function PanelRoom({
             ].map(([id, label]) => (
               <li key={id}>
                 <button
-                  onClick={() => setChannel(id as typeof channel)}
+                  onClick={() => {
+                    setChannel(id as typeof channel);
+                    setRailOpen(false);
+                  }}
                   className={`w-full rounded px-2 py-1.5 text-left transition-colors ${
                     channel === id
                       ? "bg-foreground text-background"
@@ -581,13 +616,24 @@ export function PanelRoom({
       {/* conversation */}
       <section className="relative z-10 flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
-          <div className="min-w-0">
-            <h1 className="truncate text-sm">
-              <span className="opacity-50">#</span> {channel}
-            </h1>
-            <p className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              {context} · {channel === "role-brief" ? "panel introductions" : "panel in session"}
-            </p>
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label="Open panel menu"
+              aria-expanded={railOpen}
+              onClick={() => setRailOpen(true)}
+              className="grid size-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground md:hidden"
+            >
+              <Menu className="size-4" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm">
+                <span className="opacity-50">#</span> {channel}
+              </h1>
+              <p className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                {context} · {channel === "role-brief" ? "panel introductions" : "panel in session"}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:inline-flex">

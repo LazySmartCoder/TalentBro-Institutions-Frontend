@@ -98,6 +98,11 @@ export const Route = createFileRoute("/candidate/chat")({
 const STORAGE_SESSIONS = "tb.chat.sessions";
 const STORAGE_ACTIVE = "tb.chat.activeId";
 
+// At this width and up the sidebar is a permanent column; below it (phones and
+// tablets) it becomes an overlay drawer that starts closed, so the conversation
+// keeps the full screen.
+const SIDEBAR_PERSISTENT_QUERY = "(min-width: 1024px)";
+
 type ChatSession = {
   id: string;
   serverId: string | null;
@@ -596,7 +601,12 @@ function ChatPage() {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [error, setError] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window === "undefined" ? true : window.matchMedia(SIDEBAR_PERSISTENT_QUERY).matches,
+  );
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window === "undefined" ? false : !window.matchMedia(SIDEBAR_PERSISTENT_QUERY).matches,
+  );
   const [loaded, setLoaded] = useState(false);
   const [notifUnread, setNotifUnread] = useState(broadcasts.filter((n) => !n.read).length);
   const [suggestionSlot, setSuggestionSlot] = useState(() =>
@@ -606,6 +616,30 @@ function ChatPage() {
   useEffect(() => {
     setRandomSeed(createSuggestionSeed());
   }, []);
+
+  // Track the persistent/overlay boundary. Shrinking to phone or tablet width
+  // collapses the sidebar so it never steals space from the conversation.
+  useEffect(() => {
+    const mql = window.matchMedia(SIDEBAR_PERSISTENT_QUERY);
+    const onChange = () => setIsNarrow(!mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (isNarrow) setSidebarOpen(false);
+  }, [isNarrow]);
+
+  // On phone/tablet the drawer is dismissed with Escape as well as the backdrop.
+  useEffect(() => {
+    if (!isNarrow || !sidebarOpen) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isNarrow, sidebarOpen]);
+
   const suggestions = useMemo(
     () => buildSuggestions(user?.profile, suggestionSlot, randomSeed),
     [user?.profile, suggestionSlot, randomSeed],
@@ -938,6 +972,7 @@ function ChatPage() {
     persistActive("");
     setError("");
     setAnimating(false);
+    if (isNarrow) setSidebarOpen(false);
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
@@ -987,6 +1022,7 @@ function ChatPage() {
     if (session?.serverId && id !== activeId) {
       void loadTranscript(id, session.serverId);
     }
+    if (isNarrow) setSidebarOpen(false);
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
@@ -1072,22 +1108,25 @@ function ChatPage() {
 
   async function deleteSession(id: string) {
     const session = sessions.find((s) => s.id === id);
-    if (session?.serverId) {
-      try {
-        await deleteChatSession(session.serverId);
-      } catch {
-        setError("Couldn't delete the chat. Check your connection and try again.");
-        return;
-      }
-      // Deleting a row shifts every later page window by one, so the cached
-      // pages are refetched from the top to keep the walk aligned.
-      void queryClient.invalidateQueries({ queryKey: CHAT_SESSIONS_KEY });
-    }
+    // Drop the row from the mirror first. The server's delete also runs the
+    // end-of-session profile summary and roadmap build, which can outlast the
+    // request timeout, so waiting on the response would leave the list showing a
+    // chat the server has already removed.
     const next = sessions.filter((s) => s.id !== id);
     persist(next);
     if (activeId === id) {
       persistActive(next[0]?.id ?? "");
     }
+    if (!session?.serverId) return;
+    try {
+      await deleteChatSession(session.serverId);
+    } catch {
+      setError("Couldn't delete the chat. Check your connection and try again.");
+      return;
+    }
+    // Deleting a row shifts every later page window by one, so the cached
+    // pages are refetched from the top to keep the walk aligned.
+    void queryClient.invalidateQueries({ queryKey: CHAT_SESSIONS_KEY });
   }
 
   async function sendMessage(raw?: string) {
@@ -1794,13 +1833,21 @@ function ChatPage() {
       <div
         className={cn(
           "shrink-0 transition-[width] duration-200",
-          sidebarOpen ? "w-[272px]" : "w-0",
+          !isNarrow && sidebarOpen ? "w-[272px]" : "w-0",
         )}
       >
         <aside
+          aria-hidden={isNarrow && !sidebarOpen}
           className={cn(
             "flex h-full flex-col overflow-hidden border-r border-border bg-card transition-transform duration-200",
-            sidebarOpen ? "w-[272px] translate-x-0" : "w-0 -translate-x-full",
+            isNarrow
+              ? cn(
+                  "fixed inset-y-0 left-0 z-50 w-[272px] shadow-2xl",
+                  sidebarOpen ? "translate-x-0" : "-translate-x-full",
+                )
+              : sidebarOpen
+                ? "w-[272px] translate-x-0"
+                : "w-0 -translate-x-full",
           )}
         >
           <div className="flex items-center justify-between px-4 py-4">
@@ -1994,6 +2041,16 @@ function ChatPage() {
         </aside>
       </div>
 
+      {/* Backdrop for the phone/tablet drawer — tapping it closes the sidebar. */}
+      {isNarrow && sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 cursor-default bg-black/40"
+        />
+      )}
+
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
         <AppNavHeader
@@ -2048,123 +2105,126 @@ function ChatPage() {
                 </span>
               </button>
 
-              {/* Today's practice target. The standing is read off the candidate's
-                  own completed rows for the day, so it can only say "Accomplished"
-                  once the work is genuinely finished — and the same chip opens the
+              {/* Today's practice target. Desktop only — the phone/tablet header has
+                  no room for it. The standing is read off the candidate's own
+                  completed rows for the day, so it can only say "Accomplished" once
+                  the work is genuinely finished — and the same chip opens the
                   editor, since being told you missed a goal is no use without a way
                   to change it. */}
-              <Popover open={targetOpen} onOpenChange={openTargetEditor}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    title={`${todayTarget.detail} — click to set or change today's target`}
-                    aria-label={`${todayTarget.detail}. Edit today's practice target.`}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card py-1.5 pl-2.5 pr-2 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent active:scale-[0.98]"
-                  >
-                    <Target className={cn("size-3.5", todayTarget.tone)} />
-                    <span
-                      className={cn(
-                        "font-mono text-[10px] font-semibold tracking-[0.06em]",
-                        todayTarget.tone,
-                      )}
+              {!isNarrow && (
+                <Popover open={targetOpen} onOpenChange={openTargetEditor}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      title={`${todayTarget.detail} — click to set or change today's target`}
+                      aria-label={`${todayTarget.detail}. Edit today's practice target.`}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card py-1.5 pl-2.5 pr-2 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent active:scale-[0.98]"
                     >
-                      {todayTarget.label}
-                    </span>
-                    <ChevronsRight className="size-3 rotate-90 text-muted-foreground" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  sideOffset={10}
-                  className="w-[min(92vw,26rem)] p-0"
-                  // Radix focuses the first tabbable child on open, which landed on
-                  // the Communication box and left its value highlighted as if the
-                  // candidate had selected it. The popover is a shortcut to the
-                  // target, not a prompt to type, so take the focus and let it stay
-                  // on the chip until a field is actually clicked.
-                  onOpenAutoFocus={(event) => event.preventDefault()}
-                >
-                  <div className="max-h-[min(70vh,32rem)] overflow-y-auto p-4">
-                    <div className="mb-3 flex items-baseline justify-between gap-2">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                        Today&rsquo;s plan
-                      </p>
-                      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                        {draftTotal} item{draftTotal === 1 ? "" : "s"}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {targetModules.map((option) => (
-                        <TargetCountField
-                          key={option.key}
-                          label={option.short_label || option.label}
-                          value={draftNumber(draftModules[option.key] ?? 0)}
-                          onChange={(next) => setDraftCount(option.key, next)}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="mt-2 grid gap-1.5">
-                      <TargetCountField
-                        label="Mock interviews"
-                        icon={
-                          <BriefcaseBusiness className="size-3.5 shrink-0 text-muted-foreground" />
-                        }
-                        value={draftMock}
-                        onChange={(next) =>
-                          setTargetDraft((prev) => (prev ? { ...prev, mock_count: next } : prev))
-                        }
-                      />
-                      <label
+                      <Target className={cn("size-3.5", todayTarget.tone)} />
+                      <span
                         className={cn(
-                          "flex items-center gap-2 rounded-md border px-2.5 py-1.5",
-                          draftMinutesInvalid
-                            ? "border-destructive bg-card"
-                            : "border-border bg-card",
+                          "font-mono text-[10px] font-semibold tracking-[0.06em]",
+                          todayTarget.tone,
                         )}
                       >
-                        <span className="min-w-0 flex-1 truncate text-xs text-foreground">
-                          Minutes
+                        {todayTarget.label}
+                      </span>
+                      <ChevronsRight className="size-3 rotate-90 text-muted-foreground" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    sideOffset={10}
+                    className="w-[min(92vw,26rem)] p-0"
+                    // Radix focuses the first tabbable child on open, which landed on
+                    // the Communication box and left its value highlighted as if the
+                    // candidate had selected it. The popover is a shortcut to the
+                    // target, not a prompt to type, so take the focus and let it stay
+                    // on the chip until a field is actually clicked.
+                    onOpenAutoFocus={(event) => event.preventDefault()}
+                  >
+                    <div className="max-h-[min(70vh,32rem)] overflow-y-auto p-4">
+                      <div className="mb-3 flex items-baseline justify-between gap-2">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                          Today&rsquo;s plan
+                        </p>
+                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                          {draftTotal} item{draftTotal === 1 ? "" : "s"}
                         </span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={DAILY_TARGET_MAX_MINUTES}
-                          step={5}
-                          value={draftMinutes}
-                          onChange={(event) =>
-                            setTargetDraft((prev) =>
-                              prev ? { ...prev, time_target: event.target.valueAsNumber } : prev,
-                            )
-                          }
-                          aria-label="Minutes to spend"
-                          className={cn(
-                            "h-7 w-14 shrink-0 rounded border bg-background px-1.5 text-right font-mono text-xs text-foreground outline-none focus:ring-2 focus:ring-ring/25",
-                            draftMinutesInvalid ? "border-destructive" : "border-input",
-                          )}
-                        />
-                      </label>
-                    </div>
+                      </div>
 
-                    <div className="mt-4 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => void saveTarget()}
-                        disabled={targetSaving || draftInvalid}
-                        className="inline-flex cursor-pointer items-center gap-1.5 bg-foreground px-4 py-2 text-xs font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {targetSaving ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <Check className="size-3.5" />
-                        )}
-                        {targetSaving ? "Saving…" : "Save target"}
-                      </button>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {targetModules.map((option) => (
+                          <TargetCountField
+                            key={option.key}
+                            label={option.short_label || option.label}
+                            value={draftNumber(draftModules[option.key] ?? 0)}
+                            onChange={(next) => setDraftCount(option.key, next)}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mt-2 grid gap-1.5">
+                        <TargetCountField
+                          label="Mock interviews"
+                          icon={
+                            <BriefcaseBusiness className="size-3.5 shrink-0 text-muted-foreground" />
+                          }
+                          value={draftMock}
+                          onChange={(next) =>
+                            setTargetDraft((prev) => (prev ? { ...prev, mock_count: next } : prev))
+                          }
+                        />
+                        <label
+                          className={cn(
+                            "flex items-center gap-2 rounded-md border px-2.5 py-1.5",
+                            draftMinutesInvalid
+                              ? "border-destructive bg-card"
+                              : "border-border bg-card",
+                          )}
+                        >
+                          <span className="min-w-0 flex-1 truncate text-xs text-foreground">
+                            Minutes
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={DAILY_TARGET_MAX_MINUTES}
+                            step={5}
+                            value={draftMinutes}
+                            onChange={(event) =>
+                              setTargetDraft((prev) =>
+                                prev ? { ...prev, time_target: event.target.valueAsNumber } : prev,
+                              )
+                            }
+                            aria-label="Minutes to spend"
+                            className={cn(
+                              "h-7 w-14 shrink-0 rounded border bg-background px-1.5 text-right font-mono text-xs text-foreground outline-none focus:ring-2 focus:ring-ring/25",
+                              draftMinutesInvalid ? "border-destructive" : "border-input",
+                            )}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-4 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => void saveTarget()}
+                          disabled={targetSaving || draftInvalid}
+                          className="inline-flex cursor-pointer items-center gap-1.5 bg-foreground px-4 py-2 text-xs font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {targetSaving ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Check className="size-3.5" />
+                          )}
+                          {targetSaving ? "Saving…" : "Save target"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           }
         />
@@ -2380,9 +2440,6 @@ function ChatPage() {
                 <Send className="size-4" />
               </button>
             </div>
-            <p className="mt-1.5 text-center font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
-              Chats accessible by placement cell. Impacts your profile. Be genuine.
-            </p>
           </div>
         </div>
       </div>
