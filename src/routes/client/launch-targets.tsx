@@ -122,11 +122,13 @@ function deptStudentIds(students: StudentRecord[], department: string): Set<stri
 type TargetConflict = { target: StudentTarget; overlap: number };
 
 /**
- * Open targets whose audience already includes anyone this draft would cover.
+ * Open targets whose audience still holds anyone this draft would cover.
  *
- * One student can only sit in one running target at a time, and the server
- * refuses a launch that would break that — so the form says so first, from the
- * board it already has, instead of letting a typed 400 come back as a toast.
+ * One student can only sit in one *unfinished* running target at a time, and
+ * the server refuses a launch that would break that — so the form says so
+ * first, from the board it already has, instead of letting a typed 400 come
+ * back as a toast. A student who has already met a target's numbers is not
+ * held by it and never counts towards a conflict.
  *
  * Each open target's audience is its department's students plus its attached
  * `candidate_ids`; the new audience is whatever `submit()` will actually send —
@@ -147,8 +149,9 @@ function findConflicts(
   for (const target of openTargets) {
     const covered = new Set(target.candidate_ids);
     for (const id of deptStudentIds(students, target.department)) covered.add(id);
+    const met = new Set(target.progress.met_candidate_ids ?? []);
     let overlap = 0;
-    for (const id of newIds) if (covered.has(id)) overlap += 1;
+    for (const id of newIds) if (covered.has(id) && !met.has(id)) overlap += 1;
     if (overlap > 0) conflicts.push({ target, overlap });
   }
   return conflicts.sort((a, b) =>
@@ -156,19 +159,19 @@ function findConflicts(
   );
 }
 
-/** The refusal sentence, naming each running target and how many it still covers. */
+/** The refusal sentence, naming each running target and how many it still holds. */
 function conflictMessage(conflicts: TargetConflict[]): string {
   const listed = conflicts
     .slice(0, 3)
     .map(
       (c) =>
-        `“${c.target.title}” still covers ${c.overlap} of these student${
+        `“${c.target.title}” still has ${c.overlap} of these student${
           c.overlap === 1 ? "" : "s"
-        } (due ${c.target.due_on_display})`,
+        } who have not finished it (due ${c.target.due_on_display})`,
     )
     .join(", and ");
   const more = conflicts.length > 3 ? `, and ${conflicts.length - 3} more` : "";
-  return `${listed}${more}. Let one end or withdraw it first.`;
+  return `${listed}${more}. Wait for them to finish, or withdraw it first.`;
 }
 
 export const Route = createFileRoute("/client/launch-targets")({

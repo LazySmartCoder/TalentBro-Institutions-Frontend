@@ -20,7 +20,9 @@ const LEGACY_CANDIDATE_PATHS: Record<string, string> = {
   "/english-training": "/candidate/english-training",
   "/english-training-history": "/candidate/english-training-history",
   "/self-training": "/candidate/self-training",
-  "/daily-targets": "/candidate/daily-targets",
+  // The daily-targets screen was retired: the chat screen is where a student
+  // lands now, and notices written before the cutover still carry the old path.
+  "/daily-targets": "/candidate/chat",
   "/gd-training": "/candidate/gd-training",
   "/technical-training": "/candidate/technical-training",
   "/dsa-training": "/candidate/dsa-training",

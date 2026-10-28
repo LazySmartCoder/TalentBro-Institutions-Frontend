@@ -11,7 +11,6 @@ export type NavPage =
   | "mock-interview"
   | "learning"
   | "self-training"
-  | "daily-targets"
   | "skill-mapping"
   | "notifications"
   | "profile";

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Binary,
+  BookOpen,
   BrainCircuit,
   Calculator,
   Code2,
@@ -10,6 +11,7 @@ import {
   Dumbbell,
   Languages,
   MessageSquare,
+  Terminal,
   Users,
   ArrowRight,
 } from "lucide-react";
@@ -132,6 +134,26 @@ const CARDS: TrainingCard[] = [
     iconBg: "bg-cyan-500/15",
     iconColor: "text-cyan-500",
     to: "/candidate/dsa-training",
+  },
+  {
+    id: "coding-assessment",
+    icon: Terminal,
+    title: "Coding Assessment",
+    description:
+      "Drill your language fundamentals. Answer quick-fire coding questions across Python, C, C++, Java, JavaScript, SQL, Rust, Go and more — output, syntax, semantics, one question at a time.",
+    iconBg: "bg-indigo-500/15",
+    iconColor: "text-indigo-500",
+    to: "/candidate/coding-assessment",
+  },
+  {
+    id: "reading-comprehension",
+    icon: BookOpen,
+    title: "Reading Comprehension",
+    description:
+      "Read engaging stories packed with advanced vocabulary. Hover highlighted words for their meanings, then answer five simple questions about each passage to earn XP.",
+    iconBg: "bg-amber-500/15",
+    iconColor: "text-amber-500",
+    to: "/candidate/reading-comprehension",
   },
 ];
 

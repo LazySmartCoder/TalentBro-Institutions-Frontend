@@ -1,10 +1,23 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Building2, GraduationCap, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Reveal } from "@/components/Reveal";
 import { GridField } from "@/components/graphics";
+import { GateLoading } from "@/components/load-state";
+import { me, type AuthUser } from "@/lib/api";
 
 const title = "TalentBro | Get Started";
 const description = "Choose how you'd like to join TalentBro — as an institution or as a student.";
+
+type AuthenticatedDestination =
+  "/candidate/onboarding" | "/candidate/chat" | "/client/onboarding" | "/client/chat";
+
+function destinationFor(user: AuthUser): AuthenticatedDestination {
+  if (user.role === "student") {
+    return user.profile_complete === false ? "/candidate/onboarding" : "/candidate/chat";
+  }
+  return user.profile_complete === false ? "/client/onboarding" : "/client/chat";
+}
 
 export const Route = createFileRoute("/get-started")({
   head: () => ({
@@ -22,6 +35,32 @@ export const Route = createFileRoute("/get-started")({
 
 function GetStartedPage() {
   const navigate = useNavigate();
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    me()
+      .then((current) => {
+        if (cancelled) return;
+        if (!current) {
+          setCheckingSession(false);
+          return;
+        }
+        void navigate({ to: destinationFor(current), replace: true });
+      })
+      .catch(() => {
+        if (!cancelled) setCheckingSession(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
+  if (checkingSession) {
+    return <GateLoading audience="staff" />;
+  }
 
   return (
     <main className="tg-grain relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">

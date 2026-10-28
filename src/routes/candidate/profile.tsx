@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
@@ -711,6 +711,12 @@ function CandidateProfilePage() {
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Keep your account secure by changing your password regularly.
                 </p>
+                <Link
+                  to="/forgot-password"
+                  className="mt-2 inline-block text-xs font-medium text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-foreground"
+                >
+                  Forgot your password? Reset it by email
+                </Link>
               </div>
               <button
                 type="button"

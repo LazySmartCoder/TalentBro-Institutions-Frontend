@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type ReactNode,
 } from "react";
 import {
   Bot,
@@ -29,7 +28,6 @@ import {
   Plus,
   Send,
   Square,
-  Target,
   Trash2,
 } from "lucide-react";
 import { AppNavHeader, AppNavIconButton } from "@/components/tb/app-nav";
@@ -53,17 +51,6 @@ import {
 } from "@/lib/api";
 import { CHAT_SESSIONS_KEY, chatSessionsInfiniteQuery } from "@/lib/chat-sessions";
 import { usePagedScroll } from "@/lib/use-paged-scroll";
-import {
-  DAILY_TARGET_MAX_ITEMS,
-  DAILY_TARGET_MAX_MINUTES,
-  getDailyTarget,
-  saveDailyTarget,
-  type DailyTarget,
-  type DailyTargetModule,
-} from "@/lib/daily-target";
-import { practiceProgress, readPracticeDay, type PracticeDay } from "@/lib/practice-time";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { toast } from "sonner";
 import { broadcasts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { LogoutConfirmDialog } from "@/components/logout-confirm";
@@ -471,105 +458,6 @@ function mergeServerPages(
   return [...fromServer, ...untouched].sort(sortRecent);
 }
 
-/**
- * How today's practice target reads in the navbar. Progress is judged from time
- * actually spent on the surface (see `practice-time.ts`), not from rows the
- * server can count. A day with nothing planned is a neutral "Set Target" rather
- * than a failure, and every state stays clickable so the editor is reachable
- * both before a goal exists and after one is met.
- */
-function dailyTargetLabel(target: DailyTarget | null, practice: PracticeDay) {
-  const progress = practiceProgress(target, practice);
-  if (progress.met === null) {
-    return {
-      label: "Set Target",
-      detail: "No target set for today — pick one here",
-      tone: "text-muted-foreground",
-    };
-  }
-  const done = `${progress.done_items} of ${progress.planned_items} planned items done`;
-  const spent = `${progress.minutes.portal} min on the portal`;
-  if (progress.met) {
-    return {
-      label: "Target Accomplished",
-      detail: `Target Accomplished — ${done} today, ${spent}`,
-      tone: "text-emerald-600 dark:text-emerald-500",
-    };
-  }
-  const left = progress.planned_items - progress.done_items;
-  return {
-    label: "Target Unmet",
-    detail: `Target Unmet — ${done} today, ${left} to go, ${spent}`,
-    tone: "text-amber-600 dark:text-amber-500",
-  };
-}
-
-/** The editable copy of a daily target, kept apart from the server's saved row. */
-type TargetDraft = {
-  modules: Record<string, number>;
-  mock_count: number;
-  time_target: number;
-};
-
-const EMPTY_TARGET_MINUTES = 30;
-
-function draftFromTarget(target: DailyTarget | null): TargetDraft {
-  return {
-    modules: { ...(target?.modules ?? {}) },
-    mock_count: target?.mock_count ?? 0,
-    time_target: target?.time_target ?? EMPTY_TARGET_MINUTES,
-  };
-}
-
-function draftNumber(value: number): number {
-  return Number.isFinite(value) ? value : 0;
-}
-
-function draftItemInvalid(value: number): boolean {
-  return !Number.isFinite(value) || value < 0 || value > DAILY_TARGET_MAX_ITEMS;
-}
-
-/** One compact module row for the navbar editor. */
-function TargetCountField({
-  label,
-  value,
-  onChange,
-  icon,
-}: {
-  label: string;
-  value: number;
-  onChange: (next: number) => void;
-  icon?: ReactNode;
-}) {
-  const invalid = draftItemInvalid(value);
-  return (
-    <label
-      className={cn(
-        "flex items-center gap-2 rounded-md border px-2.5 py-1.5",
-        invalid ? "border-destructive bg-card" : "border-border bg-card",
-      )}
-    >
-      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-        {icon}
-        <span className="truncate text-xs text-foreground">{label}</span>
-      </span>
-      <input
-        type="number"
-        min={0}
-        max={DAILY_TARGET_MAX_ITEMS}
-        step={1}
-        value={draftNumber(value)}
-        onChange={(event) => onChange(event.target.valueAsNumber)}
-        aria-label={`${label} items`}
-        className={cn(
-          "h-7 w-14 shrink-0 rounded border bg-background px-1.5 text-right font-mono text-xs text-foreground outline-none focus:ring-2 focus:ring-ring/25",
-          invalid ? "border-destructive" : "border-input",
-        )}
-      />
-    </label>
-  );
-}
-
 function ChatPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -577,12 +465,6 @@ function ChatPage() {
   const promptRef = useRef(prompt);
   const [pendingPrompt, setPendingPrompt] = useState("");
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [dailyTarget, setDailyTarget] = useState<DailyTarget | null>(null);
-  const [practice, setPractice] = useState<PracticeDay>(() => readPracticeDay());
-  const [targetModules, setTargetModules] = useState<DailyTargetModule[]>([]);
-  const [targetOpen, setTargetOpen] = useState(false);
-  const [targetSaving, setTargetSaving] = useState(false);
-  const [targetDraft, setTargetDraft] = useState<TargetDraft | null>(null);
   const [ranks, setRanks] = useState<ProfileRanks>({
     score: null,
     department: null,
@@ -849,40 +731,6 @@ function ChatPage() {
     loadMoreSessions,
     status === "ready" && moreSessions !== false,
   );
-
-  // The target badge is a live "have I actually done it today" signal, so it is
-  // refetched whenever the candidate returns to the tab after practising
-  // elsewhere — otherwise it would still claim "Target Unmet" moments after
-  // they finished the very item it was counting. The editor's own draft is
-  // deliberately not stored here, so a background refetch never clobbers a
-  // half-typed target.
-  useEffect(() => {
-    if (status !== "ready") return;
-    let cancelled = false;
-    const load = () => {
-      // Today's banked practice time is device-local, so it is re-read rather
-      // than refetched; coming back from a training page is what usually moves it.
-      setPractice(readPracticeDay());
-      getDailyTarget()
-        .then((payload) => {
-          if (cancelled) return;
-          setDailyTarget(payload.target);
-          setTargetModules(payload.options ?? []);
-        })
-        .catch(() => {
-          // the badge is optional — stay hidden rather than surface an error
-        });
-    };
-    load();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") load();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [status]);
 
   const activeSession = sessions.find((s) => s.id === activeId);
   const lastActiveRef = useRef(activeSession);
@@ -1768,58 +1616,6 @@ function ChatPage() {
   }
 
   const messages = activeSession?.messages ?? [];
-  const todayTarget = dailyTargetLabel(dailyTarget, practice);
-
-  const draftModules = targetDraft?.modules ?? {};
-  const draftMock = draftNumber(targetDraft?.mock_count ?? 0);
-  const draftMinutes = draftNumber(targetDraft?.time_target ?? 0);
-  const draftMinutesInvalid =
-    !Number.isFinite(targetDraft?.time_target ?? 0) ||
-    draftMinutes < 0 ||
-    draftMinutes > DAILY_TARGET_MAX_MINUTES;
-  const draftInvalid =
-    Object.values(draftModules).some(draftItemInvalid) ||
-    draftItemInvalid(draftMock) ||
-    draftMinutesInvalid;
-  const draftTotal = Object.values(draftModules).reduce(
-    (sum, value) => sum + (draftItemInvalid(value) ? 0 : value),
-    0,
-  );
-
-  function setDraftCount(key: string, next: number) {
-    setTargetDraft((prev) =>
-      prev ? { ...prev, modules: { ...prev.modules, [key]: next } } : prev,
-    );
-  }
-
-  function openTargetEditor(open: boolean) {
-    // Seed only on open, so a background refetch never discards a half-typed
-    // target and a save-then-reopen always shows what the server actually stored.
-    if (open) setTargetDraft(draftFromTarget(dailyTarget));
-    setTargetOpen(open);
-  }
-
-  async function saveTarget() {
-    if (!targetDraft || draftInvalid) return;
-    setTargetSaving(true);
-    try {
-      const payload = await saveDailyTarget({
-        modules: targetDraft.modules,
-        mock_count: Math.round(draftMock),
-        time_target: Math.round(draftMinutes),
-      });
-      // Adopt the stored row, so a value the server clamped or rejected never
-      // lingers in the chip after a "successful" save.
-      setDailyTarget(payload.target);
-      setTargetModules(payload.options ?? []);
-      setTargetOpen(false);
-      toast.success("Daily target saved");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Couldn't save your daily target.");
-    } finally {
-      setTargetSaving(false);
-    }
-  }
 
   const prefLang = toProfile(user.profile).preferred_language || "";
   const showI18n =
@@ -2104,127 +1900,6 @@ function ChatPage() {
                   )}
                 </span>
               </button>
-
-              {/* Today's practice target. Desktop only — the phone/tablet header has
-                  no room for it. The standing is read off the candidate's own
-                  completed rows for the day, so it can only say "Accomplished" once
-                  the work is genuinely finished — and the same chip opens the
-                  editor, since being told you missed a goal is no use without a way
-                  to change it. */}
-              {!isNarrow && (
-                <Popover open={targetOpen} onOpenChange={openTargetEditor}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      title={`${todayTarget.detail} — click to set or change today's target`}
-                      aria-label={`${todayTarget.detail}. Edit today's practice target.`}
-                      className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card py-1.5 pl-2.5 pr-2 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent active:scale-[0.98]"
-                    >
-                      <Target className={cn("size-3.5", todayTarget.tone)} />
-                      <span
-                        className={cn(
-                          "font-mono text-[10px] font-semibold tracking-[0.06em]",
-                          todayTarget.tone,
-                        )}
-                      >
-                        {todayTarget.label}
-                      </span>
-                      <ChevronsRight className="size-3 rotate-90 text-muted-foreground" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    sideOffset={10}
-                    className="w-[min(92vw,26rem)] p-0"
-                    // Radix focuses the first tabbable child on open, which landed on
-                    // the Communication box and left its value highlighted as if the
-                    // candidate had selected it. The popover is a shortcut to the
-                    // target, not a prompt to type, so take the focus and let it stay
-                    // on the chip until a field is actually clicked.
-                    onOpenAutoFocus={(event) => event.preventDefault()}
-                  >
-                    <div className="max-h-[min(70vh,32rem)] overflow-y-auto p-4">
-                      <div className="mb-3 flex items-baseline justify-between gap-2">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                          Today&rsquo;s plan
-                        </p>
-                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                          {draftTotal} item{draftTotal === 1 ? "" : "s"}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {targetModules.map((option) => (
-                          <TargetCountField
-                            key={option.key}
-                            label={option.short_label || option.label}
-                            value={draftNumber(draftModules[option.key] ?? 0)}
-                            onChange={(next) => setDraftCount(option.key, next)}
-                          />
-                        ))}
-                      </div>
-
-                      <div className="mt-2 grid gap-1.5">
-                        <TargetCountField
-                          label="Mock interviews"
-                          icon={
-                            <BriefcaseBusiness className="size-3.5 shrink-0 text-muted-foreground" />
-                          }
-                          value={draftMock}
-                          onChange={(next) =>
-                            setTargetDraft((prev) => (prev ? { ...prev, mock_count: next } : prev))
-                          }
-                        />
-                        <label
-                          className={cn(
-                            "flex items-center gap-2 rounded-md border px-2.5 py-1.5",
-                            draftMinutesInvalid
-                              ? "border-destructive bg-card"
-                              : "border-border bg-card",
-                          )}
-                        >
-                          <span className="min-w-0 flex-1 truncate text-xs text-foreground">
-                            Minutes
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            max={DAILY_TARGET_MAX_MINUTES}
-                            step={5}
-                            value={draftMinutes}
-                            onChange={(event) =>
-                              setTargetDraft((prev) =>
-                                prev ? { ...prev, time_target: event.target.valueAsNumber } : prev,
-                              )
-                            }
-                            aria-label="Minutes to spend"
-                            className={cn(
-                              "h-7 w-14 shrink-0 rounded border bg-background px-1.5 text-right font-mono text-xs text-foreground outline-none focus:ring-2 focus:ring-ring/25",
-                              draftMinutesInvalid ? "border-destructive" : "border-input",
-                            )}
-                          />
-                        </label>
-                      </div>
-
-                      <div className="mt-4 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => void saveTarget()}
-                          disabled={targetSaving || draftInvalid}
-                          className="inline-flex cursor-pointer items-center gap-1.5 bg-foreground px-4 py-2 text-xs font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {targetSaving ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Check className="size-3.5" />
-                          )}
-                          {targetSaving ? "Saving…" : "Save target"}
-                        </button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
             </div>
           }
         />

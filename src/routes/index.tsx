@@ -1,25 +1,57 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  Activity,
   ArrowDown,
   ArrowRight,
+  Bell,
+  Binary,
+  BookOpen,
+  Bot,
   BrainCircuit,
+  Building2,
+  Calculator,
   CalendarCheck,
+  CalendarRange,
+  ChartColumn,
   Check,
   ChevronRight,
+  Code2,
   Command,
+  Compass,
+  Crosshair,
+  Download,
+  FileText,
   FileWarning,
   GraduationCap,
+  History,
+  Landmark,
+  Languages,
+  Map as RoadmapIcon,
   MessageCircleMore,
+  MessagesSquare,
+  MessageSquare,
+  Mic,
+  PlayCircle,
+  Presentation,
   Radar,
+  ReceiptIndianRupee,
   Search,
   Sparkles,
   Target,
+  Terminal,
+  Trophy,
+  UserCheck,
+  UserRound,
+  Users,
   UsersRound,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import studentImage from "@/assets/student-prep.jpg";
 import placementImage from "@/assets/placement-cell.jpg";
+import { ClientsFooter } from "@/components/clients/public";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,6 +75,289 @@ export const Route = createFileRoute("/")({
 
 const studentSkills = ["AI Training", "Mock Interviews", "Group Discussions", "Communication", "Aptitude", "Technical / DSA"];
 const institutionTools = ["Student intelligence", "Skill-gap insights", "Eligibility matching", "Placement analytics", "Drive management", "AI talent search"];
+
+const clients = [
+  {
+    name: "Presidency College",
+    location: "Bangalore",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Presidency_college_Bangalore_hebbal.jpg",
+  },
+  {
+    name: "Presidency University",
+    location: "Bangalore",
+    logo: "https://presidencyuniversity.in/assets/images/overview-logo.webp",
+  },
+];
+
+type ServiceItem = { icon: LucideIcon; title: string; copy: string };
+
+type ServiceSide = {
+  id: "students" | "institutions";
+  kicker: string;
+  title: string;
+  copy: string;
+  icon: LucideIcon;
+  count: string;
+  groups: { label: string; items: ServiceItem[] }[];
+};
+
+const serviceSides: ServiceSide[] = [
+  {
+    id: "students",
+    kicker: "For students",
+    title: "Prepare. Practise. Get placed.",
+    copy: "A complete preparation stack that turns daily practice into a recruiter-ready profile.",
+    icon: GraduationCap,
+    count: "23 services",
+    groups: [
+      {
+        label: "Prepare",
+        items: [
+          {
+            icon: Bot,
+            title: "AI Placement Assistant",
+            copy: "Chat, voice and answers across every placement question.",
+          },
+          {
+            icon: Mic,
+            title: "Mock Interviews",
+            copy: "AI-led rounds with transcripts and scored analysis.",
+          },
+          {
+            icon: Radar,
+            title: "Skill Mapping & Readiness",
+            copy: "One live score across the skills recruiters check.",
+          },
+          {
+            icon: FileText,
+            title: "Resume Builder",
+            copy: "LinkedIn and profile turned into a ready-to-send resume.",
+          },
+          {
+            icon: RoadmapIcon,
+            title: "Placement Roadmap",
+            copy: "A month-by-month plan for what to fix next.",
+          },
+          {
+            icon: Building2,
+            title: "Companies & Drives",
+            copy: "See who is hiring and where you fit.",
+          },
+        ],
+      },
+      {
+        label: "Practise",
+        items: [
+          {
+            icon: MessageSquare,
+            title: "Communication Skills",
+            copy: "Speak, structure and deliver with confidence.",
+          },
+          {
+            icon: Users,
+            title: "Group Discussion",
+            copy: "AI-run GDs scored on reasoning and teamwork.",
+          },
+          {
+            icon: BrainCircuit,
+            title: "Aptitude & Reasoning",
+            copy: "Quant, logical, verbal and data interpretation drills.",
+          },
+          {
+            icon: Calculator,
+            title: "Mathematics",
+            copy: "Arithmetic, percentages and mental-math speed.",
+          },
+          {
+            icon: Languages,
+            title: "English Trainer",
+            copy: "Writing feedback on grammar, tone and structure.",
+          },
+          {
+            icon: Compass,
+            title: "Situational Judgement",
+            copy: "Workplace and management scenarios, scored.",
+          },
+          {
+            icon: Code2,
+            title: "Technical Problem Solving",
+            copy: "Debugging and technical challenges that mirror rounds.",
+          },
+          {
+            icon: Binary,
+            title: "DSA",
+            copy: "Arrays to graphs — the patterns interviews repeat.",
+          },
+          {
+            icon: Terminal,
+            title: "Coding Assessment",
+            copy: "Quick-fire questions across ten-plus languages.",
+          },
+          {
+            icon: BookOpen,
+            title: "Reading Comprehension",
+            copy: "Passages, vocabulary and XP-backed quizzes.",
+          },
+        ],
+      },
+      {
+        label: "Grow",
+        items: [
+          {
+            icon: PlayCircle,
+            title: "Personalised Learning",
+            copy: "Videos and courses picked from your weakest areas.",
+          },
+          {
+            icon: Trophy,
+            title: "College Leaderboard",
+            copy: "Rank, score spread, skill radar and class standings.",
+          },
+          {
+            icon: MessagesSquare,
+            title: "Discussion Forum",
+            copy: "Campus questions, answers and peer support.",
+          },
+          {
+            icon: History,
+            title: "Practice History & Reports",
+            copy: "Every mock, GD and training session, broken down.",
+          },
+          {
+            icon: Zap,
+            title: "XP, Stars & Streaks",
+            copy: "Progress that makes practice worth coming back to.",
+          },
+          {
+            icon: Bell,
+            title: "Notifications",
+            copy: "Results, targets and updates in one inbox.",
+          },
+          {
+            icon: UserRound,
+            title: "Profile & Onboarding",
+            copy: "One setup that powers your whole preparation.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "institutions",
+    kicker: "For institutions",
+    title: "See the talent. Run the season.",
+    copy: "The intelligence and controls a placement cell needs, without the spreadsheet chase.",
+    icon: Building2,
+    count: "18 services",
+    groups: [
+      {
+        label: "Understand",
+        items: [
+          {
+            icon: GraduationCap,
+            title: "Student Intelligence",
+            copy: "Skills, readiness and eligibility in one live record.",
+          },
+          {
+            icon: UserCheck,
+            title: "Eligibility Matching",
+            copy: "Match students to drives by CGPA, backlogs and readiness.",
+          },
+          {
+            icon: Target,
+            title: "Skill-Gap Insights",
+            copy: "See which skills need intervention, by branch or batch.",
+          },
+          {
+            icon: Activity,
+            title: "Activity & Evidence",
+            copy: "Module-by-module practice history behind every score.",
+          },
+          {
+            icon: ChartColumn,
+            title: "Reports & Analytics",
+            copy: "Placement rate, CTC, recruiter mix, industry and departments.",
+          },
+        ],
+      },
+      {
+        label: "Run",
+        items: [
+          {
+            icon: UsersRound,
+            title: "Student Management",
+            copy: "Add students, bulk invite, search, filter and track.",
+          },
+          {
+            icon: Building2,
+            title: "Companies & Recruiters",
+            copy: "A full network with tiers, CTC, openings and contacts.",
+          },
+          {
+            icon: CalendarRange,
+            title: "Placement Drives",
+            copy: "Plan, run and audit every campus hiring drive.",
+          },
+          {
+            icon: Crosshair,
+            title: "Ready Pool & Shortlisting",
+            copy: "Eligible, unplaced talent ready for the next company.",
+          },
+          {
+            icon: Target,
+            title: "Launch Targets",
+            copy: "Assign practice by department or student, with deadlines.",
+          },
+          {
+            icon: Presentation,
+            title: "L&D Training",
+            copy: "Readiness by department, skill radar and classroom sessions.",
+          },
+          {
+            icon: Landmark,
+            title: "Placement Cell Workspace",
+            copy: "Roster, office hours and the cell's full remit.",
+          },
+        ],
+      },
+      {
+        label: "Connect",
+        items: [
+          {
+            icon: Search,
+            title: "AI Talent Search",
+            copy: "Ask for students by skill, score or eligibility in plain English.",
+          },
+          {
+            icon: Bot,
+            title: "Institution Chat",
+            copy: "An AI copilot for talent queries and placement decisions.",
+          },
+          {
+            icon: Bell,
+            title: "Notifications",
+            copy: "Reach students and staff with one tracked update.",
+          },
+          {
+            icon: ReceiptIndianRupee,
+            title: "Institute Billing",
+            copy: "Pay-as-you-go usage, advance and payable in one view.",
+          },
+          {
+            icon: Building2,
+            title: "Institution Profile & Onboarding",
+            copy: "Branding, logo, staff accounts and setup.",
+          },
+          {
+            icon: Download,
+            title: "Export & Print",
+            copy: "Reports and lists ready for meetings and accreditation.",
+          },
+        ],
+      },
+    ],
+  },
+];
 
 function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -174,9 +489,10 @@ function TalentBroPage() {
         <nav className="relative z-30 mx-auto flex w-full max-w-[1500px] items-center justify-between px-5 py-6 md:px-10 lg:px-14">
           <Logo />
           <div className="hidden items-center gap-9 md:flex">
-            <a href="#institutions" className="nav-link text-[13px] font-semibold">Clients</a>
+            <Link to="/clients" className="nav-link text-[13px] font-semibold">Institutions</Link>
+            <a href="#services" className="nav-link text-[13px] font-semibold">Services</a>
             <a href="#students" className="nav-link text-[13px] font-semibold">Students</a>
-            <a href="#contact" className="nav-link text-[13px] font-semibold">Pricing</a>
+            <Link to="/pricing" className="nav-link text-[13px] font-semibold">Pricing</Link>
           </div>
           <Link to="/get-started" className="cta-ink">Let&apos;s Begin</Link>
         </nav>
@@ -240,6 +556,94 @@ function TalentBroPage() {
           {[[92, "%", "student engagement"], [3, "×", "faster shortlisting"], [40, "%", "less coordination"], [1, "", "connected talent view"]].map(([value, suffix, label]) => (
             <div key={label as string} className="metric px-3 md:px-8"><div><Counter value={value as number} suffix={suffix as string} /></div><p>{label}</p></div>
           ))}
+        </div>
+      </section>
+
+      <section id="clients" aria-labelledby="clients-heading" className="client-band bg-paper px-5 py-14 text-ink md:px-10 lg:px-14">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-5 md:flex-row md:items-center md:gap-8">
+          <h2 id="clients-heading" className="sr-only">Our clients</h2>
+          <p className="client-band-label shrink-0">Trusted by <span>leading institutions</span></p>
+          <div className="client-marquee" aria-hidden="true">
+            <div className="client-marquee-track animate-marquee">
+              {[0, 1].map((group) => (
+                <div key={group} className="client-marquee-group">
+                  {[0, 1, 2, 3].map((cycle) =>
+                    clients.map((client) => (
+                      <div key={`${client.name}-${cycle}`} className="client-chip">
+                        <img src={client.logo} alt="" loading="lazy" decoding="async" width={96} height={40} />
+                        <div>
+                          <strong>{client.name}</strong>
+                          <small>{client.location}</small>
+                        </div>
+                      </div>
+                    )),
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <ul className="sr-only">
+            {clients.map((client) => <li key={client.name}>{client.name}, {client.location}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      <section id="services" className="services-section relative bg-background px-5 pb-24 pt-20 text-ink md:px-10 lg:px-14 lg:pb-32 lg:pt-28">
+        <div className="mx-auto max-w-[1400px]">
+          <Reveal className="max-w-3xl">
+            <p className="eyebrow">Services</p>
+            <h2 className="section-title">Every service.<br /><span className="text-ink/35">Both sides of placement.</span></h2>
+            <p className="section-copy">Students get a complete preparation stack. Placement cells get the intelligence and controls to run the season — all on one connected record.</p>
+          </Reveal>
+
+          <div className="mt-14 grid items-start gap-4 lg:grid-cols-2">
+            {serviceSides.map((side) => {
+              const SideIcon = side.icon;
+              return (
+                <Reveal key={side.id} className="service-panel">
+                  <div className="service-panel-head">
+                    <span className="service-panel-icon"><SideIcon className="size-5" /></span>
+                    <div className="min-w-0">
+                      <p className="service-panel-kicker">{side.kicker}</p>
+                      <h3>{side.title}</h3>
+                      <p className="service-panel-desc">{side.copy}</p>
+                    </div>
+                    <span className="service-panel-count">{side.count}</span>
+                  </div>
+                  <div className="service-groups">
+                    {side.groups.map((group) => (
+                      <div key={group.label} className="service-group">
+                        <p className="service-group-label">{group.label}</p>
+                        <ul className="service-list">
+                          {group.items.map((item) => {
+                            const ItemIcon = item.icon;
+                            return (
+                              <li key={item.title} className="service-item">
+                                <span className="service-item-icon"><ItemIcon className="size-3.5" /></span>
+                                <div className="min-w-0">
+                                  <strong>{item.title}</strong>
+                                  <small>{item.copy}</small>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+
+          <Reveal className="service-foot">
+            <p><span>One connected record.</span> Practice, scores and drives update the same student profile — visible to the student and the placement cell.</p>
+            <div className="service-foot-chips">
+              <span>AI-assisted</span>
+              <span>Live readiness</span>
+              <span>Role-based access</span>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -349,11 +753,11 @@ function TalentBroPage() {
           <span className="mx-auto grid size-12 place-items-center rounded-full border border-paper/20"><Sparkles className="size-5" /></span>
           <h2 className="mt-8 text-4xl font-semibold leading-tight md:text-6xl lg:text-7xl">Make every student<br />placement-ready.</h2>
           <p className="mx-auto mt-6 max-w-xl text-paper/55">See how TalentBro can turn your campus talent into a clear, confident, recruiter-ready pipeline.</p>
-          <a href="mailto:namaste@talentbro.in" className="cta-light cta-large group mt-9">Contact Sales <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></a>
+          <Link to="/clients/apply" className="cta-light cta-large group mt-9">Contact Sales <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></Link>
         </Reveal>
       </section>
 
-      <footer className="bg-ink px-5 pb-8 text-paper md:px-10 lg:px-14"><div className="mx-auto flex max-w-[1400px] flex-col items-center justify-between gap-5 border-t border-paper/10 pt-8 sm:flex-row"><Logo /><div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs"><Link to="/tac" className="text-paper/45 transition-colors hover:text-paper">Terms &amp; Conditions</Link><Link to="/privacy-policy" className="text-paper/45 transition-colors hover:text-paper">Privacy Policy</Link><p className="text-paper/35">© 2026 TalentBro. Built for better placements.</p></div></div></footer>
+      <ClientsFooter />
     </main>
   );
 }

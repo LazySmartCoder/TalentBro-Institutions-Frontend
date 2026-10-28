@@ -287,6 +287,26 @@ export async function changePassword(oldPassword: string, newPassword: string): 
   });
 }
 
+export async function requestPasswordReset(email: string): Promise<{ detail: string }> {
+  await ensureCsrfCookie();
+  return apiFetch<{ ok: boolean; detail: string }>("/api/auth/forgot-password/", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(
+  uid: string,
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  await ensureCsrfCookie();
+  await apiFetch<{ ok: boolean }>("/api/auth/reset-password/", {
+    method: "POST",
+    body: JSON.stringify({ uid, token, new_password: newPassword }),
+  });
+}
+
 export async function logout(): Promise<void> {
   await ensureCsrfCookie();
   await apiFetch<{ ok: boolean }>("/api/auth/logout/", { method: "POST" });
@@ -1255,6 +1275,261 @@ export async function basicMathList(
 export async function basicMathDetail(sessionId: string): Promise<BasicMathTrainingSession> {
   const data = await apiFetch<{ session: BasicMathTrainingSession }>(
     `/api/basic-math/${sessionId}/`,
+  );
+  return data.session;
+}
+
+// ── Coding Assessment ────────────────────────────────────────────────────
+//
+// One quick-fire coding question per chat, pinned to a single language.
+// There is no "surprise me" mode — a language is always required.
+
+export type CodingAssessmentLanguage =
+  | "python"
+  | "c"
+  | "cpp"
+  | "r"
+  | "go"
+  | "java"
+  | "javascript"
+  | "php"
+  | "rust"
+  | "sql"
+  | "swift"
+  | "julia";
+
+export type CodingAssessmentStatus = "active" | "solved" | "gave_up";
+
+export type CodingAssessmentSession = {
+  id: string;
+  title: string;
+  category: CodingAssessmentLanguage;
+  category_label: string;
+  question: string;
+  answer: string;
+  solution: string;
+  status: CodingAssessmentStatus;
+  attempts: number;
+  hints_used: number;
+  points_awarded: number;
+  star_rating: number;
+  solved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  transcript?: {
+    role: "user" | "assistant";
+    content: string;
+    created_at: string;
+  }[];
+};
+
+export type CodingAssessmentStartResponse = {
+  session: CodingAssessmentSession;
+  message: string;
+};
+
+export type CodingAssessmentChatResponse = {
+  session_id: string;
+  reply: string;
+  solved: boolean;
+  gave_up: boolean;
+  closed: boolean;
+  points_awarded: number;
+  star_rating: number;
+};
+
+export async function codingAssessmentStart(body: {
+  category: CodingAssessmentLanguage;
+}): Promise<CodingAssessmentStartResponse> {
+  return apiFetch<CodingAssessmentStartResponse>("/api/coding-assessment/start/", {
+    method: "POST",
+    timeoutMs: LONG_TIMEOUT_MS,
+    body: JSON.stringify({ category: body.category }),
+  });
+}
+
+export async function codingAssessmentChat(
+  sessionId: string,
+  message: string,
+): Promise<CodingAssessmentChatResponse> {
+  return apiFetch<CodingAssessmentChatResponse>("/api/coding-assessment/chat/", {
+    method: "POST",
+    timeoutMs: LONG_TIMEOUT_MS,
+    body: JSON.stringify({ session_id: sessionId, message }),
+  });
+}
+
+export async function codingAssessmentSkip(sessionId?: string): Promise<{
+  ok: boolean;
+  skipped: string | number;
+  was_active?: boolean;
+}> {
+  return apiFetch("/api/coding-assessment/skip/", {
+    method: "POST",
+    body: JSON.stringify(sessionId ? { session_id: sessionId } : {}),
+  });
+}
+
+// Fire-and-forget skip that keeps working when the tab is closed, so leaving
+// mid-question still marks the unanswered question as skipped/gave-up.
+export function codingAssessmentSkipKeepalive(sessionId: string): void {
+  const headers = new Headers();
+  headers.set("Accept", "application/json");
+  headers.set("Content-Type", "application/json");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
+  if (csrfToken) headers.set("X-CSRFToken", csrfToken);
+  try {
+    void fetch(`${API_BASE}/api/coding-assessment/skip/`, {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+      headers,
+      body: JSON.stringify({ session_id: sessionId }),
+    }).catch(() => {});
+  } catch {
+    // The tab is going away; this is a final best-effort flush.
+  }
+}
+
+export async function codingAssessmentList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<HistoryPage<CodingAssessmentSession, PracticeRollupRow>> {
+  const search = historyQuery(params);
+  return apiFetch<HistoryPage<CodingAssessmentSession, PracticeRollupRow>>(
+    `/api/coding-assessment/history/${search}`,
+  );
+}
+
+export async function codingAssessmentDetail(sessionId: string): Promise<CodingAssessmentSession> {
+  const data = await apiFetch<{ session: CodingAssessmentSession }>(
+    `/api/coding-assessment/${sessionId}/`,
+  );
+  return data.session;
+}
+
+// ── Reading Comprehension ───────────────────────────────────────────────
+
+export type ReadingComprehensionStatus = "active" | "solved" | "gave_up";
+
+export type ReadingVocabWord = {
+  word: string;
+  meaning: string;
+};
+
+export type ReadingQuestion = {
+  question: string;
+  options: string[];
+  answer_index: number;
+  explanation: string;
+};
+
+export type ReadingComprehensionSession = {
+  id: string;
+  title: string;
+  category: string;
+  passage: string;
+  vocab: ReadingVocabWord[];
+  questions: ReadingQuestion[];
+  answers: number[];
+  correct_count: number;
+  status: ReadingComprehensionStatus;
+  points_awarded: number;
+  star_rating: number;
+  solved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  fallback_used?: boolean;
+};
+
+export type ReadingComprehensionStartResponse = {
+  session: ReadingComprehensionSession;
+  message: string;
+};
+
+export type ReadingComprehensionSubmitResponse = {
+  session: ReadingComprehensionSession;
+  correct: number;
+  total: number;
+  points_awarded: number;
+  star_rating: number;
+};
+
+export type ReadingComprehensionSummary = {
+  total_rounds: number;
+  solved: number;
+  gave_up: number;
+  total_points: number;
+};
+
+export async function readingStart(): Promise<ReadingComprehensionStartResponse> {
+  return apiFetch<ReadingComprehensionStartResponse>("/api/reading-comprehension/start/", {
+    method: "POST",
+    timeoutMs: LONG_TIMEOUT_MS,
+    body: JSON.stringify({}),
+  });
+}
+
+export async function readingSubmit(
+  sessionId: string,
+  answers: number[],
+): Promise<ReadingComprehensionSubmitResponse> {
+  return apiFetch<ReadingComprehensionSubmitResponse>("/api/reading-comprehension/submit/", {
+    method: "POST",
+    timeoutMs: LONG_TIMEOUT_MS,
+    body: JSON.stringify({ session_id: sessionId, answers }),
+  });
+}
+
+export async function readingSkip(sessionId?: string): Promise<{
+  skipped: string[];
+}> {
+  return apiFetch("/api/reading-comprehension/skip/", {
+    method: "POST",
+    body: JSON.stringify(sessionId ? { session_id: sessionId } : {}),
+  });
+}
+
+// Fire-and-forget skip that keeps working when the tab is closed, so leaving
+// mid-passage still marks the unanswered round as skipped/gave-up.
+export function readingSkipKeepalive(sessionId: string): void {
+  const headers = new Headers();
+  headers.set("Accept", "application/json");
+  headers.set("Content-Type", "application/json");
+  const csrfToken = cachedCsrfToken ?? readCookie("csrftoken");
+  if (csrfToken) headers.set("X-CSRFToken", csrfToken);
+  try {
+    void fetch(`${API_BASE}/api/reading-comprehension/skip/`, {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+      headers,
+      body: JSON.stringify({ session_id: sessionId }),
+    }).catch(() => {});
+  } catch {
+    // The tab is going away; this is a final best-effort flush.
+  }
+}
+
+export async function readingList(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<
+  HistoryPage<ReadingComprehensionSession, PracticeRollupRow> & {
+    summary?: ReadingComprehensionSummary;
+  }
+> {
+  const search = historyQuery(params);
+  return apiFetch(`/api/reading-comprehension/history/${search}`);
+}
+
+export async function readingDetail(sessionId: string): Promise<ReadingComprehensionSession> {
+  const data = await apiFetch<{ session: ReadingComprehensionSession }>(
+    `/api/reading-comprehension/${sessionId}/`,
   );
   return data.session;
 }
@@ -2723,6 +2998,12 @@ export type StudentTargetProgress = {
    * when in fact it has no audience yet.
    */
   percent_met: number | null;
+  /**
+   * Who has already met every number on the target. A student in here is no
+   * longer held by it, so the launch form lets them be put into the next
+   * target while this one simply runs to its deadline.
+   */
+  met_candidate_ids: string[];
 };
 
 /** One target on the officer's launch board. */
@@ -2749,8 +3030,8 @@ export type StudentTarget = {
   progress: StudentTargetProgress;
   /**
    * The students attached individually (the department branch of the audience
-   * is re-derivable from the roster). The launch form checks "one open target
-   * per student" against these before it will submit.
+   * is re-derivable from the roster). The launch form checks "one unfinished
+   * target per student" against these before it will submit.
    */
   candidate_ids: string[];
   created_by: string;

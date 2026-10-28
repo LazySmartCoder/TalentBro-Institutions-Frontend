@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
@@ -306,9 +306,12 @@ function AuthPage() {
               {mode === "login" ? (
                 <>
                   Forgot your password?{" "}
-                  <span className="cursor-pointer underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground">
+                  <Link
+                    to="/forgot-password"
+                    className="cursor-pointer underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground"
+                  >
                     Reset it
-                  </span>
+                  </Link>
                 </>
               ) : (
                 "By creating an account, you agree to our Terms & Privacy Policy."

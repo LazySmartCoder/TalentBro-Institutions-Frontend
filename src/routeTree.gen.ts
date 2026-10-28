@@ -11,22 +11,26 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CandidateRouteRouteImport } from './routes/candidate/route'
+import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DebugCompaniesRouteImport } from './routes/debug-companies'
 import { Route as DowntimeRouteImport } from './routes/downtime'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GetStartedRouteImport } from './routes/get-started'
 import { Route as LogoutRouteImport } from './routes/logout'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SandboxRouteImport } from './routes/sandbox'
 import { Route as TacRouteImport } from './routes/tac'
 import { Route as CandidateAplrTrainingRouteImport } from './routes/candidate/aplr-training'
 import { Route as CandidateAuthRouteImport } from './routes/candidate/auth'
 import { Route as CandidateBasicMathTrainingRouteImport } from './routes/candidate/basic-math-training'
 import { Route as CandidateChatRouteImport } from './routes/candidate/chat'
+import { Route as CandidateCodingAssessmentRouteImport } from './routes/candidate/coding-assessment'
 import { Route as CandidateCommunicationTrainingRouteImport } from './routes/candidate/communication-training'
 import { Route as CandidateCommunicationTrainingHistoryRouteImport } from './routes/candidate/communication-training-history'
 import { Route as CandidateCommunicationTrainingTipsRouteImport } from './routes/candidate/communication-training-tips'
 import { Route as CandidateCoursesRouteImport } from './routes/candidate/courses'
-import { Route as CandidateDailyTargetsRouteImport } from './routes/candidate/daily-targets'
 import { Route as CandidateDiscussionForumRouteImport } from './routes/candidate/discussion-forum'
 import { Route as CandidateDsaTrainingRouteImport } from './routes/candidate/dsa-training'
 import { Route as CandidateEnglishTrainingRouteImport } from './routes/candidate/english-training'
@@ -42,6 +46,7 @@ import { Route as CandidateMockInterviewHistoryRouteImport } from './routes/cand
 import { Route as CandidateNotificationsRouteImport } from './routes/candidate/notifications'
 import { Route as CandidateOnboardingRouteImport } from './routes/candidate/onboarding'
 import { Route as CandidateProfileRouteImport } from './routes/candidate/profile'
+import { Route as CandidateReadingComprehensionRouteImport } from './routes/candidate/reading-comprehension'
 import { Route as CandidateResumeBuilderRouteImport } from './routes/candidate/resume-builder'
 import { Route as CandidateRoadmapDrillRouteImport } from './routes/candidate/roadmap-drill'
 import { Route as CandidateSelfTrainingRouteImport } from './routes/candidate/self-training'
@@ -67,6 +72,7 @@ import { Route as ClientPlacementCellRouteImport } from './routes/client/placeme
 import { Route as ClientProfileRouteImport } from './routes/client/profile'
 import { Route as ClientReportsRouteImport } from './routes/client/reports'
 import { Route as ClientStudentsRouteImport } from './routes/client/students'
+import { Route as ClientsApplyRouteImport } from './routes/clients_.apply'
 import { Route as CommunicationTrainingReportSessionIdRouteImport } from './routes/communication-training-report.$sessionId'
 import { Route as CompanyDrivesCompanyIdRouteImport } from './routes/company-drives_.$companyId'
 import { Route as EnglishTrainingReportSessionIdRouteImport } from './routes/english-training-report.$sessionId'
@@ -89,6 +95,11 @@ const CandidateRouteRoute = CandidateRouteRouteImport.update({
   path: '/candidate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DebugCompaniesRoute = DebugCompaniesRouteImport.update({
   id: '/debug-companies',
   path: '/debug-companies',
@@ -97,6 +108,11 @@ const DebugCompaniesRoute = DebugCompaniesRouteImport.update({
 const DowntimeRoute = DowntimeRouteImport.update({
   id: '/downtime',
   path: '/downtime',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GetStartedRoute = GetStartedRouteImport.update({
@@ -109,9 +125,19 @@ const LogoutRoute = LogoutRouteImport.update({
   path: '/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   id: '/privacy-policy',
   path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SandboxRoute = SandboxRouteImport.update({
@@ -145,6 +171,12 @@ const CandidateChatRoute = CandidateChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => CandidateRouteRoute,
 } as any)
+const CandidateCodingAssessmentRoute =
+  CandidateCodingAssessmentRouteImport.update({
+    id: '/coding-assessment',
+    path: '/coding-assessment',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
 const CandidateCommunicationTrainingRoute =
   CandidateCommunicationTrainingRouteImport.update({
     id: '/communication-training',
@@ -166,11 +198,6 @@ const CandidateCommunicationTrainingTipsRoute =
 const CandidateCoursesRoute = CandidateCoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
-  getParentRoute: () => CandidateRouteRoute,
-} as any)
-const CandidateDailyTargetsRoute = CandidateDailyTargetsRouteImport.update({
-  id: '/daily-targets',
-  path: '/daily-targets',
   getParentRoute: () => CandidateRouteRoute,
 } as any)
 const CandidateDiscussionForumRoute =
@@ -253,6 +280,12 @@ const CandidateProfileRoute = CandidateProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => CandidateRouteRoute,
 } as any)
+const CandidateReadingComprehensionRoute =
+  CandidateReadingComprehensionRouteImport.update({
+    id: '/reading-comprehension',
+    path: '/reading-comprehension',
+    getParentRoute: () => CandidateRouteRoute,
+  } as any)
 const CandidateResumeBuilderRoute = CandidateResumeBuilderRouteImport.update({
   id: '/resume-builder',
   path: '/resume-builder',
@@ -380,6 +413,11 @@ const ClientStudentsRoute = ClientStudentsRouteImport.update({
   path: '/client/students',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientsApplyRoute = ClientsApplyRouteImport.update({
+  id: '/clients_/apply',
+  path: '/clients/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommunicationTrainingReportSessionIdRoute =
   CommunicationTrainingReportSessionIdRouteImport.update({
     id: '/communication-training-report/$sessionId',
@@ -446,22 +484,26 @@ const StudentModuleStudentIdModuleKeyRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/clients': typeof ClientsRoute
   '/debug-companies': typeof DebugCompaniesRoute
   '/downtime': typeof DowntimeRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
+  '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sandbox': typeof SandboxRoute
   '/tac': typeof TacRoute
   '/candidate/aplr-training': typeof CandidateAplrTrainingRoute
   '/candidate/auth': typeof CandidateAuthRoute
   '/candidate/basic-math-training': typeof CandidateBasicMathTrainingRoute
   '/candidate/chat': typeof CandidateChatRoute
+  '/candidate/coding-assessment': typeof CandidateCodingAssessmentRoute
   '/candidate/communication-training': typeof CandidateCommunicationTrainingRoute
   '/candidate/communication-training-history': typeof CandidateCommunicationTrainingHistoryRoute
   '/candidate/communication-training-tips': typeof CandidateCommunicationTrainingTipsRoute
   '/candidate/courses': typeof CandidateCoursesRoute
-  '/candidate/daily-targets': typeof CandidateDailyTargetsRoute
   '/candidate/discussion-forum': typeof CandidateDiscussionForumRoute
   '/candidate/dsa-training': typeof CandidateDsaTrainingRoute
   '/candidate/english-training': typeof CandidateEnglishTrainingRoute
@@ -477,6 +519,7 @@ export interface FileRoutesByFullPath {
   '/candidate/notifications': typeof CandidateNotificationsRoute
   '/candidate/onboarding': typeof CandidateOnboardingRoute
   '/candidate/profile': typeof CandidateProfileRoute
+  '/candidate/reading-comprehension': typeof CandidateReadingComprehensionRoute
   '/candidate/resume-builder': typeof CandidateResumeBuilderRoute
   '/candidate/roadmap-drill': typeof CandidateRoadmapDrillRoute
   '/candidate/self-training': typeof CandidateSelfTrainingRoute
@@ -502,6 +545,7 @@ export interface FileRoutesByFullPath {
   '/client/profile': typeof ClientProfileRoute
   '/client/reports': typeof ClientReportsRoute
   '/client/students': typeof ClientStudentsRoute
+  '/clients/apply': typeof ClientsApplyRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
   '/company-drives/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
@@ -517,22 +561,26 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/clients': typeof ClientsRoute
   '/debug-companies': typeof DebugCompaniesRoute
   '/downtime': typeof DowntimeRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
+  '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sandbox': typeof SandboxRoute
   '/tac': typeof TacRoute
   '/candidate/aplr-training': typeof CandidateAplrTrainingRoute
   '/candidate/auth': typeof CandidateAuthRoute
   '/candidate/basic-math-training': typeof CandidateBasicMathTrainingRoute
   '/candidate/chat': typeof CandidateChatRoute
+  '/candidate/coding-assessment': typeof CandidateCodingAssessmentRoute
   '/candidate/communication-training': typeof CandidateCommunicationTrainingRoute
   '/candidate/communication-training-history': typeof CandidateCommunicationTrainingHistoryRoute
   '/candidate/communication-training-tips': typeof CandidateCommunicationTrainingTipsRoute
   '/candidate/courses': typeof CandidateCoursesRoute
-  '/candidate/daily-targets': typeof CandidateDailyTargetsRoute
   '/candidate/discussion-forum': typeof CandidateDiscussionForumRoute
   '/candidate/dsa-training': typeof CandidateDsaTrainingRoute
   '/candidate/english-training': typeof CandidateEnglishTrainingRoute
@@ -548,6 +596,7 @@ export interface FileRoutesByTo {
   '/candidate/notifications': typeof CandidateNotificationsRoute
   '/candidate/onboarding': typeof CandidateOnboardingRoute
   '/candidate/profile': typeof CandidateProfileRoute
+  '/candidate/reading-comprehension': typeof CandidateReadingComprehensionRoute
   '/candidate/resume-builder': typeof CandidateResumeBuilderRoute
   '/candidate/roadmap-drill': typeof CandidateRoadmapDrillRoute
   '/candidate/self-training': typeof CandidateSelfTrainingRoute
@@ -573,6 +622,7 @@ export interface FileRoutesByTo {
   '/client/profile': typeof ClientProfileRoute
   '/client/reports': typeof ClientReportsRoute
   '/client/students': typeof ClientStudentsRoute
+  '/clients/apply': typeof ClientsApplyRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
   '/company-drives/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
@@ -589,22 +639,26 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/candidate': typeof CandidateRouteRouteWithChildren
+  '/clients': typeof ClientsRoute
   '/debug-companies': typeof DebugCompaniesRoute
   '/downtime': typeof DowntimeRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/get-started': typeof GetStartedRoute
   '/logout': typeof LogoutRoute
+  '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sandbox': typeof SandboxRoute
   '/tac': typeof TacRoute
   '/candidate/aplr-training': typeof CandidateAplrTrainingRoute
   '/candidate/auth': typeof CandidateAuthRoute
   '/candidate/basic-math-training': typeof CandidateBasicMathTrainingRoute
   '/candidate/chat': typeof CandidateChatRoute
+  '/candidate/coding-assessment': typeof CandidateCodingAssessmentRoute
   '/candidate/communication-training': typeof CandidateCommunicationTrainingRoute
   '/candidate/communication-training-history': typeof CandidateCommunicationTrainingHistoryRoute
   '/candidate/communication-training-tips': typeof CandidateCommunicationTrainingTipsRoute
   '/candidate/courses': typeof CandidateCoursesRoute
-  '/candidate/daily-targets': typeof CandidateDailyTargetsRoute
   '/candidate/discussion-forum': typeof CandidateDiscussionForumRoute
   '/candidate/dsa-training': typeof CandidateDsaTrainingRoute
   '/candidate/english-training': typeof CandidateEnglishTrainingRoute
@@ -620,6 +674,7 @@ export interface FileRoutesById {
   '/candidate/notifications': typeof CandidateNotificationsRoute
   '/candidate/onboarding': typeof CandidateOnboardingRoute
   '/candidate/profile': typeof CandidateProfileRoute
+  '/candidate/reading-comprehension': typeof CandidateReadingComprehensionRoute
   '/candidate/resume-builder': typeof CandidateResumeBuilderRoute
   '/candidate/roadmap-drill': typeof CandidateRoadmapDrillRoute
   '/candidate/self-training': typeof CandidateSelfTrainingRoute
@@ -645,6 +700,7 @@ export interface FileRoutesById {
   '/client/profile': typeof ClientProfileRoute
   '/client/reports': typeof ClientReportsRoute
   '/client/students': typeof ClientStudentsRoute
+  '/clients_/apply': typeof ClientsApplyRoute
   '/communication-training-report/$sessionId': typeof CommunicationTrainingReportSessionIdRoute
   '/company-drives_/$companyId': typeof CompanyDrivesCompanyIdRoute
   '/english-training-report/$sessionId': typeof EnglishTrainingReportSessionIdRoute
@@ -662,22 +718,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/candidate'
+    | '/clients'
     | '/debug-companies'
     | '/downtime'
+    | '/forgot-password'
     | '/get-started'
     | '/logout'
+    | '/pricing'
     | '/privacy-policy'
+    | '/reset-password'
     | '/sandbox'
     | '/tac'
     | '/candidate/aplr-training'
     | '/candidate/auth'
     | '/candidate/basic-math-training'
     | '/candidate/chat'
+    | '/candidate/coding-assessment'
     | '/candidate/communication-training'
     | '/candidate/communication-training-history'
     | '/candidate/communication-training-tips'
     | '/candidate/courses'
-    | '/candidate/daily-targets'
     | '/candidate/discussion-forum'
     | '/candidate/dsa-training'
     | '/candidate/english-training'
@@ -693,6 +753,7 @@ export interface FileRouteTypes {
     | '/candidate/notifications'
     | '/candidate/onboarding'
     | '/candidate/profile'
+    | '/candidate/reading-comprehension'
     | '/candidate/resume-builder'
     | '/candidate/roadmap-drill'
     | '/candidate/self-training'
@@ -718,6 +779,7 @@ export interface FileRouteTypes {
     | '/client/profile'
     | '/client/reports'
     | '/client/students'
+    | '/clients/apply'
     | '/communication-training-report/$sessionId'
     | '/company-drives/$companyId'
     | '/english-training-report/$sessionId'
@@ -733,22 +795,26 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/candidate'
+    | '/clients'
     | '/debug-companies'
     | '/downtime'
+    | '/forgot-password'
     | '/get-started'
     | '/logout'
+    | '/pricing'
     | '/privacy-policy'
+    | '/reset-password'
     | '/sandbox'
     | '/tac'
     | '/candidate/aplr-training'
     | '/candidate/auth'
     | '/candidate/basic-math-training'
     | '/candidate/chat'
+    | '/candidate/coding-assessment'
     | '/candidate/communication-training'
     | '/candidate/communication-training-history'
     | '/candidate/communication-training-tips'
     | '/candidate/courses'
-    | '/candidate/daily-targets'
     | '/candidate/discussion-forum'
     | '/candidate/dsa-training'
     | '/candidate/english-training'
@@ -764,6 +830,7 @@ export interface FileRouteTypes {
     | '/candidate/notifications'
     | '/candidate/onboarding'
     | '/candidate/profile'
+    | '/candidate/reading-comprehension'
     | '/candidate/resume-builder'
     | '/candidate/roadmap-drill'
     | '/candidate/self-training'
@@ -789,6 +856,7 @@ export interface FileRouteTypes {
     | '/client/profile'
     | '/client/reports'
     | '/client/students'
+    | '/clients/apply'
     | '/communication-training-report/$sessionId'
     | '/company-drives/$companyId'
     | '/english-training-report/$sessionId'
@@ -804,22 +872,26 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/candidate'
+    | '/clients'
     | '/debug-companies'
     | '/downtime'
+    | '/forgot-password'
     | '/get-started'
     | '/logout'
+    | '/pricing'
     | '/privacy-policy'
+    | '/reset-password'
     | '/sandbox'
     | '/tac'
     | '/candidate/aplr-training'
     | '/candidate/auth'
     | '/candidate/basic-math-training'
     | '/candidate/chat'
+    | '/candidate/coding-assessment'
     | '/candidate/communication-training'
     | '/candidate/communication-training-history'
     | '/candidate/communication-training-tips'
     | '/candidate/courses'
-    | '/candidate/daily-targets'
     | '/candidate/discussion-forum'
     | '/candidate/dsa-training'
     | '/candidate/english-training'
@@ -835,6 +907,7 @@ export interface FileRouteTypes {
     | '/candidate/notifications'
     | '/candidate/onboarding'
     | '/candidate/profile'
+    | '/candidate/reading-comprehension'
     | '/candidate/resume-builder'
     | '/candidate/roadmap-drill'
     | '/candidate/self-training'
@@ -860,6 +933,7 @@ export interface FileRouteTypes {
     | '/client/profile'
     | '/client/reports'
     | '/client/students'
+    | '/clients_/apply'
     | '/communication-training-report/$sessionId'
     | '/company-drives_/$companyId'
     | '/english-training-report/$sessionId'
@@ -876,11 +950,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CandidateRouteRoute: typeof CandidateRouteRouteWithChildren
+  ClientsRoute: typeof ClientsRoute
   DebugCompaniesRoute: typeof DebugCompaniesRoute
   DowntimeRoute: typeof DowntimeRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   GetStartedRoute: typeof GetStartedRoute
   LogoutRoute: typeof LogoutRoute
+  PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SandboxRoute: typeof SandboxRoute
   TacRoute: typeof TacRoute
   ClientAuthRoute: typeof ClientAuthRoute
@@ -901,6 +979,7 @@ export interface RootRouteChildren {
   ClientProfileRoute: typeof ClientProfileRoute
   ClientReportsRoute: typeof ClientReportsRoute
   ClientStudentsRoute: typeof ClientStudentsRoute
+  ClientsApplyRoute: typeof ClientsApplyRoute
   CommunicationTrainingReportSessionIdRoute: typeof CommunicationTrainingReportSessionIdRoute
   CompanyDrivesCompanyIdRoute: typeof CompanyDrivesCompanyIdRoute
   EnglishTrainingReportSessionIdRoute: typeof EnglishTrainingReportSessionIdRoute
@@ -930,6 +1009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidateRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/debug-companies': {
       id: '/debug-companies'
       path: '/debug-companies'
@@ -942,6 +1028,13 @@ declare module '@tanstack/react-router' {
       path: '/downtime'
       fullPath: '/downtime'
       preLoaderRoute: typeof DowntimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/get-started': {
@@ -958,11 +1051,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy-policy': {
       id: '/privacy-policy'
       path: '/privacy-policy'
       fullPath: '/privacy-policy'
       preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sandbox': {
@@ -1007,6 +1114,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidateChatRouteImport
       parentRoute: typeof CandidateRouteRoute
     }
+    '/candidate/coding-assessment': {
+      id: '/candidate/coding-assessment'
+      path: '/coding-assessment'
+      fullPath: '/candidate/coding-assessment'
+      preLoaderRoute: typeof CandidateCodingAssessmentRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
     '/candidate/communication-training': {
       id: '/candidate/communication-training'
       path: '/communication-training'
@@ -1033,13 +1147,6 @@ declare module '@tanstack/react-router' {
       path: '/courses'
       fullPath: '/candidate/courses'
       preLoaderRoute: typeof CandidateCoursesRouteImport
-      parentRoute: typeof CandidateRouteRoute
-    }
-    '/candidate/daily-targets': {
-      id: '/candidate/daily-targets'
-      path: '/daily-targets'
-      fullPath: '/candidate/daily-targets'
-      preLoaderRoute: typeof CandidateDailyTargetsRouteImport
       parentRoute: typeof CandidateRouteRoute
     }
     '/candidate/discussion-forum': {
@@ -1145,6 +1252,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/candidate/profile'
       preLoaderRoute: typeof CandidateProfileRouteImport
+      parentRoute: typeof CandidateRouteRoute
+    }
+    '/candidate/reading-comprehension': {
+      id: '/candidate/reading-comprehension'
+      path: '/reading-comprehension'
+      fullPath: '/candidate/reading-comprehension'
+      preLoaderRoute: typeof CandidateReadingComprehensionRouteImport
       parentRoute: typeof CandidateRouteRoute
     }
     '/candidate/resume-builder': {
@@ -1322,6 +1436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientStudentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clients_/apply': {
+      id: '/clients_/apply'
+      path: '/clients/apply'
+      fullPath: '/clients/apply'
+      preLoaderRoute: typeof ClientsApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/communication-training-report/$sessionId': {
       id: '/communication-training-report/$sessionId'
       path: '/communication-training-report/$sessionId'
@@ -1407,11 +1528,11 @@ interface CandidateRouteRouteChildren {
   CandidateAuthRoute: typeof CandidateAuthRoute
   CandidateBasicMathTrainingRoute: typeof CandidateBasicMathTrainingRoute
   CandidateChatRoute: typeof CandidateChatRoute
+  CandidateCodingAssessmentRoute: typeof CandidateCodingAssessmentRoute
   CandidateCommunicationTrainingRoute: typeof CandidateCommunicationTrainingRoute
   CandidateCommunicationTrainingHistoryRoute: typeof CandidateCommunicationTrainingHistoryRoute
   CandidateCommunicationTrainingTipsRoute: typeof CandidateCommunicationTrainingTipsRoute
   CandidateCoursesRoute: typeof CandidateCoursesRoute
-  CandidateDailyTargetsRoute: typeof CandidateDailyTargetsRoute
   CandidateDiscussionForumRoute: typeof CandidateDiscussionForumRoute
   CandidateDsaTrainingRoute: typeof CandidateDsaTrainingRoute
   CandidateEnglishTrainingRoute: typeof CandidateEnglishTrainingRoute
@@ -1427,6 +1548,7 @@ interface CandidateRouteRouteChildren {
   CandidateNotificationsRoute: typeof CandidateNotificationsRoute
   CandidateOnboardingRoute: typeof CandidateOnboardingRoute
   CandidateProfileRoute: typeof CandidateProfileRoute
+  CandidateReadingComprehensionRoute: typeof CandidateReadingComprehensionRoute
   CandidateResumeBuilderRoute: typeof CandidateResumeBuilderRoute
   CandidateRoadmapDrillRoute: typeof CandidateRoadmapDrillRoute
   CandidateSelfTrainingRoute: typeof CandidateSelfTrainingRoute
@@ -1441,13 +1563,13 @@ const CandidateRouteRouteChildren: CandidateRouteRouteChildren = {
   CandidateAuthRoute: CandidateAuthRoute,
   CandidateBasicMathTrainingRoute: CandidateBasicMathTrainingRoute,
   CandidateChatRoute: CandidateChatRoute,
+  CandidateCodingAssessmentRoute: CandidateCodingAssessmentRoute,
   CandidateCommunicationTrainingRoute: CandidateCommunicationTrainingRoute,
   CandidateCommunicationTrainingHistoryRoute:
     CandidateCommunicationTrainingHistoryRoute,
   CandidateCommunicationTrainingTipsRoute:
     CandidateCommunicationTrainingTipsRoute,
   CandidateCoursesRoute: CandidateCoursesRoute,
-  CandidateDailyTargetsRoute: CandidateDailyTargetsRoute,
   CandidateDiscussionForumRoute: CandidateDiscussionForumRoute,
   CandidateDsaTrainingRoute: CandidateDsaTrainingRoute,
   CandidateEnglishTrainingRoute: CandidateEnglishTrainingRoute,
@@ -1463,6 +1585,7 @@ const CandidateRouteRouteChildren: CandidateRouteRouteChildren = {
   CandidateNotificationsRoute: CandidateNotificationsRoute,
   CandidateOnboardingRoute: CandidateOnboardingRoute,
   CandidateProfileRoute: CandidateProfileRoute,
+  CandidateReadingComprehensionRoute: CandidateReadingComprehensionRoute,
   CandidateResumeBuilderRoute: CandidateResumeBuilderRoute,
   CandidateRoadmapDrillRoute: CandidateRoadmapDrillRoute,
   CandidateSelfTrainingRoute: CandidateSelfTrainingRoute,
@@ -1479,11 +1602,15 @@ const CandidateRouteRouteWithChildren = CandidateRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CandidateRouteRoute: CandidateRouteRouteWithChildren,
+  ClientsRoute: ClientsRoute,
   DebugCompaniesRoute: DebugCompaniesRoute,
   DowntimeRoute: DowntimeRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   GetStartedRoute: GetStartedRoute,
   LogoutRoute: LogoutRoute,
+  PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SandboxRoute: SandboxRoute,
   TacRoute: TacRoute,
   ClientAuthRoute: ClientAuthRoute,
@@ -1504,6 +1631,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientProfileRoute: ClientProfileRoute,
   ClientReportsRoute: ClientReportsRoute,
   ClientStudentsRoute: ClientStudentsRoute,
+  ClientsApplyRoute: ClientsApplyRoute,
   CommunicationTrainingReportSessionIdRoute:
     CommunicationTrainingReportSessionIdRoute,
   CompanyDrivesCompanyIdRoute: CompanyDrivesCompanyIdRoute,
