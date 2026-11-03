@@ -92,7 +92,7 @@ function PricingPage() {
                   Approx.
                 </span>
                 <strong className="text-5xl font-semibold tracking-[-0.04em] text-ink">
-                  ₹2,00,000
+                  ₹1,70,000
                 </strong>
                 <span className="pb-1.5 text-sm text-muted-foreground">per year</span>
               </div>

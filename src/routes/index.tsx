@@ -494,7 +494,10 @@ function TalentBroPage() {
             <a href="#students" className="nav-link text-[13px] font-semibold">Students</a>
             <Link to="/pricing" className="nav-link text-[13px] font-semibold">Pricing</Link>
           </div>
-          <Link to="/get-started" className="cta-ink">Let&apos;s Begin</Link>
+          <div className="flex items-center gap-2">
+            <a href="https://demo.talentbro.in" className="cta-ghost" target="_blank" rel="noopener noreferrer">Demo</a>
+            <Link to="/get-started" className="cta-ink">Let&apos;s Begin</Link>
+          </div>
         </nav>
 
         <div className="hero-curves" aria-hidden="true">
